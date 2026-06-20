@@ -24,10 +24,6 @@ export type AccountResponse = {
      */
     color_key?: string | null;
     /**
-     * Icon Key
-     */
-    icon_key?: string | null;
-    /**
      * Opened On
      */
     opened_on: string;
@@ -80,10 +76,6 @@ export type CreateAccountRequest = {
      * Color Key
      */
     color_key?: string | null;
-    /**
-     * Icon Key
-     */
-    icon_key?: string | null;
 };
 
 /**
@@ -155,10 +147,6 @@ export type UpdateAccountProfileRequest = {
      * Color Key
      */
     color_key?: string | null;
-    /**
-     * Icon Key
-     */
-    icon_key?: string | null;
 };
 
 /**

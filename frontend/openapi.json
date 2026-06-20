@@ -365,17 +365,6 @@
             ],
             "title": "Color Key"
           },
-          "icon_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Icon Key"
-          },
           "opened_on": {
             "type": "string",
             "format": "date",
@@ -484,17 +473,6 @@
               }
             ],
             "title": "Color Key"
-          },
-          "icon_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Icon Key"
           }
         },
         "type": "object",
@@ -598,17 +576,6 @@
               }
             ],
             "title": "Color Key"
-          },
-          "icon_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Icon Key"
           }
         },
         "type": "object",

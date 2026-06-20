@@ -19,8 +19,6 @@ export type AccountTypeValue =
   | "savings"
   | "other"
 
-export type AccountIconKey = AccountTypeValue
-
 export type AccountColorKey =
   | "violet"
   | "emerald"
@@ -35,7 +33,6 @@ type AccountPresentation = {
   label: string
   description: string
   defaultColorKey: AccountColorKey
-  defaultIconKey: AccountIconKey
 }
 
 type AccountColorTheme = {
@@ -52,49 +49,42 @@ export const ACCOUNT_TYPE_OPTIONS: Array<AccountPresentation> = [
     label: "Card",
     description: "Debit, credit, and prepaid cards.",
     defaultColorKey: "violet",
-    defaultIconKey: "card",
   },
   {
     value: "cash",
     label: "Cash",
     description: "Physical cash, wallets, and pocket money.",
     defaultColorKey: "emerald",
-    defaultIconKey: "cash",
   },
   {
     value: "bank",
     label: "Bank account",
     description: "Checking, current, and standard bank balances.",
     defaultColorKey: "blue",
-    defaultIconKey: "bank",
   },
   {
     value: "wallet",
     label: "Digital wallet",
     description: "Wallet apps like Mercado Pago, PayPal, or Wise.",
     defaultColorKey: "cyan",
-    defaultIconKey: "wallet",
   },
   {
     value: "platform",
     label: "Money platform",
     description: "Platforms like Payoneer or payout balances.",
     defaultColorKey: "amber",
-    defaultIconKey: "platform",
   },
   {
     value: "savings",
     label: "Savings",
     description: "Reserve funds and dedicated savings balances.",
     defaultColorKey: "rose",
-    defaultIconKey: "savings",
   },
   {
     value: "other",
     label: "Other",
     description: "Anything that does not fit the standard account set.",
     defaultColorKey: "slate",
-    defaultIconKey: "other",
   },
 ]
 
@@ -164,7 +154,7 @@ const ACCOUNT_COLOR_THEMES: Record<AccountColorKey, AccountColorTheme> = {
   },
 }
 
-const ICONS: Record<AccountIconKey, ComponentType<{ className?: string }>> = {
+const ICONS: Record<AccountTypeValue, ComponentType<{ className?: string }>> = {
   card: CreditCard,
   cash: Banknote,
   bank: Landmark,
@@ -193,17 +183,6 @@ export function getAccountColorKey(
   return getAccountTypeOption(type).defaultColorKey
 }
 
-export function getAccountIconKey(
-  type: AccountTypeValue,
-  iconKey?: string | null,
-): AccountIconKey {
-  if (iconKey && iconKey in ICONS) {
-    return iconKey as AccountIconKey
-  }
-
-  return getAccountTypeOption(type).defaultIconKey
-}
-
 export function getAccountColorTheme(
   type: AccountTypeValue,
   colorKey?: string | null,
@@ -213,14 +192,12 @@ export function getAccountColorTheme(
 
 export function AccountIcon({
   type,
-  iconKey,
   className,
 }: {
   type: AccountTypeValue
-  iconKey?: string | null
   className?: string
 }) {
-  const Icon = ICONS[getAccountIconKey(type, iconKey)]
+  const Icon = ICONS[type]
 
   return <Icon className={cn("size-5", className)} />
 }

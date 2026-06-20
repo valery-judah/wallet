@@ -45,14 +45,12 @@ class CreateAccountRequest(ApiModel):
     current_balance_minor: Annotated[int, Field(ge=0)] = 0
     opened_on: date | None = None
     color_key: str | None = None
-    icon_key: str | None = None
 
 
 class UpdateAccountProfileRequest(ApiModel):
     name: NonBlankStr
     type: AccountType
     color_key: str | None = None
-    icon_key: str | None = None
 
 
 class AccountResponse(ApiModel):
@@ -63,7 +61,6 @@ class AccountResponse(ApiModel):
     current_balance: MoneyResponse
     status: AccountStatus
     color_key: str | None = None
-    icon_key: str | None = None
     opened_on: date
     closed_on: date | None = None
     created_on: date
@@ -79,7 +76,6 @@ class AccountResponse(ApiModel):
             current_balance=MoneyResponse.from_domain(account.current_balance),
             status=account.status,
             color_key=account.color_key,
-            icon_key=account.icon_key,
             opened_on=account.opened_on,
             closed_on=account.closed_on,
             created_on=account.created_on,

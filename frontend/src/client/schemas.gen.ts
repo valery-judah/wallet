@@ -34,17 +34,6 @@ export const AccountResponseSchema = {
             ],
             title: 'Color Key'
         },
-        icon_key: {
-            anyOf: [
-                {
-                    type: 'string'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Icon Key'
-        },
         opened_on: {
             type: 'string',
             format: 'date',
@@ -135,17 +124,6 @@ export const CreateAccountRequestSchema = {
                 }
             ],
             title: 'Color Key'
-        },
-        icon_key: {
-            anyOf: [
-                {
-                    type: 'string'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Icon Key'
         }
     },
     type: 'object',
@@ -242,17 +220,6 @@ export const UpdateAccountProfileRequestSchema = {
                 }
             ],
             title: 'Color Key'
-        },
-        icon_key: {
-            anyOf: [
-                {
-                    type: 'string'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Icon Key'
         }
     },
     type: 'object',

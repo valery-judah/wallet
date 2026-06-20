@@ -23,7 +23,6 @@ def test_open_account_given_valid_inputs_yields_requested_starting_balance() -> 
         currency=" usd ",
         current_balance=Money(amount_minor=500, currency="USD"),
         color_key="violet",
-        icon_key="card",
         opened_on=date(2026, 6, 18),
         created_on=date(2026, 6, 18),
     )
@@ -35,7 +34,6 @@ def test_open_account_given_valid_inputs_yields_requested_starting_balance() -> 
     assert account.current_balance == Money(amount_minor=500, currency="USD")
     assert account.status is AccountStatus.ACTIVE
     assert account.color_key == "violet"
-    assert account.icon_key == "card"
 
 
 def test_account_credit_given_currency_mismatch_rejects_operation() -> None:
@@ -46,7 +44,6 @@ def test_account_credit_given_currency_mismatch_rejects_operation() -> None:
         currency="USD",
         current_balance=Money.zero("USD"),
         color_key=None,
-        icon_key=None,
         opened_on=date(2026, 6, 18),
         created_on=date(2026, 6, 18),
     )
@@ -66,7 +63,6 @@ def test_account_debit_given_insufficient_funds_rejects_operation() -> None:
         currency="USD",
         current_balance=Money.zero("USD"),
         color_key=None,
-        icon_key=None,
         opened_on=date(2026, 6, 18),
         created_on=date(2026, 6, 18),
     )
@@ -88,7 +84,6 @@ def test_account_rejects_negative_balance_state() -> None:
             current_balance=Money(amount_minor=-1, currency="USD"),
             status=AccountStatus.ACTIVE,
             color_key=None,
-            icon_key=None,
             opened_on=date(2026, 6, 18),
             closed_on=None,
             created_on=date(2026, 6, 18),
@@ -104,7 +99,6 @@ def test_account_update_profile_changes_type_and_metadata() -> None:
         currency="USD",
         current_balance=Money.zero("USD"),
         color_key=None,
-        icon_key=None,
         opened_on=date(2026, 6, 18),
         created_on=date(2026, 6, 18),
     )
@@ -113,14 +107,12 @@ def test_account_update_profile_changes_type_and_metadata() -> None:
         name="Reserve fund",
         type=AccountType.SAVINGS,
         color_key="emerald",
-        icon_key="piggy-bank",
         updated_on=date(2026, 6, 19),
     )
 
     assert account.name == "Reserve fund"
     assert account.type is AccountType.SAVINGS
     assert account.color_key == "emerald"
-    assert account.icon_key == "piggy-bank"
     assert account.updated_on == date(2026, 6, 19)
 
 
@@ -132,7 +124,6 @@ def test_closed_account_rejects_balance_movements() -> None:
         currency="USD",
         current_balance=Money(amount_minor=500, currency="USD"),
         color_key=None,
-        icon_key=None,
         opened_on=date(2026, 6, 18),
         created_on=date(2026, 6, 18),
     )

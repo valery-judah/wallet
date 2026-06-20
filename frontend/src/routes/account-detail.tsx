@@ -7,6 +7,13 @@ import {
   getAccountColorTheme,
   getAccountTypeLabel,
 } from "@/components/accounts/account-appearance"
+import {
+  AccountFactList,
+  AccountFactRow,
+  AccountSectionCard,
+  AccountSectionStack,
+  AccountSplitLayout,
+} from "@/components/accounts/account-layout"
 import { AccountProfileForm } from "@/components/accounts/account-profile-form"
 import { WithdrawForm } from "@/components/accounts/withdraw-form"
 import {
@@ -27,6 +34,14 @@ import {
 } from "@/lib/accounts"
 import { formatDate, formatMoney } from "@/lib/format"
 import { cn } from "@/lib/utils"
+
+function formatAccountReference(accountId: string) {
+  if (accountId.length <= 16) {
+    return accountId
+  }
+
+  return `${accountId.slice(0, 10)}…${accountId.slice(-6)}`
+}
 
 export function AccountDetailRoute() {
   const { accountId } = useParams({ from: "/accounts/$accountId" })
@@ -49,7 +64,6 @@ export function AccountDetailRoute() {
       name: string
       type: "card" | "cash" | "bank" | "wallet" | "platform" | "savings" | "other"
       color_key?: string
-      icon_key?: string
     }) => updateAccountProfile(accountId, values),
     onSuccess: async (account) => {
       setProfileErrorMessage(undefined)
@@ -90,7 +104,6 @@ export function AccountDetailRoute() {
     name: string
     type: "card" | "cash" | "bank" | "wallet" | "platform" | "savings" | "other"
     color_key?: string
-    icon_key?: string
   }) {
     setProfileErrorMessage(undefined)
 
@@ -148,32 +161,32 @@ export function AccountDetailRoute() {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-      <Card>
+    <AccountSplitLayout>
+      <Card className="gap-0 overflow-hidden py-0">
         <CardHeader
           className={cn(
-            "relative overflow-hidden rounded-t-xl border-b",
+            "relative overflow-hidden rounded-t-xl border-b px-0 pb-0 pt-0",
             theme.borderClassName,
           )}
         >
           <div
             className={cn(
-              "absolute inset-x-0 top-0 h-20 bg-gradient-to-r",
+              "absolute inset-0 bg-gradient-to-r",
               theme.previewGlowClassName,
             )}
           />
-          <div className="relative flex items-start gap-4">
+          <div className="relative grid gap-5 px-6 pb-6 pt-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
             <div
               className={cn(
-                "flex size-14 shrink-0 items-center justify-center rounded-2xl",
+                "flex size-14 shrink-0 items-center justify-center rounded-2xl md:size-16",
                 theme.iconWrapClassName,
               )}
             >
-              <AccountIcon type={account.type} iconKey={account.icon_key} className="size-6" />
+              <AccountIcon type={account.type} className="size-6 md:size-7" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 self-center">
               <CardTitle>{account.name}</CardTitle>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span
                   className={cn(
                     "rounded-full px-3 py-1 text-xs font-semibold",
@@ -190,10 +203,12 @@ export function AccountDetailRoute() {
                 </span>
               </div>
             </div>
+            <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border/60 pt-4 md:col-start-2 md:pt-3">
+              <span>Account ID {formatAccountReference(account.id)}</span>
+              <span aria-hidden="true">·</span>
+              <span>Opened {formatDate(account.opened_on)}</span>
+            </CardDescription>
           </div>
-          <CardDescription>
-            Account ID: {account.id} · Opened {formatDate(account.opened_on)}
-          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6">
           <div className="grid gap-4 md:grid-cols-2">
@@ -207,26 +222,21 @@ export function AccountDetailRoute() {
               </p>
             </div>
             <div className="rounded-lg border bg-muted/20 p-4">
-              <dl className="grid gap-3 text-sm">
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-muted-foreground">Type</dt>
-                  <dd className="font-medium">{getAccountTypeLabel(account.type)}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-muted-foreground">Currency</dt>
-                  <dd className="font-medium">{account.currency}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-muted-foreground">Opened on</dt>
-                  <dd className="font-medium">{formatDate(account.opened_on)}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-muted-foreground">Closed on</dt>
-                  <dd className="font-medium">
-                    {account.closed_on ? formatDate(account.closed_on) : "Open"}
-                  </dd>
-                </div>
-              </dl>
+              <AccountFactList>
+                <AccountFactRow
+                  label="Type"
+                  value={getAccountTypeLabel(account.type)}
+                />
+                <AccountFactRow label="Currency" value={account.currency} />
+                <AccountFactRow
+                  label="Opened on"
+                  value={formatDate(account.opened_on)}
+                />
+                <AccountFactRow
+                  label="Closed on"
+                  value={account.closed_on ? formatDate(account.closed_on) : "Open"}
+                />
+              </AccountFactList>
             </div>
           </div>
 
@@ -241,78 +251,76 @@ export function AccountDetailRoute() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Account profile</CardTitle>
-            <CardDescription>
-              Edit the account identity and display metadata used across the app.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AccountProfileForm
-              account={account}
-              errorMessage={profileErrorMessage}
-              isPending={updateProfileMutation.isPending}
-              onSubmit={handleProfileUpdate}
-            />
-            {account.status === "active" ? (
-              <div className="mt-6 rounded-[1.6rem] border border-border/70 bg-muted/15 p-5">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <p className="font-semibold">Close account</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      This keeps history but blocks future balance changes.
-                    </p>
-                  </div>
-                  <button
-                    className="inline-flex rounded-full border border-destructive/40 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10"
-                    disabled={closeMutation.isPending}
-                    onClick={() => void handleCloseAccount()}
-                    type="button"
-                  >
-                    {closeMutation.isPending ? "Closing..." : "Close account"}
-                  </button>
-                </div>
-                {closeErrorMessage ? (
-                  <p className="mt-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    {closeErrorMessage}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
+      <AccountSectionStack>
+        <AccountSectionCard
+          description="Edit the account name, type, and appearance used across the app."
+          title="Account profile"
+        >
+          <AccountProfileForm
+            account={account}
+            errorMessage={profileErrorMessage}
+            isPending={updateProfileMutation.isPending}
+            onSubmit={handleProfileUpdate}
+          />
+        </AccountSectionCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {account.status === "closed" ? "Balance is locked" : "Withdraw money"}
-            </CardTitle>
-            <CardDescription>
+        <AccountSectionCard
+          description={
+            account.status === "closed"
+              ? "Closed accounts keep their final balance and cannot move money."
+              : "Enter an amount like 25 or 25.50 to withdraw from this account."
+          }
+          title={account.status === "closed" ? "Balance is locked" : "Withdraw money"}
+        >
+          {account.status === "closed" ? (
+            <div className="rounded-[1.6rem] border border-border/70 bg-muted/15 p-5">
+              <p className="text-sm text-muted-foreground">
+                This account is closed and cannot accept new balance changes.
+              </p>
+            </div>
+          ) : (
+            <WithdrawForm
+              currency={account.currency}
+              errorMessage={withdrawErrorMessage}
+              isPending={withdrawMutation.isPending}
+              onSubmit={handleWithdraw}
+            />
+          )}
+        </AccountSectionCard>
+
+        <AccountSectionCard
+          description={
+            account.status === "closed"
+              ? "This account is already closed."
+              : "This keeps history but blocks future balance changes."
+          }
+          footer={
+            account.status === "active" ? (
+              <button
+                className="inline-flex rounded-full border border-destructive/40 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10"
+                disabled={closeMutation.isPending}
+                onClick={() => void handleCloseAccount()}
+                type="button"
+              >
+                {closeMutation.isPending ? "Closing..." : "Close account"}
+              </button>
+            ) : undefined
+          }
+          title="Close account"
+        >
+          {closeErrorMessage ? (
+            <p className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {closeErrorMessage}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
               {account.status === "closed"
-                ? "Closed accounts keep their final balance and cannot move money."
-                : "Enter an amount in minor units to withdraw from this account."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {account.status === "closed" ? (
-              <div className="rounded-[1.6rem] border border-border/70 bg-muted/15 p-5">
-                <p className="text-sm text-muted-foreground">
-                  Reopening is not part of the MVP account lifecycle.
-                </p>
-              </div>
-            ) : (
-              <WithdrawForm
-                currency={account.currency}
-                errorMessage={withdrawErrorMessage}
-                isPending={withdrawMutation.isPending}
-                onSubmit={handleWithdraw}
-              />
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+                ? "Closed accounts stay visible with their final balance."
+                : "After closing, deposits and withdrawals will no longer be available."}
+            </p>
+          )}
+        </AccountSectionCard>
+      </AccountSectionStack>
+    </AccountSplitLayout>
   )
 }

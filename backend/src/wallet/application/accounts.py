@@ -28,7 +28,6 @@ class OpenAccount:
     current_balance_minor: int = 0
     opened_on: date | None = None
     color_key: str | None = None
-    icon_key: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -56,14 +55,6 @@ class OpenAccount:
                 field_name="account color key",
             ),
         )
-        object.__setattr__(
-            self,
-            "icon_key",
-            _normalize_optional_value(
-                self.icon_key,
-                field_name="account icon key",
-            ),
-        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,7 +63,6 @@ class UpdateAccountProfile:
     name: str
     type: AccountType
     color_key: str | None = None
-    icon_key: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -96,14 +86,6 @@ class UpdateAccountProfile:
             _normalize_optional_value(
                 self.color_key,
                 field_name="account color key",
-            ),
-        )
-        object.__setattr__(
-            self,
-            "icon_key",
-            _normalize_optional_value(
-                self.icon_key,
-                field_name="account icon key",
             ),
         )
 
@@ -175,7 +157,6 @@ class AccountService:
                     currency=command.currency,
                 ),
                 color_key=command.color_key,
-                icon_key=command.icon_key,
                 opened_on=opened_on,
                 created_on=created_on,
             )
@@ -191,7 +172,6 @@ class AccountService:
                 name=command.name,
                 type=command.type,
                 color_key=command.color_key,
-                icon_key=command.icon_key,
                 updated_on=self._today(),
             )
         except ValueError as exc:

@@ -18,7 +18,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">Wallet</p>
             <p className="truncate text-xs text-muted-foreground">
-              Track accounts, balances, and withdrawals.
+              Track where your money lives.
             </p>
           </div>
           <Link
@@ -67,8 +67,7 @@ export function ErrorPage() {
         Something went wrong while loading the wallet UI.
       </h2>
       <p className="mt-3 text-sm text-muted-foreground">
-        Refresh the page or return to the account list. Backend business errors are
-        shown inline on each form.
+        Refresh the page or return to the account list.
       </p>
       <Link
         className="mt-8 inline-flex rounded-md border bg-background px-5 py-3 text-sm font-semibold transition hover:bg-accent"

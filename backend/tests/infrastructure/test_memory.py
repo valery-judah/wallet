@@ -16,7 +16,6 @@ def test_in_memory_account_repository_stores_and_lists_accounts() -> None:
         currency="USD",
         current_balance=Money.zero("USD"),
         color_key=None,
-        icon_key=None,
         opened_on=date(2026, 6, 18),
         created_on=date(2026, 6, 18),
     )
@@ -27,7 +26,6 @@ def test_in_memory_account_repository_stores_and_lists_accounts() -> None:
         currency="EUR",
         current_balance=Money.zero("EUR"),
         color_key=None,
-        icon_key=None,
         opened_on=date(2026, 6, 18),
         created_on=date(2026, 6, 18),
     )

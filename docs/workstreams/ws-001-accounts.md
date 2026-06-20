@@ -112,7 +112,6 @@ class Account:
     current_balance: Money
     status: AccountStatus
     color_key: str | None
-    icon_key: str | None
     opened_on: date
     closed_on: date | None
     created_on: date
@@ -205,7 +204,6 @@ Suggested storage shape:
 | `current_balance_minor` | integer | Current balance |
 | `status` | enum | `active`, `closed` |
 | `color_key` | string nullable | UI token, not business logic |
-| `icon_key` | string nullable | Explicit override if needed |
 | `opened_on` | date | User-facing account start date |
 | `closed_on` | date nullable | Only for closed accounts |
 | `created_on` | timestamp/date | System creation time |
@@ -245,7 +243,6 @@ Recommended create payload fields:
 - `current_balance_minor`
 - `opened_on`
 - `color_key`
-- `icon_key` optional
 
 ## UI Model
 
@@ -322,7 +319,6 @@ Exit criteria:
 
 ### Phase 2: Account type support and account profile metadata
 
-- Add `color_key` and optional `icon_key`.
 - Support all approved MVP account types in validation and persistence.
 - Support account create, list, get, update profile, and close operations.
 - Return account type and display metadata in API responses.

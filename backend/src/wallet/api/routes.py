@@ -52,7 +52,6 @@ def create_account(
             current_balance_minor=payload.current_balance_minor,
             opened_on=payload.opened_on,
             color_key=payload.color_key,
-            icon_key=payload.icon_key,
         )
     )
     return AccountResponse.from_domain(account)
@@ -83,7 +82,6 @@ def update_account_profile(
             name=payload.name,
             type=payload.type,
             color_key=payload.color_key,
-            icon_key=payload.icon_key,
         )
     )
     return AccountResponse.from_domain(account)

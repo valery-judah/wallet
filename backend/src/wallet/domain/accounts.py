@@ -44,7 +44,6 @@ class Account:
     current_balance: Money
     status: AccountStatus
     color_key: str | None
-    icon_key: str | None
     opened_on: date
     closed_on: date | None
     created_on: date
@@ -62,10 +61,6 @@ class Account:
         self.color_key = _normalize_optional_token(
             self.color_key,
             field_name="account color key",
-        )
-        self.icon_key = _normalize_optional_token(
-            self.icon_key,
-            field_name="account icon key",
         )
         if self.current_balance.currency != self.currency:
             raise CurrencyMismatchError("currency mismatch")
@@ -86,7 +81,6 @@ class Account:
         currency: str,
         current_balance: Money,
         color_key: str | None,
-        icon_key: str | None,
         opened_on: date,
         created_on: date,
     ) -> Account:
@@ -102,7 +96,6 @@ class Account:
             current_balance=current_balance,
             status=AccountStatus.ACTIVE,
             color_key=color_key,
-            icon_key=icon_key,
             opened_on=opened_on,
             closed_on=None,
             created_on=created_on,
@@ -129,7 +122,6 @@ class Account:
         name: str,
         type: AccountType,
         color_key: str | None,
-        icon_key: str | None,
         updated_on: date,
     ) -> None:
         self.name = normalize_nonblank(name, field_name="account name")
@@ -137,10 +129,6 @@ class Account:
         self.color_key = _normalize_optional_token(
             color_key,
             field_name="account color key",
-        )
-        self.icon_key = _normalize_optional_token(
-            icon_key,
-            field_name="account icon key",
         )
         self.updated_on = updated_on
 

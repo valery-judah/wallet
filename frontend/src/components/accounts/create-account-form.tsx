@@ -1,18 +1,24 @@
 import { type FormEvent, useId, useState } from "react"
 import {
-  ACCOUNT_COLOR_OPTIONS,
-  ACCOUNT_TYPE_OPTIONS,
-  AccountIcon,
-  getAccountColorTheme,
-  getAccountTypeLabel,
   type AccountColorKey,
-  type AccountIconKey,
   type AccountTypeValue,
 } from "@/components/accounts/account-appearance"
+import {
+  AccountColorField,
+  AccountPreviewCard,
+  AccountTypeField,
+  AccountTypeGuide,
+} from "@/components/accounts/account-form-sections"
+import {
+  AccountFieldGrid,
+  AccountFieldStack,
+  AccountSectionStack,
+  AccountSplitLayout,
+} from "@/components/accounts/account-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { cn } from "@/lib/utils"
+import { formatMajorAmountInput, parseMajorAmount } from "@/lib/money"
 
 type CreateAccountValues = {
   name: string
@@ -21,7 +27,6 @@ type CreateAccountValues = {
   current_balance_minor: number
   opened_on?: string
   color_key?: string
-  icon_key?: string
 }
 
 type CreateAccountFormProps = {
@@ -36,193 +41,170 @@ export function CreateAccountForm({
   onSubmit,
 }: CreateAccountFormProps) {
   const nameId = useId()
-  const typeId = useId()
   const currencyId = useId()
   const balanceId = useId()
   const openedOnId = useId()
-  const iconId = useId()
   const [name, setName] = useState("")
   const [type, setType] = useState<AccountTypeValue>("card")
   const [currency, setCurrency] = useState("ARS")
-  const [currentBalanceMinor, setCurrentBalanceMinor] = useState("0")
+  const [currentBalanceInput, setCurrentBalanceInput] = useState(
+    formatMajorAmountInput(0, "ARS"),
+  )
   const [openedOn, setOpenedOn] = useState(new Date().toISOString().slice(0, 10))
   const [colorKey, setColorKey] = useState<AccountColorKey | undefined>(undefined)
-  const [iconKey, setIconKey] = useState<AccountIconKey | "">("")
-  const theme = getAccountColorTheme(type, colorKey)
+  const [balanceErrorMessage, setBalanceErrorMessage] = useState<string>()
+  const parsedCurrentBalance = parseMajorAmount(currentBalanceInput, currency, {
+    allowZero: true,
+  })
+  const currentBalanceErrorMessage =
+    balanceErrorMessage ??
+    (currentBalanceInput.trim().length > 0 ? parsedCurrentBalance.error : undefined)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (parsedCurrentBalance.amountMinor === undefined) {
+      setBalanceErrorMessage(parsedCurrentBalance.error)
+      return
+    }
 
     await onSubmit({
       name,
       type,
       currency,
-      current_balance_minor: Number(currentBalanceMinor),
+      current_balance_minor: parsedCurrentBalance.amountMinor,
       opened_on: openedOn || undefined,
       color_key: colorKey,
-      icon_key: iconKey || undefined,
     })
   }
 
   return (
-    <form className="surface rounded-[2rem] p-8" onSubmit={handleSubmit}>
-      <div className="grid gap-6">
-        <div className="grid gap-2">
-          <Label htmlFor={nameId}>Account name</Label>
-          <Input
-            id={nameId}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Main card, cash wallet, reserve fund"
-            required
-            value={name}
-          />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor={typeId}>Account type</Label>
-          <select
-            className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            id={typeId}
-            onChange={(event) => setType(event.target.value as AccountTypeValue)}
-            value={type}
-          >
-            {ACCOUNT_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="grid gap-2">
-            <Label htmlFor={currencyId}>Currency</Label>
+    <AccountSplitLayout className="xl:grid-cols-[minmax(0,1.25fr)_320px]">
+      <form
+        className="rounded-[2rem] border border-border/70 bg-card/80 p-8 shadow-[0_24px_90px_-60px_rgba(15,23,42,0.45)]"
+        onSubmit={handleSubmit}
+      >
+        <AccountSectionStack className="gap-7">
+          <AccountFieldStack>
+            <Label htmlFor={nameId}>Account name</Label>
             <Input
-              id={currencyId}
-              maxLength={3}
-              onChange={(event) => setCurrency(event.target.value.toUpperCase())}
+              id={nameId}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Main card, cash wallet, reserve fund"
               required
-              value={currency}
+              value={name}
             />
-          </div>
+          </AccountFieldStack>
 
-          <div className="grid gap-2">
-            <Label htmlFor={balanceId}>Initial balance (minor units)</Label>
-            <Input
-              id={balanceId}
-              inputMode="numeric"
-              min="0"
-              onChange={(event) => setCurrentBalanceMinor(event.target.value)}
-              required
-              type="number"
-              value={currentBalanceMinor}
-            />
-          </div>
+          <AccountTypeField onChange={setType} type={type} />
 
-          <div className="grid gap-2">
-            <Label htmlFor={openedOnId}>Opening date</Label>
-            <Input
-              id={openedOnId}
-              onChange={(event) => setOpenedOn(event.target.value)}
-              type="date"
-              value={openedOn}
-            />
-          </div>
-        </div>
+          <section className="grid gap-4 rounded-[1.6rem] border border-border/70 bg-background/35 p-5">
+            <div className="grid gap-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                Account setup
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Set the currency, starting balance, and opening date for this
+                account.
+              </p>
+            </div>
 
-        <div className="grid gap-2">
-          <Label>Accent color</Label>
-          <div className="flex flex-wrap gap-3">
-            {ACCOUNT_COLOR_OPTIONS.map((option) => {
-              const optionTheme = getAccountColorTheme(type, option.value)
+            <AccountFieldGrid columns="three">
+              <AccountFieldStack>
+                <Label htmlFor={currencyId}>Currency</Label>
+                <Input
+                  id={currencyId}
+                  maxLength={3}
+                  onChange={(event) => {
+                    setCurrency(event.target.value.toUpperCase())
+                    setBalanceErrorMessage(undefined)
+                  }}
+                  required
+                  value={currency}
+                />
+                <p className="min-h-5 text-xs leading-5 text-muted-foreground">
+                  ISO code like ARS or USD.
+                </p>
+              </AccountFieldStack>
 
-              return (
-                <button
-                  className={cn(
-                    "flex size-10 items-center justify-center rounded-full border transition",
-                    optionTheme.borderClassName,
-                    colorKey === option.value
-                      ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                      : "opacity-80 hover:opacity-100",
-                  )}
-                  key={option.value}
-                  onClick={() => setColorKey(option.value)}
-                  type="button"
+              <AccountFieldStack>
+                <Label htmlFor={balanceId}>Starting balance</Label>
+                <Input
+                  aria-invalid={currentBalanceErrorMessage ? true : undefined}
+                  id={balanceId}
+                  inputMode="decimal"
+                  onChange={(event) => {
+                    setCurrentBalanceInput(event.target.value)
+                    setBalanceErrorMessage(undefined)
+                  }}
+                  placeholder="300 or 300.50"
+                  required
+                  type="text"
+                  value={currentBalanceInput}
+                />
+                <p
+                  className={
+                    currentBalanceErrorMessage
+                      ? "min-h-5 text-xs leading-5 text-destructive"
+                      : "min-h-5 text-xs leading-5 text-muted-foreground"
+                  }
                 >
-                  <span
-                    className={cn("size-5 rounded-full", optionTheme.dotClassName)}
-                  />
-                  <span className="sr-only">{option.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
+                  {currentBalanceErrorMessage ?? "Enter an amount like 300 or 300.50."}
+                </p>
+              </AccountFieldStack>
 
-        <div className="grid gap-2">
-          <Label htmlFor={iconId}>Icon override</Label>
-          <select
-            className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            id={iconId}
-            onChange={(event) => setIconKey(event.target.value as AccountIconKey | "")}
-            value={iconKey}
-          >
-            <option value="">Default by type</option>
-            {ACCOUNT_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
+              <AccountFieldStack>
+                <Label htmlFor={openedOnId}>Opening date</Label>
+                <Input
+                  id={openedOnId}
+                  onChange={(event) => setOpenedOn(event.target.value)}
+                  type="date"
+                  value={openedOn}
+                />
+                <p className="min-h-5 text-xs leading-5 text-muted-foreground">
+                  The starting date for this account.
+                </p>
+              </AccountFieldStack>
+            </AccountFieldGrid>
+          </section>
 
-        <div
-          className={cn(
-            "relative overflow-hidden rounded-[1.6rem] border bg-card px-5 py-5",
-            theme.borderClassName,
-          )}
-        >
-          <div
-            className={cn(
-              "absolute inset-x-0 top-0 h-16 bg-gradient-to-r",
-              theme.previewGlowClassName,
-            )}
-          />
-          <div className="relative flex items-start gap-4">
-            <div
-              className={cn(
-                "flex size-12 shrink-0 items-center justify-center rounded-2xl",
-                theme.iconWrapClassName,
-              )}
-            >
-              <AccountIcon type={type} iconKey={iconKey || undefined} />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-base font-semibold">
-                {name || "Account name"}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {getAccountTypeLabel(type)} · {currency || "Currency"}
+          <AccountColorField colorKey={colorKey} onChange={setColorKey} type={type} />
+
+          <section className="grid gap-3 rounded-[1.6rem] border border-border/70 bg-background/35 p-5">
+            <div className="grid gap-1">
+              <Label>Preview</Label>
+              <p className="text-sm text-muted-foreground">
+                Check how this account will appear before you create it.
               </p>
             </div>
+            <AccountPreviewCard
+              balanceMinor={parsedCurrentBalance.amountMinor}
+              colorKey={colorKey}
+              currency={currency}
+              name={name}
+              type={type}
+            />
+          </section>
+
+          {errorMessage ? (
+            <p className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {errorMessage}
+            </p>
+          ) : null}
+
+          <div className="flex items-center justify-between gap-4">
+            <p className="max-w-xl text-sm text-muted-foreground">
+              The account type helps organize and recognize this account across
+              the app.
+            </p>
+            <Button disabled={isPending} type="submit">
+              {isPending ? "Creating..." : "Create account"}
+            </Button>
           </div>
-        </div>
+        </AccountSectionStack>
+      </form>
 
-        {errorMessage ? (
-          <p className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {errorMessage}
-          </p>
-        ) : null}
-
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            Account type shapes the UI; balance stays single-source in MVP.
-          </p>
-          <Button disabled={isPending} type="submit">
-            {isPending ? "Creating..." : "Create account"}
-          </Button>
-        </div>
-      </div>
-    </form>
+      <AccountTypeGuide />
+    </AccountSplitLayout>
   )
 }

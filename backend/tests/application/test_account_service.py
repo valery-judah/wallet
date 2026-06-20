@@ -100,14 +100,12 @@ def test_update_account_profile_changes_name_type_and_display_metadata() -> None
             name="Travel wallet",
             type=AccountType.WALLET,
             color_key="cyan",
-            icon_key="wallet",
         )
     )
 
     assert updated.name == "Travel wallet"
     assert updated.type is AccountType.WALLET
     assert updated.color_key == "cyan"
-    assert updated.icon_key == "wallet"
     assert updated.updated_on == date(2026, 6, 19)
 
 

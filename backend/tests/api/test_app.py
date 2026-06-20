@@ -86,7 +86,6 @@ def test_create_account_normalizes_values_and_returns_created_account(client: Te
             "currency": "usd",
             "current_balance_minor": 500,
             "color_key": "emerald",
-            "icon_key": "wallet",
             "opened_on": "2026-06-18",
         },
     )
@@ -100,7 +99,6 @@ def test_create_account_normalizes_values_and_returns_created_account(client: Te
     assert body["current_balance"] == {"amount_minor": 500, "currency": "USD"}
     assert body["status"] == "active"
     assert body["color_key"] == "emerald"
-    assert body["icon_key"] == "wallet"
     assert body["opened_on"] == "2026-06-18"
     assert body["closed_on"] is None
     assert body["created_on"] == "2026-06-18"
@@ -155,7 +153,6 @@ def test_update_account_profile_persists_new_type_and_display_metadata(
             "name": "Travel wallet",
             "type": "wallet",
             "color_key": "cyan",
-            "icon_key": "wallet",
         },
     )
 
@@ -163,7 +160,6 @@ def test_update_account_profile_persists_new_type_and_display_metadata(
     assert response.json()["name"] == "Travel wallet"
     assert response.json()["type"] == "wallet"
     assert response.json()["color_key"] == "cyan"
-    assert response.json()["icon_key"] == "wallet"
 
 
 def test_close_account_marks_account_closed(client: TestClient) -> None:

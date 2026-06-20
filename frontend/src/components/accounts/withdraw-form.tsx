@@ -1,7 +1,12 @@
-import { type FormEvent, useEffect, useId, useState } from "react"
+import { type FormEvent, useId, useState } from "react"
+import {
+  AccountFieldGrid,
+  AccountFieldStack,
+} from "@/components/accounts/account-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { parseMajorAmount } from "@/lib/money"
 
 type WithdrawValues = {
   amount_minor: number
@@ -22,78 +27,82 @@ export function WithdrawForm({
   onSubmit,
 }: WithdrawFormProps) {
   const amountId = useId()
-  const currencyId = useId()
-  const [amountMinor, setAmountMinor] = useState("")
-  const [formCurrency, setFormCurrency] = useState(currency)
-
-  useEffect(() => {
-    setFormCurrency(currency)
-  }, [currency])
+  const [amountInput, setAmountInput] = useState("")
+  const [amountErrorMessage, setAmountErrorMessage] = useState<string>()
+  const parsedAmount = parseMajorAmount(amountInput, currency)
+  const currentAmountErrorMessage =
+    amountErrorMessage ?? (amountInput.trim().length > 0 ? parsedAmount.error : undefined)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    if (parsedAmount.amountMinor === undefined) {
+      setAmountErrorMessage(parsedAmount.error)
+      return
+    }
+
     await onSubmit({
-      amount_minor: Number(amountMinor),
-      currency: formCurrency,
+      amount_minor: parsedAmount.amountMinor,
+      currency,
     })
 
-    setAmountMinor("")
+    setAmountInput("")
+    setAmountErrorMessage(undefined)
   }
 
   return (
-    <form className="surface rounded-[2rem] p-8" onSubmit={handleSubmit}>
-      <div className="grid gap-6">
-        <div>
-          <h2 className="text-xl font-semibold">Withdraw money</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Use the account currency and submit the amount in minor units.
+    <form className="grid gap-6" onSubmit={handleSubmit}>
+      <AccountFieldGrid columns="two">
+        <AccountFieldStack>
+          <Label htmlFor={amountId}>Amount</Label>
+          <Input
+            aria-invalid={currentAmountErrorMessage ? true : undefined}
+            id={amountId}
+            inputMode="decimal"
+            onChange={(event) => {
+              setAmountInput(event.target.value)
+              setAmountErrorMessage(undefined)
+            }}
+            placeholder="25 or 25.50"
+            required
+            type="text"
+            value={amountInput}
+          />
+          <p
+            className={
+              currentAmountErrorMessage
+                ? "min-h-5 text-sm text-destructive"
+                : "min-h-5 text-sm text-muted-foreground"
+            }
+          >
+            {currentAmountErrorMessage ?? "Enter an amount like 25 or 25.50."}
           </p>
-        </div>
+        </AccountFieldStack>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="grid gap-2">
-            <Label htmlFor={amountId}>Amount in minor units</Label>
-            <Input
-              id={amountId}
-              inputMode="numeric"
-              min="1"
-              onChange={(event) => setAmountMinor(event.target.value)}
-              placeholder="1250"
-              required
-              type="number"
-              value={amountMinor}
-            />
+        <AccountFieldStack>
+          <Label>Currency</Label>
+          <div className="flex h-10 items-center rounded-md border border-input bg-muted/30 px-3 text-sm font-medium">
+            {currency}
           </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor={currencyId}>Currency</Label>
-            <Input
-              id={currencyId}
-              maxLength={3}
-              onChange={(event) =>
-                setFormCurrency(event.target.value.toUpperCase())
-              }
-              required
-              value={formCurrency}
-            />
-          </div>
-        </div>
-
-        {errorMessage ? (
-          <p className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {errorMessage}
+          <p className="min-h-5 text-sm text-muted-foreground">
+            This withdrawal uses the account currency.
           </p>
-        ) : null}
+        </AccountFieldStack>
+      </AccountFieldGrid>
 
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            Example: `1250` means 12.50 units for two-decimal currencies.
-          </p>
-          <Button disabled={isPending} type="submit">
-            {isPending ? "Submitting..." : "Withdraw"}
-          </Button>
-        </div>
+      {errorMessage ? (
+        <p className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {errorMessage}
+        </p>
+      ) : null}
+
+      <div className="flex flex-col gap-4 border-t border-border/70 pt-5 md:flex-row md:items-center md:justify-between">
+        <p className="max-w-sm text-sm text-muted-foreground">
+          The number of decimals depends on the currency.
+        </p>
+        <Button className="md:self-end" disabled={isPending} type="submit">
+          {isPending ? "Submitting..." : "Withdraw"}
+        </Button>
       </div>
     </form>
   )

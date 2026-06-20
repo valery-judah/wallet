@@ -23,7 +23,6 @@ def run(client: HttpClient) -> None:
             "currency": "ARS",
             "current_balance_minor": 2_500,
             "color_key": "blue",
-            "icon_key": "cash",
             "opened_on": opened_on,
         },
     )
@@ -37,7 +36,7 @@ def run(client: HttpClient) -> None:
         "currency": "ARS",
     }:
         raise AssertionError(f"unexpected opening balance: {created_account!r}")
-    if created_account.get("color_key") != "blue" or created_account.get("icon_key") != "cash":
+    if created_account.get("color_key") != "blue":
         raise AssertionError(f"unexpected created account metadata: {created_account!r}")
 
     list_response = client.request("GET", "/api/v1/accounts")
@@ -55,14 +54,13 @@ def run(client: HttpClient) -> None:
             "name": unique_account_name("Smoke wallet"),
             "type": "wallet",
             "color_key": "amber",
-            "icon_key": "globe",
         },
     )
     assert_status(update_response, 200)
     updated_account = assert_json_object(update_response)
     if updated_account.get("type") != "wallet":
         raise AssertionError(f"unexpected updated account type: {updated_account!r}")
-    if updated_account.get("color_key") != "amber" or updated_account.get("icon_key") != "globe":
+    if updated_account.get("color_key") != "amber":
         raise AssertionError(f"unexpected updated account metadata: {updated_account!r}")
     if updated_account.get("current_balance") != {
         "amount_minor": 2_500,

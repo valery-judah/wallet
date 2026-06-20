@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import type { AccountResponse } from "@/client"
+import { AccountPageIntro, AccountSectionStack } from "@/components/accounts/account-layout"
 import { CreateAccountForm } from "@/components/accounts/create-account-form"
 import { getApiErrorMessage } from "@/lib/api-errors"
 import { accountKeys, createAccount, upsertAccountInList } from "@/lib/accounts"
@@ -34,7 +35,6 @@ export function AccountsNewRoute() {
     current_balance_minor: number
     opened_on?: string
     color_key?: string
-    icon_key?: string
   }) {
     setErrorMessage(undefined)
 
@@ -46,25 +46,17 @@ export function AccountsNewRoute() {
   }
 
   return (
-    <div className="grid gap-6">
-      <section className="max-w-3xl">
-        <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
-          New account
-        </p>
-        <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
-          Add a new account before money starts moving.
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Choose the account type, set the currency, and record the current
-          balance you want to start from.
-        </p>
-      </section>
-
+    <AccountSectionStack>
+      <AccountPageIntro
+        description="Choose the account type, currency, and starting balance for this account."
+        eyebrow="New account"
+        title="Set up a new account."
+      />
       <CreateAccountForm
         errorMessage={errorMessage}
         isPending={createAccountMutation.isPending}
         onSubmit={handleSubmit}
       />
-    </div>
+    </AccountSectionStack>
   )
 }
