@@ -1,7 +1,8 @@
 .DEFAULT_GOAL := help
 
-UV_RUN := uv run
-POE := $(UV_RUN) poe
+UV := uv
+UV_BACKEND := $(UV) --directory backend
+POE := $(UV_BACKEND) run poe
 
 .PHONY: help
 help: ## Show this help message
@@ -10,8 +11,8 @@ help: ## Show this help message
 	@echo "Repo & Infrastructure Targets:"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST) | sort
 	@echo ""
-	@echo "Python developer tasks live in Poe."
-	@echo "Run 'uv run poe --help' or 'uv run poe <task>' for fmt/lint/type/test/verify."
+	@echo "Backend developer tasks live in Poe."
+	@echo "Run 'uv --directory backend run poe --help' or 'uv --directory backend run poe <task>' for fmt/lint/type/test/verify."
 
 .PHONY: ensure-uv
 ensure-uv: ## Check if uv is installed
@@ -31,23 +32,22 @@ install-git-hooks: ## Configure git to use repo-managed hooks
 
 .PHONY: sync
 sync: ensure-uv ## Sync dependencies into the local .venv
-	uv sync --group dev
+	$(UV) sync --package wallet --group dev
 
 .PHONY: lock
 lock: ensure-uv ## Generate or refresh uv.lock
-	uv lock
+	$(UV) lock
 
 .PHONY: install
-install: sync install-git-hooks ## Install the package in editable mode
-	uv pip install --editable .
+install: sync install-git-hooks ## Install the backend package in editable mode via uv sync
 
 .PHONY: init
 init: sync install ## Bootstrap local dev environment
 
 .PHONY: add-rich
 add-rich: ensure-uv ## Add `rich` dependency via uv (updates pyproject + uv.lock)
-	uv add rich
-	uv sync --group dev
+	$(UV) add --package wallet rich
+	$(UV) sync --package wallet --group dev
 
 # --- Code Quality ---
 

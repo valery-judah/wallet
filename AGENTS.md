@@ -12,15 +12,16 @@ For now, the `evergreen` directory is empty. We're working on the `docs/product/
 
 ## Commands
 - Use `uv` as the Python command entrypoint for this repo.
-- Prefer `uv run poe <task>` for defined developer workflows; otherwise use `uv run <tool>`.
+- From the repo root, prefer `uv --directory backend run poe <task>` for defined backend workflows; from inside `backend/`, use `uv run poe <task>`.
+- Otherwise use `uv run <tool>` or `uv --directory backend run <tool>`, depending on which project owns the command.
 - Do not use `pip`, `python -m pip`, `poetry`, `pipenv`, `npm`, or `npx` for repo workflows.
 - Use `make` for local DevEx and infrastructure wrappers such as Docker, Docker Compose, observability stack operations, as defined in [`Makefile`](Makefile).
 - For the full command catalog and operational guidance, use [`docs/evergreen/runbook.md`](docs/evergreen/runbook.md).
-- To inspect the current command surface directly, use `uv run poe --help` and `make help`.
+- To inspect the current command surface directly, use `uv --directory backend run poe --help` and `make help`.
 
 ## Validation
 - Docs-only change: no mandatory validation; run targeted checks only if docs affect commands or generated artifacts.
-- Code change: `uv run poe verify`
+- Code change: `make verify`
 
 ## Development Practices
-- Save any temporary, exploratory, or developer-experience (devex) scripts into the `scripts/devex/` directory.
+- Save any temporary, exploratory, or developer-experience (devex) scripts into the `backend/scripts/devex/` directory.

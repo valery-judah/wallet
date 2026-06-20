@@ -10,7 +10,8 @@ LIST_ONE_XML_URL = (
     "https://www.six-group.com/dam/download/financial-information/"
     "data-center/iso-currrency/lists/list-one.xml"
 )
-OUTPUT_PATH = Path("src/wallet/domain/_iso4217_snapshot.py")
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+OUTPUT_PATH = BACKEND_ROOT / "src/wallet/domain/_iso4217_snapshot.py"
 
 # Product scope: keep active end-user currencies only and exclude current ISO fund,
 # metal, testing, and supranational-unit style codes from the runtime catalog.

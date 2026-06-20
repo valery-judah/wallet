@@ -2,6 +2,11 @@ version = 1
 revision = 2
 requires-python = ">=3.11"
 
+[manifest]
+members = [
+    "wallet",
+]
+
 [[package]]
 name = "colorama"
 version = "0.4.6"
@@ -233,7 +238,7 @@ wheels = [
 [[package]]
 name = "wallet"
 version = "0.1.0"
-source = { editable = "." }
+source = { editable = "backend" }
 
 [package.dev-dependencies]
 dev = [

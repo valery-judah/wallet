@@ -9,13 +9,27 @@ Money tracking for imperfect real-life habits. The MVP focuses on helping users 
 ## Quickstart
 ```bash
 make init
-uv run poe verify
+make verify
 ```
 
 ## Development
-Python developer tasks live in Poe. Common commands:
+The backend now lives in `backend/`. Use root-level `make` wrappers or run Poe directly from inside `backend/`.
+
+From the repo root:
 
 ```bash
+make fmt
+make lint
+make type
+make test
+make clean
+make verify
+```
+
+From inside `backend/`:
+
+```bash
+cd backend
 uv run poe fmt
 uv run poe lint
 uv run poe type
@@ -24,23 +38,25 @@ uv run poe clean
 uv run poe verify
 ```
 
-`make` remains available for bootstrap and wrappers such as `make init`, `make install`, `make clean`, and `make verify`.
+You can also target the backend explicitly from the root with `uv --directory backend run poe <task>`.
 
 ## Dependencies
-- Add a runtime dependency: `uv add <package>`
-- Add a dev dependency: `uv add --dev <package>`
+- Add a runtime dependency: `uv add --package wallet <package>`
+- Add a dev dependency: `uv add --package wallet --dev <package>`
 - Generate or refresh lockfile: `make lock`
 - Sync lockfile + local `.venv`: `make sync`
 - Optional smoke check (adds a small runtime dep): `make add-rich`
 
 ## Project layout
 ```text
-src/wallet/
-  domain/
-  application/
-  ports/
-  infrastructure/
-tests/
+backend/
+  src/wallet/
+    domain/
+    application/
+    ports/
+    infrastructure/
+  tests/
+  scripts/
 docs/
 ```
 
@@ -52,8 +68,8 @@ docs/
 The product docs are still being established. The current files are placeholders that define the intended canonical locations.
 
 ## Configuration
-- Packaging/config: `pyproject.toml`
-- Tooling: `ruff`, `mypy`, `pytest` (configured in `pyproject.toml`)
+- Workspace config: `pyproject.toml`
+- Backend packaging/tooling: `backend/pyproject.toml`
 
 ## Contributing
 See `CONTRIBUTING.md`.
