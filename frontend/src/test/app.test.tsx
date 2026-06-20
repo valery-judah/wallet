@@ -1,18 +1,25 @@
 import userEvent from "@testing-library/user-event"
 import { screen, waitFor } from "@testing-library/react"
-import { CardsService, type CardResponse } from "@/client"
+import { AccountsService, type AccountResponse } from "@/client"
 import { renderApp } from "@/test/render-app"
 
-function buildCard(overrides: Partial<CardResponse> = {}): CardResponse {
+function buildAccount(overrides: Partial<AccountResponse> = {}): AccountResponse {
   return {
-    id: "card-123",
-    name: "Everyday Card",
+    id: "account-123",
+    name: "Everyday Account",
+    type: "card",
     currency: "ARS",
-    balance: {
+    current_balance: {
       amount_minor: 12_500,
       currency: "ARS",
     },
+    status: "active",
+    color_key: "violet",
+    icon_key: "card",
+    opened_on: "2026-06-18",
+    closed_on: null,
     created_on: "2026-06-18",
+    updated_on: "2026-06-18",
     ...overrides,
   }
 }
@@ -37,23 +44,29 @@ describe("wallet frontend routes", () => {
     vi.restoreAllMocks()
   })
 
-  it("loads and renders the cards list", async () => {
-    vi.spyOn(CardsService, "cardsListCards").mockImplementation(async () =>
+  it("loads and renders the accounts list", async () => {
+    vi.spyOn(AccountsService, "accountsListAccounts").mockImplementation(async () =>
       buildSuccess([
-        buildCard(),
-        buildCard({ id: "card-456", name: "Trips", balance: { amount_minor: 3200, currency: "USD" }, currency: "USD" }),
+        buildAccount(),
+        buildAccount({
+          id: "account-456",
+          name: "Trips",
+          type: "cash",
+          current_balance: { amount_minor: 3200, currency: "USD" },
+          currency: "USD",
+        }),
       ]),
     )
 
-    renderApp("/cards")
+    renderApp("/accounts")
 
-    expect(await screen.findByText("Everyday Card")).toBeInTheDocument()
+    expect(await screen.findByText("Everyday Account")).toBeInTheDocument()
     expect(screen.getByText("Trips")).toBeInTheDocument()
     expect(screen.getByText("ARS 125.00")).toBeInTheDocument()
     expect(screen.getByText("USD 32.00")).toBeInTheDocument()
     expect(
       screen.getByRole("heading", {
-        name: "See every card and its current balance.",
+        name: "See every account and its current balance.",
       }),
     ).toBeInTheDocument()
     expect(
@@ -61,72 +74,86 @@ describe("wallet frontend routes", () => {
     ).not.toBeInTheDocument()
   })
 
-  it("navigates to the dedicated create route from the cards list", async () => {
-    vi.spyOn(CardsService, "cardsListCards").mockImplementation(async () =>
+  it("navigates to the dedicated create route from the accounts list", async () => {
+    vi.spyOn(AccountsService, "accountsListAccounts").mockImplementation(async () =>
       buildSuccess([]),
     )
 
     const user = userEvent.setup()
-    renderApp("/cards")
+    renderApp("/accounts")
 
-    await screen.findByText("No cards yet.")
-    await user.click(screen.getByRole("link", { name: "Create a card" }))
+    await screen.findByText("No accounts yet.")
+    await user.click(screen.getByRole("link", { name: "Create an account" }))
 
     expect(
       await screen.findByRole("heading", {
-        name: "Add a fresh card before money starts moving.",
+        name: "Add a new account before money starts moving.",
       }),
     ).toBeInTheDocument()
   })
 
-  it("creates a card from the dedicated route and lands on the detail route", async () => {
-    vi.spyOn(CardsService, "cardsCreateCard").mockImplementation(async () =>
+  it("creates an account from the dedicated route and lands on the detail route", async () => {
+    vi.spyOn(AccountsService, "accountsCreateAccount").mockImplementation(async () =>
       buildSuccess(
-        buildCard({ id: "card-new", name: "Travel Fund", currency: "USD", balance: { amount_minor: 0, currency: "USD" } }),
+        buildAccount({
+          id: "account-new",
+          name: "Travel Fund",
+          type: "bank",
+          currency: "USD",
+          current_balance: { amount_minor: 15_000, currency: "USD" },
+        }),
       ),
     )
-    vi.spyOn(CardsService, "cardsListCards").mockImplementation(async () =>
+    vi.spyOn(AccountsService, "accountsListAccounts").mockImplementation(async () =>
       buildSuccess([]),
     )
-    vi.spyOn(CardsService, "cardsGetCard").mockImplementation(async () =>
+    vi.spyOn(AccountsService, "accountsGetAccount").mockImplementation(async () =>
       buildSuccess(
-        buildCard({ id: "card-new", name: "Travel Fund", currency: "USD", balance: { amount_minor: 0, currency: "USD" } }),
+        buildAccount({
+          id: "account-new",
+          name: "Travel Fund",
+          type: "bank",
+          currency: "USD",
+          current_balance: { amount_minor: 15_000, currency: "USD" },
+        }),
       ),
     )
 
     const user = userEvent.setup()
-    renderApp("/cards/new")
+    renderApp("/accounts/new")
 
     await screen.findByRole("heading", {
-      name: "Add a fresh card before money starts moving.",
+      name: "Add a new account before money starts moving.",
     })
-    expect(
-      screen.queryByText(
-        "This keeps the template naming, but creates a wallet card in the backend.",
-      ),
-    ).not.toBeInTheDocument()
     await user.type(
-      screen.getByPlaceholderText("Groceries, travel, emergency cash"),
+      screen.getByPlaceholderText("Main card, cash wallet, reserve fund"),
       "Travel Fund",
     )
+    await user.selectOptions(screen.getByLabelText("Account type"), "bank")
     await user.clear(screen.getByDisplayValue("ARS"))
     await user.type(screen.getByRole("textbox", { name: /currency/i }), "USD")
-    await user.click(screen.getByRole("button", { name: "Create card" }))
+    await user.clear(screen.getByRole("spinbutton", { name: /initial balance/i }))
+    await user.type(
+      screen.getByRole("spinbutton", { name: /initial balance/i }),
+      "15000",
+    )
+    await user.click(screen.getByRole("button", { name: "Create account" }))
 
-    expect(await screen.findByText("Travel Fund")).toBeInTheDocument()
+    expect((await screen.findAllByText("Travel Fund")).length).toBeGreaterThan(0)
+    expect(await screen.findByText("USD 150.00")).toBeInTheDocument()
     await waitFor(() => {
-      expect(CardsService.cardsCreateCard).toHaveBeenCalled()
+      expect(AccountsService.accountsCreateAccount).toHaveBeenCalled()
     })
   })
 
   it("withdraws money and updates the balance", async () => {
-    vi.spyOn(CardsService, "cardsGetCard").mockImplementation(async () =>
-      buildSuccess(buildCard()),
+    vi.spyOn(AccountsService, "accountsGetAccount").mockImplementation(async () =>
+      buildSuccess(buildAccount()),
     )
-    vi.spyOn(CardsService, "cardsWithdrawFromCard").mockImplementation(async () =>
+    vi.spyOn(AccountsService, "accountsWithdrawFromAccount").mockImplementation(async () =>
       buildSuccess(
-        buildCard({
-          balance: {
+        buildAccount({
+          current_balance: {
             amount_minor: 10_000,
             currency: "ARS",
           },
@@ -135,7 +162,7 @@ describe("wallet frontend routes", () => {
     )
 
     const user = userEvent.setup()
-    renderApp("/cards/card-123")
+    renderApp("/accounts/account-123")
 
     expect(await screen.findByText("ARS 125.00")).toBeInTheDocument()
 
@@ -146,17 +173,17 @@ describe("wallet frontend routes", () => {
   })
 
   it("shows an inline error when the withdrawal is rejected", async () => {
-    vi.spyOn(CardsService, "cardsGetCard").mockImplementation(async () =>
-      buildSuccess(buildCard()),
+    vi.spyOn(AccountsService, "accountsGetAccount").mockImplementation(async () =>
+      buildSuccess(buildAccount()),
     )
-    vi.spyOn(CardsService, "cardsWithdrawFromCard").mockRejectedValue(
+    vi.spyOn(AccountsService, "accountsWithdrawFromAccount").mockRejectedValue(
       buildApiError(409, "insufficient funds"),
     )
 
     const user = userEvent.setup()
-    renderApp("/cards/card-123")
+    renderApp("/accounts/account-123")
 
-    await screen.findByText("Everyday Card")
+    expect((await screen.findAllByText("Everyday Account")).length).toBeGreaterThan(0)
     await user.type(screen.getByLabelText("Amount in minor units"), "500000")
     await user.click(screen.getByRole("button", { name: "Withdraw" }))
 

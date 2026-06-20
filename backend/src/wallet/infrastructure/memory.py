@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-from wallet.domain.cards import Card
+from wallet.domain.accounts import Account
 
 
-class InMemoryCardRepository:
+class InMemoryAccountRepository:
     def __init__(self) -> None:
-        self._cards_by_id: dict[str, Card] = {}
+        self._accounts_by_id: dict[str, Account] = {}
 
-    def add(self, card: Card) -> None:
-        self._cards_by_id[card.id] = card
+    def add(self, account: Account) -> None:
+        self._accounts_by_id[account.id] = account
 
-    def get(self, card_id: str) -> Card | None:
-        return self._cards_by_id.get(card_id)
+    def get(self, account_id: str) -> Account | None:
+        return self._accounts_by_id.get(account_id)
 
-    def save(self, card: Card) -> None:
-        self._cards_by_id[card.id] = card
+    def save(self, account: Account) -> None:
+        self._accounts_by_id[account.id] = account
 
-    def list(self) -> list[Card]:
-        return list(self._cards_by_id.values())
+    def list(self) -> list[Account]:
+        return list(self._accounts_by_id.values())

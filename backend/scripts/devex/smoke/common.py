@@ -76,7 +76,7 @@ def assert_json_object(response: HttpResponse) -> dict[str, Any]:
     return response.body
 
 
-def unique_card_name(prefix: str) -> str:
+def unique_account_name(prefix: str) -> str:
     return f"{prefix} {uuid.uuid4().hex[:8]}"
 
 

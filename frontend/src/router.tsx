@@ -7,16 +7,16 @@ import {
   useNavigate,
 } from "@tanstack/react-router"
 import { useEffect } from "react"
-import { CardDetailRoute } from "@/routes/card-detail"
-import { CardsListRoute } from "@/routes/cards-list"
-import { CardsNewRoute } from "@/routes/cards-new"
+import { AccountDetailRoute } from "@/routes/account-detail"
+import { AccountsListRoute } from "@/routes/accounts-list"
+import { AccountsNewRoute } from "@/routes/accounts-new"
 import { ErrorPage, NotFoundPage, RootLayout } from "@/routes/root"
 
 function HomeRedirect() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    void navigate({ replace: true, to: "/cards" })
+    void navigate({ replace: true, to: "/accounts" })
   }, [navigate])
 
   return null
@@ -41,29 +41,29 @@ const homeRoute = createRoute({
   component: HomeRedirect,
 })
 
-const cardsRoute = createRoute({
+const accountsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "cards",
-  component: CardsListRoute,
+  path: "accounts",
+  component: AccountsListRoute,
 })
 
-const cardsNewRoute = createRoute({
+const accountsNewRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "cards/new",
-  component: CardsNewRoute,
+  path: "accounts/new",
+  component: AccountsNewRoute,
 })
 
-const cardDetailRoute = createRoute({
+const accountDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "cards/$cardId",
-  component: CardDetailRoute,
+  path: "accounts/$accountId",
+  component: AccountDetailRoute,
 })
 
 const routeTree = rootRoute.addChildren([
   homeRoute,
-  cardsRoute,
-  cardsNewRoute,
-  cardDetailRoute,
+  accountsRoute,
+  accountsNewRoute,
+  accountDetailRoute,
 ])
 
 export function createAppRouter() {

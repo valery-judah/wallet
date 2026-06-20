@@ -5,22 +5,22 @@ from typing import Annotated, cast
 
 from fastapi import Depends, Request
 
-from wallet.application.cards import CardService
+from wallet.application.accounts import AccountService
 from wallet.config import Settings, get_settings
-from wallet.infrastructure.memory import InMemoryCardRepository
-from wallet.ports.cards import CardRepository
+from wallet.infrastructure.memory import InMemoryAccountRepository
+from wallet.ports.accounts import AccountRepository
 
 
 @dataclass(frozen=True, slots=True)
 class AppContainer:
     settings: Settings
-    cards: InMemoryCardRepository
+    accounts: InMemoryAccountRepository
 
 
 def build_container(settings: Settings | None = None) -> AppContainer:
     return AppContainer(
         settings=settings or get_settings(),
-        cards=InMemoryCardRepository(),
+        accounts=InMemoryAccountRepository(),
     )
 
 
@@ -38,15 +38,15 @@ def get_app_settings(container: ContainerDep) -> Settings:
 SettingsDep = Annotated[Settings, Depends(get_app_settings)]
 
 
-def get_card_repository(container: ContainerDep) -> CardRepository:
-    return container.cards
+def get_account_repository(container: ContainerDep) -> AccountRepository:
+    return container.accounts
 
 
-CardRepositoryDep = Annotated[CardRepository, Depends(get_card_repository)]
+AccountRepositoryDep = Annotated[AccountRepository, Depends(get_account_repository)]
 
 
-def get_card_service(cards: CardRepositoryDep) -> CardService:
-    return CardService(cards=cards)
+def get_account_service(accounts: AccountRepositoryDep) -> AccountService:
+    return AccountService(accounts=accounts)
 
 
-CardServiceDep = Annotated[CardService, Depends(get_card_service)]
+AccountServiceDep = Annotated[AccountService, Depends(get_account_service)]

@@ -40,12 +40,12 @@ def test_discover_scenarios_sorts_by_filename(tmp_path: Path) -> None:
 def test_select_scenarios_filters_by_name() -> None:
     scenarios = [
         Scenario(name="health", run=lambda client: None, path=Path("health.py")),
-        Scenario(name="card_lifecycle", run=lambda client: None, path=Path("card.py")),
+        Scenario(name="account_lifecycle", run=lambda client: None, path=Path("account.py")),
     ]
 
-    selected = select_scenarios(scenarios, "card_lifecycle")
+    selected = select_scenarios(scenarios, "account_lifecycle")
 
-    assert [scenario.name for scenario in selected] == ["card_lifecycle"]
+    assert [scenario.name for scenario in selected] == ["account_lifecycle"]
 
 
 def test_select_scenarios_raises_for_unknown_name() -> None:
@@ -69,7 +69,7 @@ def test_run_scenarios_reports_failure_summary() -> None:
             response=HttpResponse(
                 status_code=200,
                 body={"detail": "wrong"},
-                url="http://127.0.0.1:8000/api/v1/cards/demo/withdrawals",
+                url="http://127.0.0.1:8000/api/v1/accounts/demo/withdrawals",
             ),
         )
 
@@ -89,7 +89,7 @@ def test_run_scenarios_reports_failure_summary() -> None:
     assert output.getvalue() == (
         "PASS health\n"
         "FAIL insufficient_funds expected HTTP 409, got 200; "
-        "url=http://127.0.0.1:8000/api/v1/cards/demo/withdrawals; "
+        "url=http://127.0.0.1:8000/api/v1/accounts/demo/withdrawals; "
         "status=200; body={'detail': 'wrong'}\n"
         "FAIL scenarios: 1/2 passed, 1 failed\n"
     )

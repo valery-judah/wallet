@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from wallet.domain.cards import Card
+from wallet.domain.accounts import Account, AccountStatus, AccountType
 from wallet.domain.money import Money
 
 NonBlankStr = Annotated[str, StringConstraints(min_length=1)]
@@ -38,25 +38,50 @@ class MoneyResponse(ApiModel):
         )
 
 
-class CardCreateRequest(ApiModel):
+class CreateAccountRequest(ApiModel):
     name: NonBlankStr
+    type: AccountType = AccountType.CARD
     currency: NonBlankStr = "ARS"
+    current_balance_minor: Annotated[int, Field(ge=0)] = 0
     opened_on: date | None = None
+    color_key: str | None = None
+    icon_key: str | None = None
 
 
-class CardResponse(ApiModel):
+class UpdateAccountProfileRequest(ApiModel):
+    name: NonBlankStr
+    type: AccountType
+    color_key: str | None = None
+    icon_key: str | None = None
+
+
+class AccountResponse(ApiModel):
     id: str
     name: str
+    type: AccountType
     currency: str
-    balance: MoneyResponse
+    current_balance: MoneyResponse
+    status: AccountStatus
+    color_key: str | None = None
+    icon_key: str | None = None
+    opened_on: date
+    closed_on: date | None = None
     created_on: date
+    updated_on: date
 
     @classmethod
-    def from_domain(cls, card: Card) -> CardResponse:
+    def from_domain(cls, account: Account) -> AccountResponse:
         return cls(
-            id=card.id,
-            name=card.name,
-            currency=card.currency,
-            balance=MoneyResponse.from_domain(card.balance),
-            created_on=card.created_on,
+            id=account.id,
+            name=account.name,
+            type=account.type,
+            currency=account.currency,
+            current_balance=MoneyResponse.from_domain(account.current_balance),
+            status=account.status,
+            color_key=account.color_key,
+            icon_key=account.icon_key,
+            opened_on=account.opened_on,
+            closed_on=account.closed_on,
+            created_on=account.created_on,
+            updated_on=account.updated_on,
         )

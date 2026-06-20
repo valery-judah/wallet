@@ -26,13 +26,13 @@
         }
       }
     },
-    "/api/v1/cards": {
+    "/api/v1/accounts": {
       "get": {
         "tags": [
-          "cards"
+          "accounts"
         ],
-        "summary": "List Cards",
-        "operationId": "cards-list_cards",
+        "summary": "List Accounts",
+        "operationId": "accounts-list_accounts",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -40,10 +40,10 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/CardResponse"
+                    "$ref": "#/components/schemas/AccountResponse"
                   },
                   "type": "array",
-                  "title": "Response Cards-List Cards"
+                  "title": "Response Accounts-List Accounts"
                 }
               }
             }
@@ -52,15 +52,15 @@
       },
       "post": {
         "tags": [
-          "cards"
+          "accounts"
         ],
-        "summary": "Create Card",
-        "operationId": "cards-create_card",
+        "summary": "Create Account",
+        "operationId": "accounts-create_account",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CardCreateRequest"
+                "$ref": "#/components/schemas/CreateAccountRequest"
               }
             }
           },
@@ -72,7 +72,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CardResponse"
+                  "$ref": "#/components/schemas/AccountResponse"
                 }
               }
             }
@@ -90,21 +90,21 @@
         }
       }
     },
-    "/api/v1/cards/{card_id}": {
+    "/api/v1/accounts/{account_id}": {
       "get": {
         "tags": [
-          "cards"
+          "accounts"
         ],
-        "summary": "Get Card",
-        "operationId": "cards-get_card",
+        "summary": "Get Account",
+        "operationId": "accounts-get_account",
         "parameters": [
           {
-            "name": "card_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Card Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -114,7 +114,57 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CardResponse"
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Update Account Profile",
+        "operationId": "accounts-update_account_profile",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAccountProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
                 }
               }
             }
@@ -132,21 +182,21 @@
         }
       }
     },
-    "/api/v1/cards/{card_id}/deposits": {
+    "/api/v1/accounts/{account_id}/deposits": {
       "post": {
         "tags": [
-          "cards"
+          "accounts"
         ],
-        "summary": "Deposit To Card",
-        "operationId": "cards-deposit_to_card",
+        "summary": "Deposit To Account",
+        "operationId": "accounts-deposit_to_account",
         "parameters": [
           {
-            "name": "card_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Card Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -166,7 +216,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CardResponse"
+                  "$ref": "#/components/schemas/AccountResponse"
                 }
               }
             }
@@ -184,21 +234,21 @@
         }
       }
     },
-    "/api/v1/cards/{card_id}/withdrawals": {
+    "/api/v1/accounts/{account_id}/withdrawals": {
       "post": {
         "tags": [
-          "cards"
+          "accounts"
         ],
-        "summary": "Withdraw From Card",
-        "operationId": "cards-withdraw_from_card",
+        "summary": "Withdraw From Account",
+        "operationId": "accounts-withdraw_from_account",
         "parameters": [
           {
-            "name": "card_id",
+            "name": "account_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Card Id"
+              "title": "Account Id"
             }
           }
         ],
@@ -218,7 +268,49 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CardResponse"
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounts/{account_id}/close": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Close Account",
+        "operationId": "accounts-close_account",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
                 }
               }
             }
@@ -239,18 +331,136 @@
   },
   "components": {
     "schemas": {
-      "CardCreateRequest": {
+      "AccountResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "type": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "current_balance": {
+            "$ref": "#/components/schemas/MoneyResponse"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountStatus"
+          },
+          "color_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Key"
+          },
+          "icon_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Key"
+          },
+          "opened_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Opened On"
+          },
+          "closed_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed On"
+          },
+          "created_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Created On"
+          },
+          "updated_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Updated On"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "type",
+          "currency",
+          "current_balance",
+          "status",
+          "opened_on",
+          "created_on",
+          "updated_on"
+        ],
+        "title": "AccountResponse"
+      },
+      "AccountStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "closed"
+        ],
+        "title": "AccountStatus"
+      },
+      "AccountType": {
+        "type": "string",
+        "enum": [
+          "card",
+          "cash",
+          "bank",
+          "wallet",
+          "platform",
+          "savings",
+          "other"
+        ],
+        "title": "AccountType"
+      },
+      "CreateAccountRequest": {
         "properties": {
           "name": {
             "type": "string",
             "minLength": 1,
             "title": "Name"
           },
+          "type": {
+            "$ref": "#/components/schemas/AccountType",
+            "default": "card"
+          },
           "currency": {
             "type": "string",
             "minLength": 1,
             "title": "Currency",
             "default": "ARS"
+          },
+          "current_balance_minor": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Current Balance Minor",
+            "default": 0
           },
           "opened_on": {
             "anyOf": [
@@ -263,46 +473,35 @@
               }
             ],
             "title": "Opened On"
+          },
+          "color_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Key"
+          },
+          "icon_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Key"
           }
         },
         "type": "object",
         "required": [
           "name"
         ],
-        "title": "CardCreateRequest"
-      },
-      "CardResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "currency": {
-            "type": "string",
-            "title": "Currency"
-          },
-          "balance": {
-            "$ref": "#/components/schemas/MoneyResponse"
-          },
-          "created_on": {
-            "type": "string",
-            "format": "date",
-            "title": "Created On"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "currency",
-          "balance",
-          "created_on"
-        ],
-        "title": "CardResponse"
+        "title": "CreateAccountRequest"
       },
       "HTTPValidationError": {
         "properties": {
@@ -378,6 +577,46 @@
           "currency"
         ],
         "title": "MoneyResponse"
+      },
+      "UpdateAccountProfileRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "type": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "color_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Key"
+          },
+          "icon_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "title": "UpdateAccountProfileRequest"
       },
       "ValidationError": {
         "properties": {

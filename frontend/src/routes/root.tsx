@@ -18,14 +18,14 @@ export function RootLayout({ children }: { children: ReactNode }) {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">Wallet</p>
             <p className="truncate text-xs text-muted-foreground">
-              Track cards, balances, and withdrawals.
+              Track accounts, balances, and withdrawals.
             </p>
           </div>
           <Link
             className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-            to="/cards/new"
+            to="/accounts/new"
           >
-            New card
+            New account
           </Link>
         </header>
         <main className="flex-1 p-6 md:p-8">
@@ -43,15 +43,15 @@ export function NotFoundPage() {
       <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
         Not found
       </p>
-      <h2 className="mt-4 text-3xl font-semibold">This card view does not exist.</h2>
+      <h2 className="mt-4 text-3xl font-semibold">This account view does not exist.</h2>
       <p className="mt-3 text-sm text-muted-foreground">
-        Return to the main card list and pick an existing card.
+        Return to the main account list and pick an existing account.
       </p>
       <Link
         className="mt-8 inline-flex rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-        to="/cards"
+        to="/accounts"
       >
-        Back to cards
+        Back to accounts
       </Link>
     </section>
   )
@@ -67,14 +67,14 @@ export function ErrorPage() {
         Something went wrong while loading the wallet UI.
       </h2>
       <p className="mt-3 text-sm text-muted-foreground">
-        Refresh the page or return to the card list. Backend business errors are
+        Refresh the page or return to the account list. Backend business errors are
         shown inline on each form.
       </p>
       <Link
         className="mt-8 inline-flex rounded-md border bg-background px-5 py-3 text-sm font-semibold transition hover:bg-accent"
-        to="/cards"
+        to="/accounts"
       >
-        Return to cards
+        Return to accounts
       </Link>
     </section>
   )

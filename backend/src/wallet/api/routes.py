@@ -2,16 +2,28 @@ from __future__ import annotations
 
 from fastapi import APIRouter, status
 
-from wallet.application.cards import DepositToCard, IssueCard, WithdrawFromCard
-from wallet.domain.cards import CardNotFoundError
+from wallet.application.accounts import (
+    CloseAccount,
+    CreditAccount,
+    DebitAccount,
+    OpenAccount,
+    UpdateAccountProfile,
+)
+from wallet.domain.accounts import AccountNotFoundError
 from wallet.domain.money import Money
 
-from .deps import CardServiceDep, SettingsDep
-from .schemas import CardCreateRequest, CardResponse, HealthResponse, MoneyRequest
+from .deps import AccountServiceDep, SettingsDep
+from .schemas import (
+    AccountResponse,
+    CreateAccountRequest,
+    HealthResponse,
+    MoneyRequest,
+    UpdateAccountProfileRequest,
+)
 
 api_router = APIRouter()
 system_router = APIRouter(tags=["system"])
-cards_router = APIRouter(prefix="/cards", tags=["cards"])
+accounts_router = APIRouter(prefix="/accounts", tags=["accounts"])
 
 
 @system_router.get("/health", response_model=HealthResponse)
@@ -23,70 +35,104 @@ def get_health(settings: SettingsDep) -> HealthResponse:
     )
 
 
-@cards_router.post(
+@accounts_router.post(
     "",
-    response_model=CardResponse,
+    response_model=AccountResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def create_card(payload: CardCreateRequest, service: CardServiceDep) -> CardResponse:
-    card = service.issue_card(
-        IssueCard(
+def create_account(
+    payload: CreateAccountRequest,
+    service: AccountServiceDep,
+) -> AccountResponse:
+    account = service.open_account(
+        OpenAccount(
             name=payload.name,
+            type=payload.type,
             currency=payload.currency,
+            current_balance_minor=payload.current_balance_minor,
             opened_on=payload.opened_on,
+            color_key=payload.color_key,
+            icon_key=payload.icon_key,
         )
     )
-    return CardResponse.from_domain(card)
+    return AccountResponse.from_domain(account)
 
 
-@cards_router.get("", response_model=list[CardResponse])
-def list_cards(service: CardServiceDep) -> list[CardResponse]:
-    return [CardResponse.from_domain(card) for card in service.list_cards()]
+@accounts_router.get("", response_model=list[AccountResponse])
+def list_accounts(service: AccountServiceDep) -> list[AccountResponse]:
+    return [AccountResponse.from_domain(account) for account in service.list_accounts()]
 
 
-@cards_router.get("/{card_id}", response_model=CardResponse)
-def get_card(card_id: str, service: CardServiceDep) -> CardResponse:
-    card = service.get_card(card_id)
-    if card is None:
-        raise CardNotFoundError(card_id)
-    return CardResponse.from_domain(card)
+@accounts_router.get("/{account_id}", response_model=AccountResponse)
+def get_account(account_id: str, service: AccountServiceDep) -> AccountResponse:
+    account = service.get_account(account_id)
+    if account is None:
+        raise AccountNotFoundError(account_id)
+    return AccountResponse.from_domain(account)
 
 
-@cards_router.post("/{card_id}/deposits", response_model=CardResponse)
-def deposit_to_card(
-    card_id: str,
+@accounts_router.patch("/{account_id}", response_model=AccountResponse)
+def update_account_profile(
+    account_id: str,
+    payload: UpdateAccountProfileRequest,
+    service: AccountServiceDep,
+) -> AccountResponse:
+    account = service.update_account_profile(
+        UpdateAccountProfile(
+            account_id=account_id,
+            name=payload.name,
+            type=payload.type,
+            color_key=payload.color_key,
+            icon_key=payload.icon_key,
+        )
+    )
+    return AccountResponse.from_domain(account)
+
+
+@accounts_router.post("/{account_id}/deposits", response_model=AccountResponse)
+def deposit_to_account(
+    account_id: str,
     payload: MoneyRequest,
-    service: CardServiceDep,
-) -> CardResponse:
-    card = service.deposit_to_card(
-        DepositToCard(
-            card_id=card_id,
+    service: AccountServiceDep,
+) -> AccountResponse:
+    account = service.credit_account(
+        CreditAccount(
+            account_id=account_id,
             amount=Money(
                 amount_minor=payload.amount_minor,
                 currency=payload.currency,
             ),
         )
     )
-    return CardResponse.from_domain(card)
+    return AccountResponse.from_domain(account)
 
 
-@cards_router.post("/{card_id}/withdrawals", response_model=CardResponse)
-def withdraw_from_card(
-    card_id: str,
+@accounts_router.post("/{account_id}/withdrawals", response_model=AccountResponse)
+def withdraw_from_account(
+    account_id: str,
     payload: MoneyRequest,
-    service: CardServiceDep,
-) -> CardResponse:
-    card = service.withdraw_from_card(
-        WithdrawFromCard(
-            card_id=card_id,
+    service: AccountServiceDep,
+) -> AccountResponse:
+    account = service.debit_account(
+        DebitAccount(
+            account_id=account_id,
             amount=Money(
                 amount_minor=payload.amount_minor,
                 currency=payload.currency,
             ),
         )
     )
-    return CardResponse.from_domain(card)
+    return AccountResponse.from_domain(account)
+
+
+@accounts_router.post("/{account_id}/close", response_model=AccountResponse)
+def close_account(
+    account_id: str,
+    service: AccountServiceDep,
+) -> AccountResponse:
+    account = service.close_account(CloseAccount(account_id=account_id))
+    return AccountResponse.from_domain(account)
 
 
 api_router.include_router(system_router)
-api_router.include_router(cards_router)
+api_router.include_router(accounts_router)

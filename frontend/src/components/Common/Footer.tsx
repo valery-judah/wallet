@@ -8,7 +8,7 @@ export function Footer() {
           Wallet frontend - {currentYear}
         </p>
         <p className="text-muted-foreground text-sm">
-          FastAPI-backed card management for local development.
+          FastAPI-backed account management for local development.
         </p>
       </div>
     </footer>

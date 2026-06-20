@@ -11,8 +11,8 @@ import {
 import { type Item, Main } from "./Main"
 
 const items: Item[] = [
-  { icon: CreditCard, title: "Cards", path: "/cards" },
-  { icon: Plus, title: "New card", path: "/cards/new" },
+  { icon: CreditCard, title: "Accounts", path: "/accounts" },
+  { icon: Plus, title: "New account", path: "/accounts/new" },
 ]
 
 export function AppSidebar() {

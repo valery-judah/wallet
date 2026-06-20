@@ -4,7 +4,7 @@ from scripts.devex.smoke.common import (
     HttpClient,
     assert_json_object,
     assert_status,
-    unique_card_name,
+    unique_account_name,
 )
 
 name = "insufficient_funds"
@@ -13,15 +13,19 @@ name = "insufficient_funds"
 def run(client: HttpClient) -> None:
     create_response = client.request(
         "POST",
-        "/api/v1/cards",
-        payload={"name": unique_card_name("Insufficient funds"), "currency": "ARS"},
+        "/api/v1/accounts",
+        payload={
+            "name": unique_account_name("Insufficient funds"),
+            "type": "card",
+            "currency": "ARS",
+        },
     )
     assert_status(create_response, 201)
-    created_card = assert_json_object(create_response)
+    created_account = assert_json_object(create_response)
 
     withdraw_response = client.request(
         "POST",
-        f"/api/v1/cards/{created_card['id']}/withdrawals",
+        f"/api/v1/accounts/{created_account['id']}/withdrawals",
         payload={"amount_minor": 100, "currency": "ARS"},
     )
     assert_status(withdraw_response, 409)

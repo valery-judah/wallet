@@ -47,7 +47,7 @@ export function WithdrawForm({
         <div>
           <h2 className="text-xl font-semibold">Withdraw money</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Use the card currency and submit the amount in minor units.
+            Use the account currency and submit the amount in minor units.
           </p>
         </div>
 
