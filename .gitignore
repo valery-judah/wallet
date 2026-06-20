@@ -209,3 +209,6 @@ input/
 node_modules/
 frontend/dist/
 *.tsbuildinfo
+package-lock.json
+npm-debug.log*
+.npm/
