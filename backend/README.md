@@ -21,6 +21,10 @@ uv run poe verify
 From the repo root, the equivalent Poe commands are:
 
 ```bash
+make run-backend
+make gen-openapi
+make check-smoke
+make check-smoke-managed
 uv --directory backend run poe serve
 uv --directory backend run poe smoke
 uv --directory backend run poe smoke-managed
@@ -28,10 +32,12 @@ uv --directory backend run poe export-openapi
 uv --directory backend run poe verify
 ```
 
+`make run-backend` is the preferred root-level convenience command for running the backend locally with reload. Direct Poe commands remain available when you want the backend task layer.
+
 For an optional all-container local stack, return to the repo root and run:
 
 ```bash
-make dev-up
+make run-stack
 ```
 
 ## Layout
@@ -69,10 +75,8 @@ publishes the backend on `http://localhost:8000`.
 With the current repo layout, the canonical flow is:
 
 ```bash
-uv run poe export-openapi
 cd ..
-make frontend-install
-make frontend-generate-client
+make gen-client
 ```
 
 ## Manual smoke
@@ -80,8 +84,8 @@ Use the smoke harness when you want a real HTTP sanity check instead of the
 automated test suite:
 
 ```bash
-uv run poe smoke
-uv run poe smoke-managed
+make check-smoke
+make check-smoke-managed
 ```
 
 - `smoke` expects a backend already running at `http://127.0.0.1:8000`

@@ -1,23 +1,22 @@
 
 ## Canonical sources
-- `docs/evergreen/mvp.md` - product scope
-- `docs/evergreen/architecture.md` - architecture and current repo shape
-- `docs/evergreen/api-contracts.md` - stable runtime interfaces
 - `docs/evergreen/runbook.md` - local commands and operation
+- `docs/product/spec.md` - current product base
+- `docs/product/concepts.md` - product vocabulary and concepts
 - `docs/README.md` - docs index
 
-`docs/evergreen/` is canonical. `docs/delivery/` is reference-only. `docs/workstreams/` is history-only.
+`docs/evergreen/` is canonical when present. `docs/delivery/` is reference-only. `docs/workstreams/` is history-only.
 
-For now, the `evergreen` directory is empty. We're working on the `docs/product/spec.md` and `docs/product/concepts.md` to build a product base. 
+The product base is currently being built in `docs/product/spec.md` and `docs/product/concepts.md`.
 
 ## Commands
 - Use `uv` as the Python command entrypoint for this repo.
-- From the repo root, prefer `uv --directory backend run poe <task>` for defined backend workflows; from inside `backend/`, use `uv run poe <task>`.
+- From the repo root, prefer `make` for the standard workflow surface such as setup, run, generation, verification, and Docker-based flows.
+- Use `uv --directory backend run poe <task>` for direct backend task access from the repo root; from inside `backend/`, use `uv run poe <task>`.
 - Otherwise use `uv run <tool>` or `uv --directory backend run <tool>`, depending on which project owns the command.
 - Do not use `pip`, `python -m pip`, `poetry`, `pipenv`, `npm`, or `npx` for repo workflows.
-- Use `make` for local DevEx and infrastructure wrappers such as Docker, Docker Compose, observability stack operations, as defined in [`Makefile`](Makefile).
 - For the full command catalog and operational guidance, use [`docs/evergreen/runbook.md`](docs/evergreen/runbook.md).
-- To inspect the current command surface directly, use `uv --directory backend run poe --help` and `make help`.
+- To inspect the current command surface directly, use `make help` and `uv --directory backend run poe --help`.
 
 ## Validation
 - Docs-only change: no mandatory validation; run targeted checks only if docs affect commands or generated artifacts.

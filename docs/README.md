@@ -1,5 +1,6 @@
-# Product Docs
+# Docs
 
+- `evergreen/runbook.md`: canonical local commands and operating guidance
 - `product/spec.md`: main Wallet MVP specification placeholder
 - `product/concepts.md`: naming, account model, and UX vocabulary placeholder
 - `product/archive/`: earlier product exploration and supporting notes
