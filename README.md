@@ -12,11 +12,6 @@ make init
 uv run poe verify
 ```
 
-## Run
-```bash
-uv run poe run
-```
-
 ## Development
 Python developer tasks live in Poe. Common commands:
 
@@ -25,11 +20,11 @@ uv run poe fmt
 uv run poe lint
 uv run poe type
 uv run poe test
+uv run poe clean
 uv run poe verify
-uv run poe run
 ```
 
-`make` remains available for bootstrap and wrappers such as `make init`, `make install`, `make verify`, and `make run`.
+`make` remains available for bootstrap and wrappers such as `make init`, `make install`, `make clean`, and `make verify`.
 
 ## Dependencies
 - Add a runtime dependency: `uv add <package>`
@@ -41,6 +36,10 @@ uv run poe run
 ## Project layout
 ```text
 src/wallet/
+  domain/
+  application/
+  ports/
+  infrastructure/
 tests/
 docs/
 ```
@@ -49,6 +48,8 @@ docs/
 - Primary spec: `docs/product/spec.md`
 - Vocabulary and UX concepts: `docs/product/concepts.md`
 - Archived exploration: `docs/product/archive/`
+
+The product docs are still being established. The current files are placeholders that define the intended canonical locations.
 
 ## Configuration
 - Packaging/config: `pyproject.toml`
