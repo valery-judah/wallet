@@ -6,15 +6,33 @@ POE := $(UV_BACKEND) run poe
 FRONTEND_COMPOSE := HOST_UID=$(shell id -u) HOST_GID=$(shell id -g) docker compose -f compose.frontend.yml
 DEV_COMPOSE := HOST_UID=$(shell id -u) HOST_GID=$(shell id -g) docker compose -f compose.dev.yml
 
+PREFERRED_WORKFLOWS := setup run-backend run-stack stop-stack logs-stack gen-client verify check-smoke clean
+SETUP_TARGETS := setup setup-sync setup-lock install install-git-hooks
+BACKEND_CHECK_TARGETS := gen-openapi fmt lint type test verify check check-smoke check-smoke-managed clean
+FRONTEND_DOCKER_TARGETS := run-frontend frontend-install frontend-generate-client frontend-type frontend-build frontend-test frontend-bun run-stack stop-stack logs-stack
+COMPAT_ALIAS_TARGETS := init sync lock backend-dev smoke smoke-managed frontend-dev dev-up dev-down dev-logs
+
 .PHONY: help
 help: ## Show this help message
 	@echo "Usage: make <target>"
 	@echo ""
-	@echo "Repo & Infrastructure Targets:"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST) | sort
-	@echo ""
-	@echo "Backend developer tasks live in Poe."
-	@echo "Run 'uv --directory backend run poe --help' or 'uv --directory backend run poe <task>' for fmt/lint/type/test/verify."
+	@print_section() { \
+		title="$$1"; \
+		targets="$$2"; \
+		echo "$$title:"; \
+		for target in $$targets; do \
+			awk -v target="$$target" 'BEGIN {FS = ":.*## "} $$0 ~ ("^" target ":.*## ") {printf "  %-20s %s\n", target, $$2; exit}' $(MAKEFILE_LIST); \
+		done; \
+		echo ""; \
+	}; \
+	print_section "Preferred Workflows" "$(PREFERRED_WORKFLOWS)"; \
+	print_section "Setup" "$(SETUP_TARGETS)"; \
+	print_section "Backend Checks" "$(BACKEND_CHECK_TARGETS)"; \
+	print_section "Frontend / Docker" "$(FRONTEND_DOCKER_TARGETS)"; \
+	print_section "Compatibility Aliases" "$(COMPAT_ALIAS_TARGETS)"; \
+	echo "Direct backend tasks remain available via Poe:"; \
+	echo "  uv --directory backend run poe --help"; \
+	echo "  uv --directory backend run poe <task>"
 
 .PHONY: ensure-uv
 ensure-uv: ## Check if uv is installed
@@ -32,19 +50,28 @@ install-git-hooks: ## Configure git to use repo-managed hooks
 		echo "Not in a git repository. Skipping git hooks setup."; \
 	fi
 
-.PHONY: sync
-sync: ensure-uv ## Sync dependencies into the local .venv
+.PHONY: setup-sync
+setup-sync: ensure-uv ## Sync dependencies into the local .venv
 	$(UV) sync --package wallet --group dev
 
-.PHONY: lock
-lock: ensure-uv ## Generate or refresh uv.lock
+.PHONY: sync
+sync: setup-sync ## Compatibility alias for setup-sync
+
+.PHONY: setup-lock
+setup-lock: ensure-uv ## Generate or refresh uv.lock
 	$(UV) lock
 
+.PHONY: lock
+lock: setup-lock ## Compatibility alias for setup-lock
+
 .PHONY: install
-install: sync install-git-hooks ## Install the backend package in editable mode via uv sync
+install: setup-sync install-git-hooks ## Install the backend package in editable mode via uv sync
+
+.PHONY: setup
+setup: install ## Bootstrap local dev environment
 
 .PHONY: init
-init: sync install ## Bootstrap local dev environment
+init: setup ## Compatibility alias for setup
 
 .PHONY: add-rich
 add-rich: ensure-uv ## Add `rich` dependency via uv (updates pyproject + uv.lock)
@@ -65,19 +92,34 @@ lint: ensure-uv ## Run lint checks
 type: ensure-uv ## Run static type checks
 	$(POE) type
 
+# --- Local Run ---
+
+.PHONY: run-backend
+run-backend: install ## Run the backend locally with reload
+	$(POE) serve
+
+.PHONY: backend-dev
+backend-dev: run-backend ## Compatibility alias for run-backend
+
 # --- Testing ---
 
 .PHONY: test
 test: install ## Run unit tests
 	$(POE) test
 
-.PHONY: smoke
-smoke: install ## Run manual API smoke scenarios against an existing backend
+.PHONY: check-smoke
+check-smoke: install ## Run manual API smoke scenarios against an existing backend
 	$(POE) smoke
 
-.PHONY: smoke-managed
-smoke-managed: install ## Run manual API smoke scenarios with a managed backend
+.PHONY: smoke
+smoke: check-smoke ## Compatibility alias for check-smoke
+
+.PHONY: check-smoke-managed
+check-smoke-managed: install ## Run manual API smoke scenarios with a managed backend
 	$(POE) smoke-managed
+
+.PHONY: smoke-managed
+smoke-managed: check-smoke-managed ## Compatibility alias for check-smoke-managed
 
 .PHONY: clean
 clean: ensure-uv ## Remove caches and generated local artifacts
@@ -90,47 +132,69 @@ verify: install ## Run read-only verification checks
 .PHONY: check
 check: verify ## Run the full verification suite
 
+# --- Code Generation ---
+
+.PHONY: gen-openapi
+gen-openapi: install ## Export the backend OpenAPI schema for client generation
+	$(POE) export-openapi
+
+.PHONY: gen-client
+gen-client: gen-openapi frontend-install ## Export OpenAPI and regenerate the frontend API client
+	$(FRONTEND_COMPOSE) run --rm bun run generate-client
+
 # --- Frontend (Bun in Docker) ---
 
 .PHONY: frontend-install
-frontend-install: ## Install frontend dependencies inside the Bun container
+frontend-install: ## Compatibility alias for the frontend dependency install step
 	$(FRONTEND_COMPOSE) run --rm bun install
 
 .PHONY: frontend-generate-client
-frontend-generate-client: ## Generate the frontend API client inside the Bun container
+frontend-generate-client: ## Compatibility alias for frontend client generation only
 	$(FRONTEND_COMPOSE) run --rm bun run generate-client
 
 .PHONY: frontend-type
-frontend-type: ## Run frontend type checks inside the Bun container
+frontend-type: ## Compatibility alias for frontend type checks
 	$(FRONTEND_COMPOSE) run --rm bun run typecheck
 
 .PHONY: frontend-build
-frontend-build: ## Build the frontend inside the Bun container
+frontend-build: ## Compatibility alias for the frontend production build
 	$(FRONTEND_COMPOSE) run --rm bun run build
 
 .PHONY: frontend-test
-frontend-test: ## Run frontend UI tests inside the Bun container
+frontend-test: ## Compatibility alias for frontend UI tests
 	$(FRONTEND_COMPOSE) run --rm bun run test
 
-.PHONY: frontend-dev
-frontend-dev: frontend-install ## Run the frontend dev server in Docker on http://localhost:5173
+.PHONY: run-frontend
+run-frontend: frontend-install ## Run the frontend dev server in Docker on http://localhost:5173
 	$(FRONTEND_COMPOSE) up frontend
 
+.PHONY: frontend-dev
+frontend-dev: run-frontend ## Compatibility alias for run-frontend
+
 .PHONY: frontend-bun
-frontend-bun: ## Run an arbitrary Bun command inside the frontend container: make frontend-bun CMD="run <script>"
+frontend-bun: ## Compatibility alias for arbitrary Bun commands in Docker
 	@test -n "$(CMD)" || (echo "Usage: make frontend-bun CMD='<bun args>'" && exit 2)
 	$(FRONTEND_COMPOSE) run --rm bun $(CMD)
 
 # --- Local Full Stack (Optional Docker Compose) ---
 
-.PHONY: dev-up
-dev-up: frontend-install ## Run the optional local Docker Compose stack on http://localhost:8000 and http://localhost:5173
+.PHONY: run-stack
+run-stack: frontend-install ## Run the optional local Docker Compose stack on http://localhost:8000 and http://localhost:5173
 	$(DEV_COMPOSE) up --build
 
-.PHONY: dev-down
-dev-down: ## Stop the optional local Docker Compose stack
+.PHONY: dev-up
+dev-up: run-stack ## Compatibility alias for run-stack
+
+.PHONY: stop-stack
+stop-stack: ## Stop the optional local Docker Compose stack
 	$(DEV_COMPOSE) down
 
-.PHONY: dev-logs
-dev-logs: ## Tail logs for the optional local Docker Compose stack
+.PHONY: dev-down
+dev-down: stop-stack ## Compatibility alias for stop-stack
+
+.PHONY: logs-stack
+logs-stack: ## Tail logs for the optional local Docker Compose stack
 	$(DEV_COMPOSE) logs -f
+
+.PHONY: dev-logs
+dev-logs: logs-stack ## Compatibility alias for logs-stack
