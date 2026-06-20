@@ -28,6 +28,14 @@ cmd = "pytest tests"
 help = "Run the FastAPI app locally with reload"
 cmd = "uvicorn --factory wallet.api.app:create_app --reload"
 
+[tasks.smoke]
+help = "Run the manual API smoke scenarios against an existing backend"
+cmd = "python -m scripts.devex.smoke.run"
+
+[tasks.smoke-managed]
+help = "Run the manual API smoke scenarios with a managed backend process"
+cmd = "python -m scripts.devex.smoke.run --managed"
+
 [tasks.export-openapi]
 help = "Export the OpenAPI schema for frontend client generation"
 cmd = "python scripts/devex/export_openapi.py"

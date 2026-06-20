@@ -27,6 +27,8 @@ make fmt
 make lint
 make type
 make test
+make smoke
+make smoke-managed
 make clean
 make verify
 ```
@@ -39,6 +41,8 @@ uv run poe fmt
 uv run poe lint
 uv run poe type
 uv run poe test
+uv run poe smoke
+uv run poe smoke-managed
 uv run poe serve
 uv run poe export-openapi
 uv run poe clean
@@ -89,10 +93,15 @@ The product docs are still being established. The current files are placeholders
 - App factory entrypoint: `wallet.api.app:create_app`
 - Singleton ASGI app: `wallet.api.main:app`
 - Local dev server: `uv --directory backend run poe serve`
+- Manual smoke against a running backend: `make smoke`
+- Manual smoke with a managed backend: `make smoke-managed`
 - Export OpenAPI for client generation: `uv --directory backend run poe export-openapi`
 - OpenAPI JSON: `/api/v1/openapi.json`
 - Interactive docs: `/docs`
 - Browser clients are allowed via CORS using `WALLET_FRONTEND_HOST` plus any extra `WALLET_BACKEND_CORS_ORIGINS`
+
+`make verify` remains the automated test suite. The smoke commands are manual
+HTTP checks for operator-style backend validation.
 
 ## Frontend
 - Frontend workspace: `frontend/`

@@ -70,6 +70,14 @@ type: ensure-uv ## Run static type checks
 test: install ## Run unit tests
 	$(POE) test
 
+.PHONY: smoke
+smoke: install ## Run manual API smoke scenarios against an existing backend
+	$(POE) smoke
+
+.PHONY: smoke-managed
+smoke-managed: install ## Run manual API smoke scenarios with a managed backend
+	$(POE) smoke-managed
+
 .PHONY: clean
 clean: ensure-uv ## Remove caches and generated local artifacts
 	$(POE) clean

@@ -12,6 +12,8 @@ From `backend/`:
 ```bash
 uv sync --group dev
 uv run poe serve
+uv run poe smoke
+uv run poe smoke-managed
 uv run poe export-openapi
 uv run poe verify
 ```
@@ -20,6 +22,8 @@ From the repo root, the equivalent Poe commands are:
 
 ```bash
 uv --directory backend run poe serve
+uv --directory backend run poe smoke
+uv --directory backend run poe smoke-managed
 uv --directory backend run poe export-openapi
 uv --directory backend run poe verify
 ```
@@ -55,3 +59,16 @@ cd ..
 make frontend-install
 make frontend-generate-client
 ```
+
+## Manual smoke
+Use the smoke harness when you want a real HTTP sanity check instead of the
+automated test suite:
+
+```bash
+uv run poe smoke
+uv run poe smoke-managed
+```
+
+- `smoke` expects a backend already running at `http://127.0.0.1:8000`
+- `smoke-managed` starts a temporary backend at `http://127.0.0.1:8010`
+- `uv run poe verify` remains the automated test suite
