@@ -28,6 +28,12 @@ uv --directory backend run poe export-openapi
 uv --directory backend run poe verify
 ```
 
+For an optional all-container local stack, return to the repo root and run:
+
+```bash
+make dev-up
+```
+
 ## Layout
 ```text
 src/wallet/
@@ -50,6 +56,9 @@ WALLET_BACKEND_CORS_ORIGINS
 `WALLET_FRONTEND_HOST` is included in the allowed CORS origins automatically. The
 `export-openapi` task writes to `frontend/openapi.json` when a `frontend/`
 directory exists, otherwise it falls back to repo-root `openapi.json`.
+
+The optional Docker Compose workflow also reads the repo-root `.env` file and
+publishes the backend on `http://localhost:8000`.
 
 With the current repo layout, the canonical flow is:
 

@@ -4,6 +4,7 @@ UV := uv
 UV_BACKEND := $(UV) --directory backend
 POE := $(UV_BACKEND) run poe
 FRONTEND_COMPOSE := HOST_UID=$(shell id -u) HOST_GID=$(shell id -g) docker compose -f compose.frontend.yml
+DEV_COMPOSE := HOST_UID=$(shell id -u) HOST_GID=$(shell id -g) docker compose -f compose.dev.yml
 
 .PHONY: help
 help: ## Show this help message
@@ -103,7 +104,33 @@ frontend-generate-client: ## Generate the frontend API client inside the Bun con
 frontend-type: ## Run frontend type checks inside the Bun container
 	$(FRONTEND_COMPOSE) run --rm bun run typecheck
 
+.PHONY: frontend-build
+frontend-build: ## Build the frontend inside the Bun container
+	$(FRONTEND_COMPOSE) run --rm bun run build
+
+.PHONY: frontend-test
+frontend-test: ## Run frontend UI tests inside the Bun container
+	$(FRONTEND_COMPOSE) run --rm bun run test
+
+.PHONY: frontend-dev
+frontend-dev: frontend-install ## Run the frontend dev server in Docker on http://localhost:5173
+	$(FRONTEND_COMPOSE) up frontend
+
 .PHONY: frontend-bun
 frontend-bun: ## Run an arbitrary Bun command inside the frontend container: make frontend-bun CMD="run <script>"
 	@test -n "$(CMD)" || (echo "Usage: make frontend-bun CMD='<bun args>'" && exit 2)
 	$(FRONTEND_COMPOSE) run --rm bun $(CMD)
+
+# --- Local Full Stack (Optional Docker Compose) ---
+
+.PHONY: dev-up
+dev-up: frontend-install ## Run the optional local Docker Compose stack on http://localhost:8000 and http://localhost:5173
+	$(DEV_COMPOSE) up --build
+
+.PHONY: dev-down
+dev-down: ## Stop the optional local Docker Compose stack
+	$(DEV_COMPOSE) down
+
+.PHONY: dev-logs
+dev-logs: ## Tail logs for the optional local Docker Compose stack
+	$(DEV_COMPOSE) logs -f

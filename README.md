@@ -15,6 +15,13 @@ uv --directory backend run poe serve
 uv --directory backend run poe export-openapi
 make frontend-install
 make frontend-generate-client
+make frontend-dev
+```
+
+Optional full-stack Docker flow:
+
+```bash
+make dev-up
 ```
 
 ## Development
@@ -31,6 +38,15 @@ make smoke
 make smoke-managed
 make clean
 make verify
+make frontend-install
+make frontend-generate-client
+make frontend-type
+make frontend-build
+make frontend-test
+make frontend-dev
+make dev-up
+make dev-down
+make dev-logs
 ```
 
 From inside `backend/`:
@@ -54,6 +70,10 @@ You can also target the backend explicitly from the root with `uv --directory ba
 The generated UI client now lives in `frontend/`. Export the backend schema with
 `uv --directory backend run poe export-openapi`, then use the root `make`
 targets to run Bun inside Docker.
+
+For an all-container local stack, use `make dev-up`. This is a convenience
+workflow; the canonical backend developer flow remains host `uv` plus the
+frontend Bun container commands.
 
 ## Dependencies
 - Add a runtime dependency: `uv add --package wallet <package>`
@@ -108,9 +128,16 @@ HTTP checks for operator-style backend validation.
 - Frontend env example: `frontend/.env.example`
 - Generated client config: `frontend/src/configure-client.ts`
 - Frontend Bun container definition: `compose.frontend.yml`
+- Optional full-stack local Compose definition: `compose.dev.yml`
+- Main routes: `/cards`, `/cards/new`, `/cards/$cardId`
 - Install dependencies: `make frontend-install`
 - After exporting `frontend/openapi.json`, generate the client with `make frontend-generate-client`
+- Run the app at `http://localhost:5173` with `make frontend-dev`
+- Run backend and frontend together with Docker using `make dev-up`
+- Stop the full-stack Docker workflow with `make dev-down`
 - Run frontend type checks with `make frontend-type`
+- Run frontend tests with `make frontend-test`
+- Build the frontend with `make frontend-build`
 - Use `make frontend-bun CMD="run <script>"` for ad hoc Bun commands without installing Bun on the host
 
 ## Contributing

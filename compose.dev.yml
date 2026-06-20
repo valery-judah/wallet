@@ -7,18 +7,34 @@ x-frontend-base: &frontend-base
   environment:
     HOME: /home/bun
     BUN_INSTALL_CACHE_DIR: /home/bun/.bun/install/cache
+    VITE_API_URL: http://localhost:8000
   volumes:
     - ./frontend:/workspace/frontend
     - frontend_node_modules:/workspace/frontend/node_modules
     - bun_cache:/home/bun/.bun/install/cache
 
 services:
-  bun:
-    <<: *frontend-base
-    entrypoint: ["bun"]
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    working_dir: /app/backend
+    command: ["uvicorn", "--factory", "wallet.api.app:create_app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/src:/app/backend/src
+      - ./backend/scripts:/app/backend/scripts
+    stdin_open: true
+    tty: true
 
   frontend:
     <<: *frontend-base
+    depends_on:
+      - backend
     entrypoint: ["bun"]
     command: ["run", "dev", "--host", "0.0.0.0"]
     user: "0:0"
