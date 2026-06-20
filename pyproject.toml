@@ -9,7 +9,6 @@ description = "A money tracker designed for imperfect real-life tracking habits.
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-  "pydantic>=2,<3",
 ]
 
 [dependency-groups]
@@ -19,9 +18,6 @@ dev = [
   "pytest>=8.4.0",
   "ruff>=0.12.0",
 ]
-
-[project.scripts]
-"wallet" = "wallet.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/wallet"]

@@ -24,6 +24,10 @@ cmd = "mypy src"
 help = "Run tests"
 cmd = "pytest tests"
 
+[tasks.clean]
+help = "Remove caches and generated local artifacts"
+cmd = "python scripts/devex/clean.py"
+
 [tasks.verify]
 help = "Run the read-only verification suite"
 sequence = ["lint", "type", "test"]
@@ -31,15 +35,3 @@ sequence = ["lint", "type", "test"]
 [tasks.check]
 help = "Alias for the read-only verification suite"
 sequence = ["verify"]
-
-[tasks.run]
-help = "Run the demo CLI"
-cmd = "python -m wallet.cli"
-
-[tasks.secret-scan]
-help = "Scan tracked repository files for leaked Gemini API keys"
-cmd = "python -m wallet.devtools.secret_scan --scope repo"
-
-[tasks.secret-scan-staged]
-help = "Scan staged added lines for leaked Gemini API keys"
-cmd = "python -m wallet.devtools.secret_scan --scope staged-added"

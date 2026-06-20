@@ -11,7 +11,7 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST) | sort
 	@echo ""
 	@echo "Python developer tasks live in Poe."
-	@echo "Run 'uv run poe --help' or 'uv run poe <task>' for fmt/lint/type/test/verify/run."
+	@echo "Run 'uv run poe --help' or 'uv run poe <task>' for fmt/lint/type/test/verify."
 
 .PHONY: ensure-uv
 ensure-uv: ## Check if uv is installed
@@ -69,23 +69,13 @@ type: ensure-uv ## Run static type checks
 test: install ## Run unit tests
 	$(POE) test
 
+.PHONY: clean
+clean: ensure-uv ## Remove caches and generated local artifacts
+	$(POE) clean
+
 .PHONY: verify
 verify: install ## Run read-only verification checks
 	$(POE) verify
 
 .PHONY: check
 check: verify ## Run the full verification suite
-
-# --- Security & Utilities ---
-
-.PHONY: secret-scan
-secret-scan: ## Scan tracked repository files for leaked Gemini API keys
-	$(POE) secret-scan
-
-.PHONY: secret-scan-staged
-secret-scan-staged: ## Scan staged added lines for leaked Gemini API keys
-	$(POE) secret-scan-staged
-
-.PHONY: run
-run: install ## Run wallet demo CLI
-	$(POE) run
