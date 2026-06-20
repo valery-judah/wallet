@@ -118,7 +118,7 @@ The product docs are still being established. The current files are placeholders
 - Export OpenAPI for client generation: `uv --directory backend run poe export-openapi`
 - OpenAPI JSON: `/api/v1/openapi.json`
 - Interactive docs: `/docs`
-- Browser clients are allowed via CORS using `WALLET_FRONTEND_HOST` plus any extra `WALLET_BACKEND_CORS_ORIGINS`
+- Browser clients are allowed via CORS using `WALLET_FRONTEND_HOST`, its loopback twin when applicable, plus any extra `WALLET_BACKEND_CORS_ORIGINS`
 
 `make verify` remains the automated test suite. The smoke commands are manual
 HTTP checks for operator-style backend validation.
@@ -133,6 +133,7 @@ HTTP checks for operator-style backend validation.
 - Install dependencies: `make frontend-install`
 - After exporting `frontend/openapi.json`, generate the client with `make frontend-generate-client`
 - Run the app at `http://localhost:5173` with `make frontend-dev`
+- `http://127.0.0.1:5173` also works automatically with the default CORS settings
 - Run backend and frontend together with Docker using `make dev-up`
 - Stop the full-stack Docker workflow with `make dev-down`
 - Run frontend type checks with `make frontend-type`

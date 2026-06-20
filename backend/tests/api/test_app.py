@@ -47,7 +47,34 @@ def test_cors_preflight_allows_configured_frontend_origin(client: TestClient) ->
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
-    assert response.headers["access-control-allow-credentials"] == "true"
+    assert "access-control-allow-credentials" not in response.headers
+
+
+def test_cors_preflight_allows_loopback_twin_origin(client: TestClient) -> None:
+    response = client.options(
+        "/api/v1/cards",
+        headers={
+            "Origin": "http://127.0.0.1:5173",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
+    assert "access-control-allow-credentials" not in response.headers
+
+
+def test_cors_preflight_rejects_unconfigured_origin(client: TestClient) -> None:
+    response = client.options(
+        "/api/v1/cards",
+        headers={
+            "Origin": "http://192.168.1.10:5173",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "access-control-allow-origin" not in response.headers
 
 
 def test_create_card_normalizes_values_and_returns_created_card(client: TestClient) -> None:

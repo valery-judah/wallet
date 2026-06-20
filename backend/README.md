@@ -53,9 +53,15 @@ WALLET_FRONTEND_HOST
 WALLET_BACKEND_CORS_ORIGINS
 ```
 
-`WALLET_FRONTEND_HOST` is included in the allowed CORS origins automatically. The
-`export-openapi` task writes to `frontend/openapi.json` when a `frontend/`
-directory exists, otherwise it falls back to repo-root `openapi.json`.
+`WALLET_FRONTEND_HOST` is always included in the allowed CORS origins
+automatically. When it uses `localhost` or `127.0.0.1`, the matching loopback
+twin for the same port is also allowed automatically, so the default local UI
+works at both `http://localhost:5173` and `http://127.0.0.1:5173`.
+
+Use `WALLET_BACKEND_CORS_ORIGINS` only for explicit extra origins such as Vite
+preview or a staging frontend domain. The `export-openapi` task writes to
+`frontend/openapi.json` when a `frontend/` directory exists, otherwise it falls
+back to repo-root `openapi.json`.
 
 The optional Docker Compose workflow also reads the repo-root `.env` file and
 publishes the backend on `http://localhost:8000`.

@@ -41,9 +41,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=resolved_settings.all_cors_origins,
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_credentials=False,
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["Content-Type", "Authorization"],
         )
     app.include_router(api_router, prefix=resolved_settings.api_v1_prefix)
     _register_exception_handlers(app)

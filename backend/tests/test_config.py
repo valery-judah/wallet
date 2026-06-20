@@ -11,7 +11,10 @@ def test_settings_defaults() -> None:
     assert settings.debug is False
     assert settings.api_v1_prefix == "/api/v1"
     assert settings.frontend_host == "http://localhost:5173"
-    assert settings.all_cors_origins == ["http://localhost:5173"]
+    assert settings.all_cors_origins == [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
 
 
 def test_get_settings_respects_environment_overrides(monkeypatch) -> None:
@@ -34,9 +37,10 @@ def test_get_settings_respects_environment_overrides(monkeypatch) -> None:
     assert settings.api_v1_prefix == "/api/custom"
     assert settings.frontend_host == "http://localhost:4173/"
     assert settings.all_cors_origins == [
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
         "http://localhost:3000",
         "https://wallet.example.com",
-        "http://localhost:4173",
     ]
     get_settings.cache_clear()
 
@@ -51,7 +55,25 @@ def test_settings_accept_list_based_cors_origins() -> None:
     )
 
     assert settings.all_cors_origins == [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
         "http://localhost:3000",
         "https://wallet.example.com",
-        "http://localhost:5173",
+    ]
+
+
+def test_settings_deduplicate_explicit_loopback_origin() -> None:
+    settings = Settings(
+        frontend_host="http://127.0.0.1:4173/",
+        backend_cors_origins=[
+            "http://localhost:4173/",
+            "http://127.0.0.1:4173/",
+            "https://wallet.example.com/",
+        ],
+    )
+
+    assert settings.all_cors_origins == [
+        "http://127.0.0.1:4173",
+        "http://localhost:4173",
+        "https://wallet.example.com",
     ]
