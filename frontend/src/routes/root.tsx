@@ -18,15 +18,9 @@ export function RootLayout({ children }: { children: ReactNode }) {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">Wallet</p>
             <p className="truncate text-xs text-muted-foreground">
-              Track where your money lives.
+              Track where your money lives and how you spend it.
             </p>
           </div>
-          <Link
-            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-            to="/accounts/new"
-          >
-            New account
-          </Link>
         </header>
         <main className="flex-1 p-6 md:p-8">
           <div className="mx-auto max-w-7xl">{children}</div>
@@ -43,15 +37,15 @@ export function NotFoundPage() {
       <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
         Not found
       </p>
-      <h2 className="mt-4 text-3xl font-semibold">This account view does not exist.</h2>
+      <h2 className="mt-4 text-3xl font-semibold">This page does not exist.</h2>
       <p className="mt-3 text-sm text-muted-foreground">
-        Return to the main account list and pick an existing account.
+        Return to the main app and pick an existing section.
       </p>
       <Link
         className="mt-8 inline-flex rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
         to="/accounts"
       >
-        Back to accounts
+        Back to app
       </Link>
     </section>
   )
@@ -67,13 +61,13 @@ export function ErrorPage() {
         Something went wrong while loading the wallet UI.
       </h2>
       <p className="mt-3 text-sm text-muted-foreground">
-        Refresh the page or return to the account list.
+        Refresh the page or return to the main app.
       </p>
       <Link
         className="mt-8 inline-flex rounded-md border bg-background px-5 py-3 text-sm font-semibold transition hover:bg-accent"
         to="/accounts"
       >
-        Return to accounts
+        Return to app
       </Link>
     </section>
   )

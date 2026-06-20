@@ -10,6 +10,7 @@ import { useEffect } from "react"
 import { AccountDetailRoute } from "@/routes/account-detail"
 import { AccountsListRoute } from "@/routes/accounts-list"
 import { AccountsNewRoute } from "@/routes/accounts-new"
+import { CategoriesRoute } from "@/routes/categories"
 import { ErrorPage, NotFoundPage, RootLayout } from "@/routes/root"
 
 function HomeRedirect() {
@@ -59,11 +60,18 @@ const accountDetailRoute = createRoute({
   component: AccountDetailRoute,
 })
 
+const categoriesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "categories",
+  component: CategoriesRoute,
+})
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   accountsRoute,
   accountsNewRoute,
   accountDetailRoute,
+  categoriesRoute,
 ])
 
 export function createAppRouter() {

@@ -107,7 +107,9 @@ describe("wallet frontend routes", () => {
     ).toBeInTheDocument()
     expect(screen.getByText("Tips")).toBeInTheDocument()
     expect(screen.getByText("Each account uses one currency.")).toBeInTheDocument()
-    expect(screen.getByText("Track your accounts in one place.")).toBeInTheDocument()
+    expect(
+      screen.getAllByText("Track where your money lives and how you spend it.").length,
+    ).toBeGreaterThan(0)
   })
 
   it("opens account detail when clicking an account card", async () => {
