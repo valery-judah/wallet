@@ -8,6 +8,14 @@ from .accounts import (
     UpdateAccountProfile,
     UpdateAccountRejectedError,
 )
+from .spending_categories import (
+    CreateSpendingCategory,
+    CreateSpendingCategoryRejectedError,
+    SpendingCategoryService,
+    SpendingCategoryTreeNode,
+    UpdateSpendingCategory,
+    UpdateSpendingCategoryRejectedError,
+)
 
 __all__ = [
     "AccountService",
@@ -18,4 +26,10 @@ __all__ = [
     "OpenAccount",
     "UpdateAccountProfile",
     "UpdateAccountRejectedError",
+    "CreateSpendingCategory",
+    "CreateSpendingCategoryRejectedError",
+    "SpendingCategoryService",
+    "SpendingCategoryTreeNode",
+    "UpdateSpendingCategory",
+    "UpdateSpendingCategoryRejectedError",
 ]

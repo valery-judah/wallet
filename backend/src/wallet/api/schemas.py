@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from wallet.domain.accounts import Account, AccountStatus, AccountType
 from wallet.domain.money import Money
+
+if TYPE_CHECKING:
+    from wallet.application.spending_categories import SpendingCategoryTreeNode
 
 NonBlankStr = Annotated[str, StringConstraints(min_length=1)]
 
@@ -81,3 +84,45 @@ class AccountResponse(ApiModel):
             created_on=account.created_on,
             updated_on=account.updated_on,
         )
+
+
+class CreateSpendingCategoryRequest(ApiModel):
+    name: NonBlankStr
+    parent_id: str | None = None
+    icon: str | None = None
+    color: str | None = None
+    sort_order: int = 0
+
+
+class UpdateSpendingCategoryRequest(ApiModel):
+    name: NonBlankStr | None = None
+    parent_id: str | None = None
+    icon: str | None = None
+    color: str | None = None
+    sort_order: int | None = None
+
+
+class SpendingCategoryResponse(ApiModel):
+    id: str
+    name: str
+    parent_id: str | None
+    icon: str | None = None
+    color: str | None = None
+    sort_order: int
+    children: list[SpendingCategoryResponse] = Field(default_factory=list)
+
+    @classmethod
+    def from_tree_node(cls, node: SpendingCategoryTreeNode) -> SpendingCategoryResponse:
+        category = node.category
+        return cls(
+            id=category.id,
+            name=category.name,
+            parent_id=category.parent_id,
+            icon=category.icon,
+            color=category.color,
+            sort_order=category.sort_order,
+            children=[cls.from_tree_node(child) for child in node.children],
+        )
+
+
+SpendingCategoryResponse.model_rebuild()

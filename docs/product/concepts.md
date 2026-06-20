@@ -14,6 +14,8 @@ Use these terms consistently in product copy, docs, and domain naming.
 | Incoming money | `Income` | Money entering the user’s finances |
 | Own-account movement | `Transfer` | Money moved between two user-owned accounts |
 | Explicit correction | `Balance adjustment` | Manual correction to a stored balance |
+| Expense classification bucket | `Spending category` | A two-level category used to classify spending |
+| Missing expense category | `Uncategorized` | UI label for spending with no category assigned |
 
 ## Domain Concepts
 
@@ -73,3 +75,22 @@ Accounts have lifecycle status:
 - `closed`
 
 Closed accounts stay visible but no longer accept deposits or withdrawals.
+
+### Spending Category
+
+A spending category classifies expense-like activity.
+
+The current product slice supports:
+
+- A maximum depth of two levels
+- Top-level categories and child categories
+- Create and update only for now
+
+Examples:
+
+- `Food > Groceries`
+- `Transport > Fuel`
+- `Health > Pharmacy`
+
+`Uncategorized` is presentation language only. It should not be modeled as a
+real category entity.

@@ -1,3 +1,3 @@
-from .memory import InMemoryAccountRepository
+from .memory import InMemoryAccountRepository, InMemorySpendingCategoryRepository
 
-__all__ = ["InMemoryAccountRepository"]
+__all__ = ["InMemoryAccountRepository", "InMemorySpendingCategoryRepository"]

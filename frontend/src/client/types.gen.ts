@@ -79,6 +79,32 @@ export type CreateAccountRequest = {
 };
 
 /**
+ * CreateSpendingCategoryRequest
+ */
+export type CreateSpendingCategoryRequest = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Parent Id
+     */
+    parent_id?: string | null;
+    /**
+     * Icon
+     */
+    icon?: string | null;
+    /**
+     * Color
+     */
+    color?: string | null;
+    /**
+     * Sort Order
+     */
+    sort_order?: number;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -135,6 +161,40 @@ export type MoneyResponse = {
 };
 
 /**
+ * SpendingCategoryResponse
+ */
+export type SpendingCategoryResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Parent Id
+     */
+    parent_id: string | null;
+    /**
+     * Icon
+     */
+    icon?: string | null;
+    /**
+     * Color
+     */
+    color?: string | null;
+    /**
+     * Sort Order
+     */
+    sort_order: number;
+    /**
+     * Children
+     */
+    children?: Array<SpendingCategoryResponse>;
+};
+
+/**
  * UpdateAccountProfileRequest
  */
 export type UpdateAccountProfileRequest = {
@@ -147,6 +207,32 @@ export type UpdateAccountProfileRequest = {
      * Color Key
      */
     color_key?: string | null;
+};
+
+/**
+ * UpdateSpendingCategoryRequest
+ */
+export type UpdateSpendingCategoryRequest = {
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Parent Id
+     */
+    parent_id?: string | null;
+    /**
+     * Icon
+     */
+    icon?: string | null;
+    /**
+     * Color
+     */
+    color?: string | null;
+    /**
+     * Sort Order
+     */
+    sort_order?: number | null;
 };
 
 /**
@@ -384,6 +470,78 @@ export type AccountsCloseAccountResponses = {
 };
 
 export type AccountsCloseAccountResponse = AccountsCloseAccountResponses[keyof AccountsCloseAccountResponses];
+
+export type SpendingCategoriesListSpendingCategoriesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/spending-categories';
+};
+
+export type SpendingCategoriesListSpendingCategoriesResponses = {
+    /**
+     * Response Spending-Categories-List Spending Categories
+     * Successful Response
+     */
+    200: Array<SpendingCategoryResponse>;
+};
+
+export type SpendingCategoriesListSpendingCategoriesResponse = SpendingCategoriesListSpendingCategoriesResponses[keyof SpendingCategoriesListSpendingCategoriesResponses];
+
+export type SpendingCategoriesCreateSpendingCategoryData = {
+    body: CreateSpendingCategoryRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/spending-categories';
+};
+
+export type SpendingCategoriesCreateSpendingCategoryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SpendingCategoriesCreateSpendingCategoryError = SpendingCategoriesCreateSpendingCategoryErrors[keyof SpendingCategoriesCreateSpendingCategoryErrors];
+
+export type SpendingCategoriesCreateSpendingCategoryResponses = {
+    /**
+     * Successful Response
+     */
+    201: SpendingCategoryResponse;
+};
+
+export type SpendingCategoriesCreateSpendingCategoryResponse = SpendingCategoriesCreateSpendingCategoryResponses[keyof SpendingCategoriesCreateSpendingCategoryResponses];
+
+export type SpendingCategoriesUpdateSpendingCategoryData = {
+    body: UpdateSpendingCategoryRequest;
+    path: {
+        /**
+         * Category Id
+         */
+        category_id: string;
+    };
+    query?: never;
+    url: '/api/v1/spending-categories/{category_id}';
+};
+
+export type SpendingCategoriesUpdateSpendingCategoryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SpendingCategoriesUpdateSpendingCategoryError = SpendingCategoriesUpdateSpendingCategoryErrors[keyof SpendingCategoriesUpdateSpendingCategoryErrors];
+
+export type SpendingCategoriesUpdateSpendingCategoryResponses = {
+    /**
+     * Successful Response
+     */
+    200: SpendingCategoryResponse;
+};
+
+export type SpendingCategoriesUpdateSpendingCategoryResponse = SpendingCategoriesUpdateSpendingCategoryResponses[keyof SpendingCategoriesUpdateSpendingCategoryResponses];
 
 export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});

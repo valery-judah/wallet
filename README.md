@@ -13,23 +13,6 @@ See [docs/evergreen/runbook.md](docs/evergreen/runbook.md) for the canonical wor
 ## Development
 The backend lives in `backend/`. Use root-level `make` wrappers for the preferred workflow surface, or run Poe directly from inside `backend/` when you want backend-specific task control. For local backend startup from the repo root, use `make run-backend`. The runbook is the canonical source for command usage and environment workflows.
 
-## Dependencies
-Dependency management commands are documented in [docs/evergreen/runbook.md](docs/evergreen/runbook.md).
-
-## Project layout
-```text
-backend/
-  src/wallet/
-    domain/
-    application/
-    ports/
-    infrastructure/
-  tests/
-  scripts/
-frontend/
-docs/
-```
-
 ## Product docs
 - Primary spec: `docs/product/spec.md`
 - Vocabulary and UX concepts: `docs/product/concepts.md`

@@ -12,6 +12,7 @@ For the current MVP, the product is centered on **manual accounts**:
 - Users can update account profile metadata such as display color and icon.
 - Users can close an account without deleting its history.
 - Users can move the balance directly through deposit and withdrawal actions.
+- Users can manage spending categories for future expense classification.
 
 This MVP intentionally keeps a **single current balance** on each account. It does
 not yet require a full transaction ledger to derive balances.
@@ -80,6 +81,23 @@ Rules:
 Direct balance mutations are a temporary operating model. Future expenses,
 incomes, and transfers should become the normal way balances evolve once the
 transaction layer is introduced.
+
+## Spending Categories
+
+The MVP also includes a manual spending-category tree for organizing future
+expense classification work.
+
+Rules:
+
+- Spending categories are currently managed as a single in-memory tree for the
+  running app instance.
+- The hierarchy supports only two levels: parent category and child category.
+- Categories can be created and updated, but not deleted or archived yet.
+- Uncategorized spending remains a future transaction-level `NULL` concept, not
+  a real category row.
+
+This is intentionally setup-only scope for now. The MVP still does not include
+transactions, transaction splits, or category-based reporting behavior.
 
 ## Manual-First Scope
 

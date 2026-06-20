@@ -9,9 +9,14 @@ from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
 from wallet.application.accounts import CreateAccountRejectedError, UpdateAccountRejectedError
+from wallet.application.spending_categories import (
+    CreateSpendingCategoryRejectedError,
+    UpdateSpendingCategoryRejectedError,
+)
 from wallet.config import Settings, get_settings
 from wallet.domain.accounts import AccountClosedError, AccountNotFoundError, InsufficientFundsError
 from wallet.domain.money import CurrencyMismatchError
+from wallet.domain.spending_categories import SpendingCategoryNotFoundError
 
 from .deps import build_container
 from .routes import api_router
@@ -71,6 +76,26 @@ def _register_exception_handlers(app: FastAPI) -> None:
             detail=str(exc),
         )
 
+    @app.exception_handler(CreateSpendingCategoryRejectedError)
+    async def handle_create_spending_category_rejected(
+        request: Request,
+        exc: CreateSpendingCategoryRejectedError,
+    ) -> JSONResponse:
+        return _error_response(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    @app.exception_handler(UpdateSpendingCategoryRejectedError)
+    async def handle_update_spending_category_rejected(
+        request: Request,
+        exc: UpdateSpendingCategoryRejectedError,
+    ) -> JSONResponse:
+        return _error_response(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
     @app.exception_handler(AccountNotFoundError)
     async def handle_account_not_found(
         request: Request,
@@ -80,6 +105,17 @@ def _register_exception_handlers(app: FastAPI) -> None:
         return _error_response(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"account not found: {account_id}",
+        )
+
+    @app.exception_handler(SpendingCategoryNotFoundError)
+    async def handle_spending_category_not_found(
+        request: Request,
+        exc: SpendingCategoryNotFoundError,
+    ) -> JSONResponse:
+        category_id = exc.args[0] if exc.args else "unknown"
+        return _error_response(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"spending category not found: {category_id}",
         )
 
     @app.exception_handler(InsufficientFundsError)

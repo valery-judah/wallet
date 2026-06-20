@@ -5,3 +5,4 @@ from datetime import date
 
 AccountIdGenerator = Callable[[], str]
 DateProvider = Callable[[], date]
+SpendingCategoryIdGenerator = Callable[[], str]

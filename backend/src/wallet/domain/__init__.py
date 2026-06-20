@@ -7,6 +7,10 @@ from .accounts import (
     InsufficientFundsError,
 )
 from .money import CurrencyMismatchError, Money
+from .spending_categories import (
+    SpendingCategory,
+    SpendingCategoryNotFoundError,
+)
 
 __all__ = [
     "Account",
@@ -17,4 +21,6 @@ __all__ = [
     "CurrencyMismatchError",
     "InsufficientFundsError",
     "Money",
+    "SpendingCategory",
+    "SpendingCategoryNotFoundError",
 ]

@@ -131,6 +131,57 @@ export const CreateAccountRequestSchema = {
     title: 'CreateAccountRequest'
 } as const;
 
+export const CreateSpendingCategoryRequestSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            minLength: 1,
+            title: 'Name'
+        },
+        parent_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Parent Id'
+        },
+        icon: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Icon'
+        },
+        color: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Color'
+        },
+        sort_order: {
+            type: 'integer',
+            title: 'Sort Order',
+            default: 0
+        }
+    },
+    type: 'object',
+    required: ['name'],
+    title: 'CreateSpendingCategoryRequest'
+} as const;
+
 export const HTTPValidationErrorSchema = {
     properties: {
         detail: {
@@ -200,6 +251,66 @@ export const MoneyResponseSchema = {
     title: 'MoneyResponse'
 } as const;
 
+export const SpendingCategoryResponseSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        parent_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Parent Id'
+        },
+        icon: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Icon'
+        },
+        color: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Color'
+        },
+        sort_order: {
+            type: 'integer',
+            title: 'Sort Order'
+        },
+        children: {
+            items: {
+                '$ref': '#/components/schemas/SpendingCategoryResponse'
+            },
+            type: 'array',
+            title: 'Children'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name', 'parent_id', 'sort_order'],
+    title: 'SpendingCategoryResponse'
+} as const;
+
 export const UpdateAccountProfileRequestSchema = {
     properties: {
         name: {
@@ -225,6 +336,69 @@ export const UpdateAccountProfileRequestSchema = {
     type: 'object',
     required: ['name', 'type'],
     title: 'UpdateAccountProfileRequest'
+} as const;
+
+export const UpdateSpendingCategoryRequestSchema = {
+    properties: {
+        name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        parent_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Parent Id'
+        },
+        icon: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Icon'
+        },
+        color: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Color'
+        },
+        sort_order: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sort Order'
+        }
+    },
+    type: 'object',
+    title: 'UpdateSpendingCategoryRequest'
 } as const;
 
 export const ValidationErrorSchema = {
