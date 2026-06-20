@@ -3,6 +3,7 @@
 UV := uv
 UV_BACKEND := $(UV) --directory backend
 POE := $(UV_BACKEND) run poe
+FRONTEND_COMPOSE := HOST_UID=$(shell id -u) HOST_GID=$(shell id -g) docker compose -f compose.frontend.yml
 
 .PHONY: help
 help: ## Show this help message
@@ -79,3 +80,22 @@ verify: install ## Run read-only verification checks
 
 .PHONY: check
 check: verify ## Run the full verification suite
+
+# --- Frontend (Bun in Docker) ---
+
+.PHONY: frontend-install
+frontend-install: ## Install frontend dependencies inside the Bun container
+	$(FRONTEND_COMPOSE) run --rm bun install
+
+.PHONY: frontend-generate-client
+frontend-generate-client: ## Generate the frontend API client inside the Bun container
+	$(FRONTEND_COMPOSE) run --rm bun run generate-client
+
+.PHONY: frontend-type
+frontend-type: ## Run frontend type checks inside the Bun container
+	$(FRONTEND_COMPOSE) run --rm bun run typecheck
+
+.PHONY: frontend-bun
+frontend-bun: ## Run an arbitrary Bun command inside the frontend container: make frontend-bun CMD="run <script>"
+	@test -n "$(CMD)" || (echo "Usage: make frontend-bun CMD='<bun args>'" && exit 2)
+	$(FRONTEND_COMPOSE) run --rm bun $(CMD)

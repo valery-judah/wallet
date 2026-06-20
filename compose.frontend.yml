@@ -1,0 +1,19 @@
+services:
+  bun:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    working_dir: /workspace/frontend
+    entrypoint: ["bun"]
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    environment:
+      HOME: /home/bun
+      BUN_INSTALL_CACHE_DIR: /home/bun/.bun/install/cache
+    volumes:
+      - ./frontend:/workspace/frontend
+      - frontend_node_modules:/workspace/frontend/node_modules
+      - bun_cache:/home/bun/.bun/install/cache
+
+volumes:
+  frontend_node_modules:
+  bun_cache:

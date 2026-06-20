@@ -202,3 +202,8 @@ __marimo__/
 # -----------------------------
 # rag test corpus
 input/
+
+# frontend
+node_modules/
+frontend/dist/
+*.tsbuildinfo
