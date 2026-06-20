@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "wallet"
+version = "0.1.0"
+description = "A money tracker designed for imperfect real-life tracking habits."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2,<3",
+]
+
+[dependency-groups]
+dev = [
+  "mypy>=1.17.0,<1.19.0",
+  "poethepoet>=0.32,<1",
+  "pytest>=8.4.0",
+  "ruff>=0.12.0",
+]
+
+[project.scripts]
+"wallet" = "wallet.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/wallet"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.poe]
+include = "poe_tasks.toml"
