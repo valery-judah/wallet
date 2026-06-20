@@ -1,8 +1,10 @@
 # Wallet Frontend
 
-This workspace is the starting point for UI-side integration with the Wallet
-FastAPI backend. It currently focuses on generated API client consumption rather
-than a full application shell.
+This workspace contains the wallet UI that consumes the FastAPI backend through
+the generated OpenAPI client. The current slice covers three user flows:
+- list cards
+- create a new card
+- open a card and withdraw money
 
 ## Requirements
 - Docker with Compose support
@@ -13,25 +15,57 @@ than a full application shell.
 From the repo root:
 
 ```bash
+uv --directory backend run poe serve
 uv --directory backend run poe export-openapi
 make frontend-install
 make frontend-generate-client
 make frontend-type
+make frontend-test
+make frontend-dev
 ```
 
 This writes the generated TypeScript client into `src/client/` and keeps both
-`node_modules` and the Bun package cache inside Docker-managed volumes.
+`node_modules` and the Bun package cache inside Docker-managed volumes. The dev
+server runs on [http://localhost:5173](http://localhost:5173).
+
+Optional full-stack Compose mode:
+
+```bash
+make dev-up
+```
+
+That starts both the backend and the frontend in containers. The host-`uv`
+backend flow above remains the primary developer workflow.
+
+## Routes
+- `/cards` lists cards and links to the create flow or a selected card
+- `/cards/new` creates a card using the backend contract directly
+- `/cards/$cardId` shows the selected card and supports withdrawals
 
 ## Bun Container
-The Bun tooling container is defined in `../compose.frontend.yml` and built from
-`./Dockerfile`. It bind-mounts this `frontend/` directory into the container at
-`/workspace/frontend`, so generated code and source edits persist on the host
-repo without requiring Bun to be installed locally.
+The Bun tooling and dev-server containers are defined in
+`../compose.frontend.yml` and built from `./Dockerfile`. They bind-mount this
+`frontend/` directory into the container at `/workspace/frontend`, so generated
+code and source edits persist on the host repo without requiring Bun to be
+installed locally.
+
+The optional combined local stack lives in `../compose.dev.yml`. It reuses the
+same frontend image and volumes, but also starts the backend container on
+`http://localhost:8000`.
 
 For ad hoc commands, use:
 
 ```bash
 make frontend-bun CMD="run <script>"
+```
+
+Useful commands:
+
+```bash
+make frontend-build
+make frontend-type
+make frontend-test
+make frontend-dev
 ```
 
 ## API Base URL

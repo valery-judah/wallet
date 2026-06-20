@@ -4,20 +4,36 @@ export default defineConfig({
   input: "./openapi.json",
   output: "./src/client",
   plugins: [
-    "legacy/axios",
     {
       name: "@hey-api/sdk",
       asClass: true,
       operationId: true,
       classNameBuilder: "{{name}}Service",
       methodNameBuilder: (operation) => {
-        // @ts-expect-error openapi-ts plugin shape is runtime-provided
-        let name: string = operation.name
-        // @ts-expect-error openapi-ts plugin shape is runtime-provided
-        const service: string = operation.service
+        const descriptor = operation as {
+          id?: string
+          name?: string
+          service?: string
+          operation?: {
+            id?: string
+            tags?: string[]
+          }
+        }
+        const rawName =
+          descriptor.operation?.id || descriptor.id || descriptor.name
+        const service = descriptor.service || descriptor.operation?.tags?.[0]
 
-        if (service && name.toLowerCase().startsWith(service.toLowerCase())) {
-          name = name.slice(service.length)
+        let name = rawName || "call"
+
+        if (service) {
+          const capitalizedService =
+            service.charAt(0).toUpperCase() + service.slice(1)
+
+          if (name.toLowerCase().startsWith(service.toLowerCase())) {
+            name = name.slice(service.length)
+          } else if (name.startsWith(capitalizedService)) {
+            name = name.slice(capitalizedService.length)
+          }
         }
 
         return name.charAt(0).toLowerCase() + name.slice(1)

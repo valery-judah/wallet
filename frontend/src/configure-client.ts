@@ -1,8 +1,11 @@
-import { OpenAPI } from "./client"
+import { client } from "./client/client.gen"
 
 const DEFAULT_API_URL = "http://localhost:8000"
 
 export function configureClient(): void {
   const baseUrl = import.meta.env.VITE_API_URL || DEFAULT_API_URL
-  OpenAPI.BASE = baseUrl.replace(/\/$/, "")
+  client.setConfig({
+    baseUrl: baseUrl.replace(/\/$/, ""),
+    throwOnError: true,
+  })
 }
