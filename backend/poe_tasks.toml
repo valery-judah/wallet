@@ -24,6 +24,14 @@ cmd = "mypy src"
 help = "Run tests"
 cmd = "pytest tests"
 
+[tasks.serve]
+help = "Run the FastAPI app locally with reload"
+cmd = "uvicorn --factory wallet.api.app:create_app --reload"
+
+[tasks.export-openapi]
+help = "Export the OpenAPI schema for frontend client generation"
+cmd = "python scripts/devex/export_openapi.py"
+
 [tasks.clean]
 help = "Remove caches and generated local artifacts"
 cmd = "python scripts/devex/clean.py"
