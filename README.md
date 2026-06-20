@@ -8,13 +8,13 @@ Simple money tracking app. The MVP focuses on helping users understand what mone
 - Docker with Compose support for frontend workflows
 
 ## Quickstart
-See [docs/evergreen/runbook.md](/Users/val/projects/ps/wallet/docs/evergreen/runbook.md) for the canonical workflow-first command catalog built around `make setup`, `make run-backend`, `make gen-client`, and `make run-stack`.
+See [docs/evergreen/runbook.md](docs/evergreen/runbook.md) for the canonical workflow-first command catalog built around `make setup`, `make run-backend`, `make gen-client`, and `make run-stack`.
 
 ## Development
 The backend lives in `backend/`. Use root-level `make` wrappers for the preferred workflow surface, or run Poe directly from inside `backend/` when you want backend-specific task control. For local backend startup from the repo root, use `make run-backend`. The runbook is the canonical source for command usage and environment workflows.
 
 ## Dependencies
-Dependency management commands are documented in [docs/evergreen/runbook.md](/Users/val/projects/ps/wallet/docs/evergreen/runbook.md).
+Dependency management commands are documented in [docs/evergreen/runbook.md](docs/evergreen/runbook.md).
 
 ## Project layout
 ```text
@@ -49,7 +49,7 @@ The product docs are still being established. The current files are placeholders
 - Interactive docs: `/docs`
 - Browser clients are allowed via CORS using `WALLET_FRONTEND_HOST`, its loopback twin when applicable, plus any extra `WALLET_BACKEND_CORS_ORIGINS`
 
-Run and verification commands live in [docs/evergreen/runbook.md](/Users/val/projects/ps/wallet/docs/evergreen/runbook.md).
+Run and verification commands live in [docs/evergreen/runbook.md](docs/evergreen/runbook.md).
 
 ## Frontend
 - Frontend workspace: `frontend/`
@@ -60,7 +60,7 @@ Run and verification commands live in [docs/evergreen/runbook.md](/Users/val/pro
 - Main routes: `/cards`, `/cards/new`, `/cards/$cardId`
 - `http://127.0.0.1:5173` also works automatically with the default CORS settings
 
-Frontend workflow commands live in [docs/evergreen/runbook.md](/Users/val/projects/ps/wallet/docs/evergreen/runbook.md).
+Frontend workflow commands live in [docs/evergreen/runbook.md](docs/evergreen/runbook.md).
 
 ## Contributing
 See `CONTRIBUTING.md`.
