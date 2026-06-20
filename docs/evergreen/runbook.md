@@ -50,6 +50,7 @@ make clean
 - `make run-frontend`: run the frontend dev server in Docker
 - `make run-stack`: run backend and frontend together in Docker
 - `make gen-client`: export OpenAPI, ensure frontend dependencies, and regenerate the frontend API client
+- `make verify`: run the backend verification suite plus frontend TypeScript validation
 
 ## Setup And Dependency Management
 
@@ -172,7 +173,7 @@ make gen-openapi
 - Singleton ASGI app: `wallet.api.main:app`
 - OpenAPI JSON: `/api/v1/openapi.json`
 - Interactive docs: `/docs`
-- `make verify` is the automated read-only verification suite.
+- `make verify` is the automated read-only verification suite for backend checks plus frontend TypeScript validation.
 - The smoke commands are manual HTTP checks for operator-style backend validation.
 
 ## Compatibility Aliases

@@ -15,6 +15,7 @@ the generated OpenAPI client. The current slice covers three user flows:
 From the repo root:
 
 ```bash
+make verify
 uv --directory backend run poe serve
 uv --directory backend run poe export-openapi
 make frontend-install
@@ -26,7 +27,9 @@ make frontend-dev
 
 This writes the generated TypeScript client into `src/client/` and keeps both
 `node_modules` and the Bun package cache inside Docker-managed volumes. The dev
-server runs on [http://localhost:5173](http://localhost:5173).
+server runs on [http://localhost:5173](http://localhost:5173). `make verify`
+from the repo root now includes frontend TypeScript validation in addition to
+the backend verification suite.
 
 Optional full-stack Compose mode:
 

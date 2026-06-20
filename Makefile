@@ -128,6 +128,7 @@ clean: ensure-uv ## Remove caches and generated local artifacts
 .PHONY: verify
 verify: install ## Run read-only verification checks
 	$(POE) verify
+	$(MAKE) frontend-type
 
 .PHONY: check
 check: verify ## Run the full verification suite
@@ -153,7 +154,7 @@ frontend-generate-client: ## Compatibility alias for frontend client generation 
 	$(FRONTEND_COMPOSE) run --rm bun run generate-client
 
 .PHONY: frontend-type
-frontend-type: ## Compatibility alias for frontend type checks
+frontend-type: frontend-install ## Compatibility alias for frontend type checks
 	$(FRONTEND_COMPOSE) run --rm bun run typecheck
 
 .PHONY: frontend-build
