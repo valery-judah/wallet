@@ -69,7 +69,7 @@ def test_run_scenarios_reports_failure_summary() -> None:
             response=HttpResponse(
                 status_code=200,
                 body={"detail": "wrong"},
-                url="http://127.0.0.1:8000/api/v1/accounts/demo/withdrawals",
+                url="http://127.0.0.1:8000/api/v1/transactions",
             ),
         )
 
@@ -89,7 +89,7 @@ def test_run_scenarios_reports_failure_summary() -> None:
     assert output.getvalue() == (
         "PASS health\n"
         "FAIL insufficient_funds expected HTTP 409, got 200; "
-        "url=http://127.0.0.1:8000/api/v1/accounts/demo/withdrawals; "
+        "url=http://127.0.0.1:8000/api/v1/transactions; "
         "status=200; body={'detail': 'wrong'}\n"
         "FAIL scenarios: 1/2 passed, 1 failed\n"
     )

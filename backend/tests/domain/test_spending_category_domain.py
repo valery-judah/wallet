@@ -22,7 +22,7 @@ def test_create_normalizes_category_name_and_optional_fields() -> None:
 
 
 def test_create_given_blank_optional_field_is_rejected() -> None:
-    with pytest.raises(ValueError, match="category icon must not be blank"):
+    with pytest.raises(ValueError, match="spending category icon must not be blank"):
         SpendingCategory.create(
             id="category_food",
             name="Food",

@@ -4,7 +4,7 @@ This workspace contains the wallet UI that consumes the FastAPI backend through
 the generated OpenAPI client. The current slice covers three user flows:
 - list accounts
 - create a new account
-- open an account and withdraw money
+- open an account and record ledger-backed transactions
 
 ## Requirements
 - Docker with Compose support
@@ -43,7 +43,7 @@ backend flow above remains the primary developer workflow.
 ## Routes
 - `/accounts` lists accounts and links to the create flow or a selected account
 - `/accounts/new` creates an account using the backend contract directly
-- `/accounts/$accountId` shows the selected account and supports withdrawals
+- `/accounts/$accountId` shows the selected account, records transactions, and lists recent activity
 
 ## Bun Container
 The Bun tooling and dev-server containers are defined in

@@ -4,15 +4,10 @@ from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
 
-from ._validation import normalize_currency, normalize_nonblank, require_positive
-from .money import CurrencyMismatchError, Money
+from ._validation import normalize_currency, normalize_nonblank
 
 
 class AccountNotFoundError(LookupError):
-    pass
-
-
-class InsufficientFundsError(ValueError):
     pass
 
 
@@ -21,18 +16,12 @@ class AccountClosedError(ValueError):
 
 
 class AccountType(StrEnum):
-    CARD = "card"
     CASH = "cash"
-    BANK = "bank"
+    DEBIT_CARD = "debit_card"
+    CREDIT_CARD = "credit_card"
+    BANK_ACCOUNT = "bank_account"
     WALLET = "wallet"
-    PLATFORM = "platform"
-    SAVINGS = "savings"
-    OTHER = "other"
-
-
-class AccountStatus(StrEnum):
-    ACTIVE = "active"
-    CLOSED = "closed"
+    SYSTEM = "system"
 
 
 @dataclass(slots=True)
@@ -41,13 +30,12 @@ class Account:
     name: str
     type: AccountType
     currency: str
-    current_balance: Money
-    status: AccountStatus
     color_key: str | None
     opened_on: date
-    closed_on: date | None
+    archived_at: date | None
     created_on: date
     updated_on: date
+    is_system: bool = False
 
     def __post_init__(self) -> None:
         self.id = normalize_nonblank(self.id, field_name="account id")
@@ -57,19 +45,14 @@ class Account:
             self.currency,
             field_name="account currency",
         )
-        self.status = AccountStatus(self.status)
         self.color_key = _normalize_optional_token(
             self.color_key,
             field_name="account color key",
         )
-        if self.current_balance.currency != self.currency:
-            raise CurrencyMismatchError("currency mismatch")
-        if self.current_balance.amount_minor < 0:
-            raise ValueError("account balance must not be negative")
-        if self.status is AccountStatus.ACTIVE and self.closed_on is not None:
-            raise ValueError("active account must not have a closed date")
-        if self.status is AccountStatus.CLOSED and self.closed_on is None:
-            raise ValueError("closed account must have a closed date")
+        if self.is_system and self.type is not AccountType.SYSTEM:
+            raise ValueError("system account type must be system")
+        if not self.is_system and self.type is AccountType.SYSTEM:
+            raise ValueError("user account type must not be system")
 
     @classmethod
     def open(
@@ -79,10 +62,10 @@ class Account:
         name: str,
         type: AccountType,
         currency: str,
-        current_balance: Money,
         color_key: str | None,
         opened_on: date,
         created_on: date,
+        is_system: bool = False,
     ) -> Account:
         normalized_currency = normalize_currency(
             currency,
@@ -93,28 +76,13 @@ class Account:
             name=name,
             type=type,
             currency=normalized_currency,
-            current_balance=current_balance,
-            status=AccountStatus.ACTIVE,
             color_key=color_key,
             opened_on=opened_on,
-            closed_on=None,
+            archived_at=None,
             created_on=created_on,
             updated_on=created_on,
+            is_system=is_system,
         )
-
-    def credit(self, amount: Money, *, updated_on: date) -> None:
-        self._assert_active()
-        self._assert_operation_amount(amount)
-        self.current_balance = self.current_balance.add(amount)
-        self.updated_on = updated_on
-
-    def debit(self, amount: Money, *, updated_on: date) -> None:
-        self._assert_active()
-        self._assert_operation_amount(amount)
-        if amount.amount_minor > self.current_balance.amount_minor:
-            raise InsufficientFundsError("insufficient funds")
-        self.current_balance = self.current_balance.subtract(amount)
-        self.updated_on = updated_on
 
     def update_profile(
         self,
@@ -124,6 +92,10 @@ class Account:
         color_key: str | None,
         updated_on: date,
     ) -> None:
+        if self.is_system:
+            raise ValueError("system account profile cannot be updated")
+        if type is AccountType.SYSTEM:
+            raise ValueError("account type must not be system")
         self.name = normalize_nonblank(name, field_name="account name")
         self.type = AccountType(type)
         self.color_key = _normalize_optional_token(
@@ -132,21 +104,15 @@ class Account:
         )
         self.updated_on = updated_on
 
-    def close(self, *, closed_on: date) -> None:
-        if self.status is AccountStatus.CLOSED:
+    def archive(self, *, archived_on: date) -> None:
+        if self.archived_at is not None:
             return
-        self.status = AccountStatus.CLOSED
-        self.closed_on = closed_on
-        self.updated_on = closed_on
+        self.archived_at = archived_on
+        self.updated_on = archived_on
 
-    def _assert_operation_amount(self, amount: Money) -> None:
-        require_positive(amount.amount_minor, field_name="amount")
-        if amount.currency != self.currency:
-            raise CurrencyMismatchError("currency mismatch")
-
-    def _assert_active(self) -> None:
-        if self.status is AccountStatus.CLOSED:
-            raise AccountClosedError("account is closed")
+    def assert_allows_transactions(self) -> None:
+        if self.archived_at is not None:
+            raise AccountClosedError("account is archived")
 
 
 def _normalize_optional_token(value: str | None, *, field_name: str) -> str | None:

@@ -4,26 +4,26 @@ from dataclasses import dataclass
 from uuid import uuid4
 
 from wallet.domain._validation import normalize_nonblank
-from wallet.domain.spending_categories import (
-    SpendingCategory,
-    SpendingCategoryNotFoundError,
+from wallet.domain.income_categories import (
+    IncomeCategory,
+    IncomeCategoryNotFoundError,
     normalize_category_name,
 )
-from wallet.infrastructure.memory import InMemorySpendingCategoryRepository
-from wallet.ports.spending_categories import SpendingCategoryRepository
-from wallet.ports.system import SpendingCategoryIdGenerator
+from wallet.infrastructure.memory import InMemoryIncomeCategoryRepository
+from wallet.ports.income_categories import IncomeCategoryRepository
+from wallet.ports.system import IncomeCategoryIdGenerator
 
 
-class CreateSpendingCategoryRejectedError(ValueError):
+class CreateIncomeCategoryRejectedError(ValueError):
     pass
 
 
-class UpdateSpendingCategoryRejectedError(ValueError):
+class UpdateIncomeCategoryRejectedError(ValueError):
     pass
 
 
 @dataclass(frozen=True, slots=True)
-class CreateSpendingCategory:
+class CreateIncomeCategory:
     name: str
     category_id: str | None = None
     parent_id: str | None = None
@@ -35,35 +35,32 @@ class CreateSpendingCategory:
         object.__setattr__(
             self,
             "category_id",
-            _normalize_optional_value(self.category_id, field_name="spending category id"),
+            _normalize_optional_value(self.category_id, field_name="income category id"),
         )
         object.__setattr__(
             self,
             "name",
-            normalize_nonblank(self.name, field_name="spending category name"),
+            normalize_nonblank(self.name, field_name="income category name"),
         )
         object.__setattr__(
             self,
             "parent_id",
-            _normalize_optional_value(
-                self.parent_id,
-                field_name="spending category parent id",
-            ),
+            _normalize_optional_value(self.parent_id, field_name="income category parent id"),
         )
         object.__setattr__(
             self,
             "icon",
-            _normalize_optional_value(self.icon, field_name="spending category icon"),
+            _normalize_optional_value(self.icon, field_name="income category icon"),
         )
         object.__setattr__(
             self,
             "color",
-            _normalize_optional_value(self.color, field_name="spending category color"),
+            _normalize_optional_value(self.color, field_name="income category color"),
         )
 
 
 @dataclass(frozen=True, slots=True)
-class UpdateSpendingCategory:
+class UpdateIncomeCategory:
     category_id: str
     name: str | None = None
     name_provided: bool = False
@@ -80,67 +77,64 @@ class UpdateSpendingCategory:
         object.__setattr__(
             self,
             "category_id",
-            normalize_nonblank(self.category_id, field_name="spending category id"),
+            normalize_nonblank(self.category_id, field_name="income category id"),
         )
         if self.name_provided:
             object.__setattr__(
                 self,
                 "name",
-                normalize_nonblank(self.name or "", field_name="spending category name"),
+                normalize_nonblank(self.name or "", field_name="income category name"),
             )
         if self.parent_id_provided:
             object.__setattr__(
                 self,
                 "parent_id",
-                _normalize_optional_value(
-                    self.parent_id,
-                    field_name="spending category parent id",
-                ),
+                _normalize_optional_value(self.parent_id, field_name="income category parent id"),
             )
         if self.icon_provided:
             object.__setattr__(
                 self,
                 "icon",
-                _normalize_optional_value(self.icon, field_name="spending category icon"),
+                _normalize_optional_value(self.icon, field_name="income category icon"),
             )
         if self.color_provided:
             object.__setattr__(
                 self,
                 "color",
-                _normalize_optional_value(self.color, field_name="spending category color"),
+                _normalize_optional_value(self.color, field_name="income category color"),
             )
 
 
 @dataclass(frozen=True, slots=True)
-class SpendingCategoryTreeNode:
-    category: SpendingCategory
-    children: tuple[SpendingCategoryTreeNode, ...] = ()
+class IncomeCategoryTreeNode:
+    category: IncomeCategory
+    children: tuple[IncomeCategoryTreeNode, ...] = ()
 
 
-class SpendingCategoryService:
+class IncomeCategoryService:
     def __init__(
         self,
         *,
-        categories: SpendingCategoryRepository | None = None,
-        generate_category_id: SpendingCategoryIdGenerator | None = None,
+        categories: IncomeCategoryRepository | None = None,
+        generate_category_id: IncomeCategoryIdGenerator | None = None,
     ) -> None:
-        self.categories = categories or InMemorySpendingCategoryRepository()
-        self._generate_category_id = generate_category_id or _new_spending_category_id
+        self.categories = categories or InMemoryIncomeCategoryRepository()
+        self._generate_category_id = generate_category_id or _new_income_category_id
 
-    def create_spending_category(self, command: CreateSpendingCategory) -> SpendingCategory:
+    def create_income_category(self, command: CreateIncomeCategory) -> IncomeCategory:
         parent = self._resolve_parent(
-            command.parent_id, error_cls=CreateSpendingCategoryRejectedError
+            command.parent_id, error_cls=CreateIncomeCategoryRejectedError
         )
         category_id = command.category_id or self._generate_category_id()
         if self.categories.get(category_id) is not None:
-            raise CreateSpendingCategoryRejectedError("category id already exists")
+            raise CreateIncomeCategoryRejectedError("category id already exists")
         self._assert_unique_sibling_name(
             normalized_name=normalize_category_name(command.name),
             parent_id=parent.id if parent is not None else None,
-            error_cls=CreateSpendingCategoryRejectedError,
+            error_cls=CreateIncomeCategoryRejectedError,
         )
 
-        category = SpendingCategory.create(
+        category = IncomeCategory.create(
             id=category_id,
             name=command.name,
             parent_id=parent.id if parent is not None else None,
@@ -151,7 +145,7 @@ class SpendingCategoryService:
         self.categories.add(category)
         return category
 
-    def update_spending_category(self, command: UpdateSpendingCategory) -> SpendingCategory:
+    def update_income_category(self, command: UpdateIncomeCategory) -> IncomeCategory:
         category = self._require_category(command.category_id)
 
         name = command.name if command.name_provided and command.name is not None else category.name
@@ -169,10 +163,10 @@ class SpendingCategoryService:
         parent = self._resolve_parent(
             parent_id,
             category_id=category.id,
-            error_cls=UpdateSpendingCategoryRejectedError,
+            error_cls=UpdateIncomeCategoryRejectedError,
         )
         if parent is not None and self._has_children(category.id):
-            raise UpdateSpendingCategoryRejectedError(
+            raise UpdateIncomeCategoryRejectedError(
                 "category with children cannot become a child category",
             )
 
@@ -181,7 +175,7 @@ class SpendingCategoryService:
             normalized_name=normalized_name,
             parent_id=parent.id if parent is not None else None,
             exclude_category_id=category.id,
-            error_cls=UpdateSpendingCategoryRejectedError,
+            error_cls=UpdateIncomeCategoryRejectedError,
         )
 
         category.update(
@@ -194,19 +188,19 @@ class SpendingCategoryService:
         self.categories.save(category)
         return category
 
-    def list_spending_categories(self) -> list[SpendingCategoryTreeNode]:
+    def list_income_categories(self) -> list[IncomeCategoryTreeNode]:
         categories = self.categories.list()
 
-        by_parent: dict[str | None, list[SpendingCategory]] = {}
+        by_parent: dict[str | None, list[IncomeCategory]] = {}
         for category in categories:
             by_parent.setdefault(category.parent_id, []).append(category)
 
         for siblings in by_parent.values():
             siblings.sort(key=_category_sort_key)
 
-        def build(parent_id: str | None) -> list[SpendingCategoryTreeNode]:
+        def build(parent_id: str | None) -> list[IncomeCategoryTreeNode]:
             return [
-                SpendingCategoryTreeNode(
+                IncomeCategoryTreeNode(
                     category=category,
                     children=tuple(build(category.id)),
                 )
@@ -221,12 +215,12 @@ class SpendingCategoryService:
         *,
         category_id: str | None = None,
         error_cls: type[ValueError],
-    ) -> SpendingCategory | None:
+    ) -> IncomeCategory | None:
         if parent_id is None:
             return None
         if category_id is not None and parent_id == category_id:
             raise error_cls(
-                "spending category parent id must not equal category id",
+                "income category parent id must not equal category id",
             )
         parent = self._require_category(parent_id)
         if parent.parent_id is not None:
@@ -256,15 +250,15 @@ class SpendingCategoryService:
     def _has_children(self, category_id: str) -> bool:
         return any(category.parent_id == category_id for category in self.categories.list())
 
-    def _require_category(self, category_id: str) -> SpendingCategory:
+    def _require_category(self, category_id: str) -> IncomeCategory:
         category = self.categories.get(category_id)
         if category is None:
-            raise SpendingCategoryNotFoundError(category_id)
+            raise IncomeCategoryNotFoundError(category_id)
         return category
 
 
-def _new_spending_category_id() -> str:
-    return f"spending_category_{uuid4().hex}"
+def _new_income_category_id() -> str:
+    return f"income_category_{uuid4().hex}"
 
 
 def _normalize_optional_value(value: str | None, *, field_name: str) -> str | None:
@@ -273,5 +267,5 @@ def _normalize_optional_value(value: str | None, *, field_name: str) -> str | No
     return normalize_nonblank(value, field_name=field_name)
 
 
-def _category_sort_key(category: SpendingCategory) -> tuple[int, str]:
+def _category_sort_key(category: IncomeCategory) -> tuple[int, str]:
     return (category.sort_order, category.normalized_name)

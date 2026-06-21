@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import type { AccountResponse } from "@/client"
+import type { AccountTypeValue } from "@/components/accounts/account-appearance"
 import { AccountPageIntro, AccountSectionStack } from "@/components/accounts/account-layout"
 import { CreateAccountForm } from "@/components/accounts/create-account-form"
 import { getApiErrorMessage } from "@/lib/api-errors"
@@ -30,9 +31,9 @@ export function AccountsNewRoute() {
 
   async function handleSubmit(values: {
     name: string
-    type: "card" | "cash" | "bank" | "wallet" | "platform" | "savings" | "other"
+    type: AccountTypeValue
     currency: string
-    current_balance_minor: number
+    opening_balance_minor: number
     opened_on?: string
     color_key?: string
   }) {
@@ -48,7 +49,7 @@ export function AccountsNewRoute() {
   return (
     <AccountSectionStack>
       <AccountPageIntro
-        description="Choose the account type, currency, and starting balance for this account."
+        description="Choose the account type, currency, and opening balance for this account."
         eyebrow="New account"
         title="Set up a new account."
       />

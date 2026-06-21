@@ -6,85 +6,81 @@ import pytest
 
 from wallet.application.accounts import (
     AccountService,
-    CloseAccount,
-    CreditAccount,
-    DebitAccount,
+    ArchiveAccount,
     OpenAccount,
     UpdateAccountProfile,
 )
-from wallet.domain.accounts import (
-    AccountClosedError,
-    AccountNotFoundError,
-    AccountType,
-    CurrencyMismatchError,
-    InsufficientFundsError,
-)
-from wallet.domain.money import Money
-from wallet.infrastructure.memory import InMemoryAccountRepository
+from wallet.domain.accounts import AccountClosedError, AccountNotFoundError, AccountType
+from wallet.infrastructure.memory import InMemoryAccountRepository, InMemoryTransactionRepository
 
 
 def test_open_account_uses_injected_clock_and_id_generator() -> None:
     repo = InMemoryAccountRepository()
+    transactions = InMemoryTransactionRepository()
     service = AccountService(
         accounts=repo,
+        transactions=transactions,
         today=lambda: date(2026, 6, 18),
         generate_account_id=lambda: "account_fixed",
+        generate_transaction_id=lambda: "transaction_fixed",
+        generate_posting_id=_sequential_ids(["posting_1", "posting_2"]),
     )
 
-    account = service.open_account(
-        OpenAccount(name="Daily account", type=AccountType.CARD, currency="usd"),
+    snapshot = service.open_account(
+        OpenAccount(name="Daily account", type=AccountType.DEBIT_CARD, currency="usd"),
     )
 
-    assert account.id == "account_fixed"
-    assert account.created_on == date(2026, 6, 18)
-    assert account.opened_on == date(2026, 6, 18)
-    assert repo.get("account_fixed") == account
+    assert snapshot.account.id == "account_fixed"
+    assert snapshot.account.created_on == date(2026, 6, 18)
+    assert snapshot.account.opened_on == date(2026, 6, 18)
+    assert snapshot.current_balance.amount_minor == 0
+    assert repo.get("account_fixed") == snapshot.account
 
 
-def test_open_account_supports_starting_balance_and_type() -> None:
+def test_open_account_supports_opening_balance_and_creates_synthetic_adjustment() -> None:
     service = AccountService(
         today=lambda: date(2026, 6, 18),
         generate_account_id=lambda: "account_cash",
+        generate_transaction_id=lambda: "transaction_opening",
+        generate_posting_id=_sequential_ids(["posting_1", "posting_2"]),
     )
 
-    account = service.open_account(
+    snapshot = service.open_account(
         OpenAccount(
             name="Cash wallet",
             type=AccountType.CASH,
             currency="USD",
-            current_balance_minor=12_500,
+            opening_balance_minor=12_500,
             color_key="amber",
         ),
     )
 
-    assert account.type is AccountType.CASH
-    assert account.current_balance == Money(amount_minor=12_500, currency="USD")
-    assert account.color_key == "amber"
+    assert snapshot.account.type is AccountType.CASH
+    assert snapshot.current_balance.amount_minor == 12_500
+    assert snapshot.current_balance.currency == "USD"
+    transactions = service.transactions.list()
+    assert len(transactions) == 1
+    assert transactions[0].type.value == "adjustment"
 
 
-def test_open_account_given_negative_starting_balance_is_rejected() -> None:
-    with pytest.raises(ValueError, match="account balance must not be negative"):
-        OpenAccount(
-            name="Broken account",
-            current_balance_minor=-1,
-        )
-
-
-def test_credit_account_increases_balance() -> None:
+def test_open_account_supports_negative_opening_balance_for_credit_cards() -> None:
     service = AccountService(
         today=lambda: date(2026, 6, 18),
-        generate_account_id=lambda: "account_daily",
+        generate_account_id=lambda: "account_card",
+        generate_transaction_id=lambda: "transaction_opening",
+        generate_posting_id=_sequential_ids(["posting_1", "posting_2"]),
     )
-    account = service.open_account(OpenAccount(name="Daily account", currency="USD"))
 
-    updated = service.credit_account(
-        CreditAccount(
-            account_id=account.id,
-            amount=Money(amount_minor=50_000, currency="USD"),
+    snapshot = service.open_account(
+        OpenAccount(
+            name="Visa",
+            type=AccountType.CREDIT_CARD,
+            currency="USD",
+            opening_balance_minor=-4_200,
         ),
     )
 
-    assert updated.current_balance == Money(amount_minor=50_000, currency="USD")
+    assert snapshot.current_balance.amount_minor == -4_200
 
 
 def test_update_account_profile_changes_name_type_and_display_metadata() -> None:
@@ -92,94 +88,41 @@ def test_update_account_profile_changes_name_type_and_display_metadata() -> None
         today=lambda: date(2026, 6, 19),
         generate_account_id=lambda: "account_daily",
     )
-    account = service.open_account(OpenAccount(name="Daily account", currency="USD"))
+    opened = service.open_account(OpenAccount(name="Daily account", currency="USD"))
 
     updated = service.update_account_profile(
         UpdateAccountProfile(
-            account_id=account.id,
+            account_id=opened.account.id,
             name="Travel wallet",
             type=AccountType.WALLET,
             color_key="cyan",
         )
     )
 
-    assert updated.name == "Travel wallet"
-    assert updated.type is AccountType.WALLET
-    assert updated.color_key == "cyan"
-    assert updated.updated_on == date(2026, 6, 19)
+    assert updated.account.name == "Travel wallet"
+    assert updated.account.type is AccountType.WALLET
+    assert updated.account.color_key == "cyan"
+    assert updated.account.updated_on == date(2026, 6, 19)
 
 
-def test_debit_account_given_multiple_operations_decreases_balance() -> None:
-    service = AccountService(generate_account_id=lambda: "account_daily")
-    account = service.open_account(OpenAccount(name="Daily account", currency="USD"))
-    service.credit_account(
-        CreditAccount(
-            account_id=account.id,
-            amount=Money(amount_minor=50_000, currency="USD"),
-        ),
-    )
-    service.debit_account(
-        DebitAccount(
-            account_id=account.id,
-            amount=Money(amount_minor=4_500, currency="USD"),
-        ),
-    )
-
-    updated = service.debit_account(
-        DebitAccount(
-            account_id=account.id,
-            amount=Money(amount_minor=20_000, currency="USD"),
-        ),
-    )
-
-    assert updated.current_balance == Money(amount_minor=25_500, currency="USD")
-
-
-def test_debit_account_given_insufficient_funds_rejects_operation() -> None:
-    service = AccountService(generate_account_id=lambda: "account_daily")
-    account = service.open_account(OpenAccount(name="Daily account", currency="USD"))
-
-    with pytest.raises(InsufficientFundsError):
-        service.debit_account(
-            DebitAccount(
-                account_id=account.id,
-                amount=Money(amount_minor=100, currency="USD"),
-            )
-        )
-
-
-def test_credit_account_given_currency_mismatch_rejects_operation() -> None:
-    service = AccountService(generate_account_id=lambda: "account_daily")
-    account = service.open_account(OpenAccount(name="Daily account", currency="USD"))
-
-    with pytest.raises(CurrencyMismatchError):
-        service.credit_account(
-            CreditAccount(
-                account_id=account.id,
-                amount=Money(amount_minor=100, currency="ARS"),
-            )
-        )
-
-
-def test_close_account_marks_account_closed_and_blocks_future_balance_changes() -> None:
+def test_archive_account_marks_account_archived_and_preserves_balance() -> None:
     service = AccountService(
         today=lambda: date(2026, 6, 19),
         generate_account_id=lambda: "account_daily",
+        generate_transaction_id=lambda: "transaction_opening",
+        generate_posting_id=_sequential_ids(["posting_1", "posting_2"]),
     )
-    account = service.open_account(OpenAccount(name="Daily account", currency="USD"))
+    opened = service.open_account(
+        OpenAccount(name="Daily account", currency="USD", opening_balance_minor=100)
+    )
 
-    closed = service.close_account(CloseAccount(account_id=account.id))
+    closed = service.archive_account(ArchiveAccount(account_id=opened.account.id))
 
-    assert closed.status.value == "closed"
-    assert closed.closed_on == date(2026, 6, 19)
+    assert closed.account.archived_at == date(2026, 6, 19)
+    assert closed.current_balance.amount_minor == 100
 
-    with pytest.raises(AccountClosedError, match="account is closed"):
-        service.credit_account(
-            CreditAccount(
-                account_id=account.id,
-                amount=Money(amount_minor=100, currency="USD"),
-            )
-        )
+    with pytest.raises(AccountClosedError, match="account is archived"):
+        closed.account.assert_allows_transactions()
 
 
 def test_get_account_given_missing_account_returns_none() -> None:
@@ -192,15 +135,10 @@ def test_account_commands_given_missing_account_raise_not_found() -> None:
     service = AccountService()
 
     with pytest.raises(AccountNotFoundError):
-        service.credit_account(
-            CreditAccount(
-                account_id="missing",
-                amount=Money(amount_minor=100, currency="USD"),
-            )
-        )
+        service.archive_account(ArchiveAccount(account_id="missing"))
 
 
-def test_list_accounts_returns_opened_accounts() -> None:
+def test_list_accounts_returns_only_user_accounts() -> None:
     service = AccountService(generate_account_id=_sequential_ids(["account_1", "account_2"]))
     first = service.open_account(OpenAccount(name="Daily account", currency="USD"))
     second = service.open_account(

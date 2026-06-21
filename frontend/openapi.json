@@ -182,117 +182,13 @@
         }
       }
     },
-    "/api/v1/accounts/{account_id}/deposits": {
+    "/api/v1/accounts/{account_id}/archive": {
       "post": {
         "tags": [
           "accounts"
         ],
-        "summary": "Deposit To Account",
-        "operationId": "accounts-deposit_to_account",
-        "parameters": [
-          {
-            "name": "account_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Account Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MoneyRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccountResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/accounts/{account_id}/withdrawals": {
-      "post": {
-        "tags": [
-          "accounts"
-        ],
-        "summary": "Withdraw From Account",
-        "operationId": "accounts-withdraw_from_account",
-        "parameters": [
-          {
-            "name": "account_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Account Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MoneyRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccountResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/accounts/{account_id}/close": {
-      "post": {
-        "tags": [
-          "accounts"
-        ],
-        "summary": "Close Account",
-        "operationId": "accounts-close_account",
+        "summary": "Archive Account",
+        "operationId": "accounts-archive_account",
         "parameters": [
           {
             "name": "account_id",
@@ -443,6 +339,256 @@
           }
         }
       }
+    },
+    "/api/v1/income-categories": {
+      "get": {
+        "tags": [
+          "income-categories"
+        ],
+        "summary": "List Income Categories",
+        "operationId": "income-categories-list_income_categories",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IncomeCategoryResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Income-Categories-List Income Categories"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "income-categories"
+        ],
+        "summary": "Create Income Category",
+        "operationId": "income-categories-create_income_category",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIncomeCategoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomeCategoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/income-categories/{category_id}": {
+      "patch": {
+        "tags": [
+          "income-categories"
+        ],
+        "summary": "Update Income Category",
+        "operationId": "income-categories-update_income_category",
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Category Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIncomeCategoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomeCategoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions": {
+      "post": {
+        "tags": [
+          "transactions"
+        ],
+        "summary": "Create Transaction",
+        "operationId": "transactions-create_transaction",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTransactionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "transactions"
+        ],
+        "summary": "List Transactions",
+        "operationId": "transactions-list_transactions",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransactionResponse"
+                  },
+                  "title": "Response Transactions-List Transactions"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/{transaction_id}": {
+      "get": {
+        "tags": [
+          "transactions"
+        ],
+        "summary": "Get Transaction",
+        "operationId": "transactions-get_transaction",
+        "parameters": [
+          {
+            "name": "transaction_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Transaction Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -467,9 +613,6 @@
           "current_balance": {
             "$ref": "#/components/schemas/MoneyResponse"
           },
-          "status": {
-            "$ref": "#/components/schemas/AccountStatus"
-          },
           "color_key": {
             "anyOf": [
               {
@@ -486,7 +629,7 @@
             "format": "date",
             "title": "Opened On"
           },
-          "closed_on": {
+          "archived_at": {
             "anyOf": [
               {
                 "type": "string",
@@ -496,7 +639,7 @@
                 "type": "null"
               }
             ],
-            "title": "Closed On"
+            "title": "Archived At"
           },
           "created_on": {
             "type": "string",
@@ -516,31 +659,21 @@
           "type",
           "currency",
           "current_balance",
-          "status",
           "opened_on",
           "created_on",
           "updated_on"
         ],
         "title": "AccountResponse"
       },
-      "AccountStatus": {
-        "type": "string",
-        "enum": [
-          "active",
-          "closed"
-        ],
-        "title": "AccountStatus"
-      },
       "AccountType": {
         "type": "string",
         "enum": [
-          "card",
           "cash",
-          "bank",
+          "debit_card",
+          "credit_card",
+          "bank_account",
           "wallet",
-          "platform",
-          "savings",
-          "other"
+          "system"
         ],
         "title": "AccountType"
       },
@@ -553,7 +686,7 @@
           },
           "type": {
             "$ref": "#/components/schemas/AccountType",
-            "default": "card"
+            "default": "debit_card"
           },
           "currency": {
             "type": "string",
@@ -561,10 +694,9 @@
             "title": "Currency",
             "default": "ARS"
           },
-          "current_balance_minor": {
+          "opening_balance_minor": {
             "type": "integer",
-            "minimum": 0.0,
-            "title": "Current Balance Minor",
+            "title": "Opening Balance Minor",
             "default": 0
           },
           "opened_on": {
@@ -596,6 +728,58 @@
           "name"
         ],
         "title": "CreateAccountRequest"
+      },
+      "CreateIncomeCategoryRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "sort_order": {
+            "type": "integer",
+            "title": "Sort Order",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CreateIncomeCategoryRequest"
       },
       "CreateSpendingCategoryRequest": {
         "properties": {
@@ -649,6 +833,124 @@
         ],
         "title": "CreateSpendingCategoryRequest"
       },
+      "CreateTransactionPostingRequest": {
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "amount_minor": {
+            "type": "integer",
+            "title": "Amount Minor"
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Currency"
+          },
+          "memo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount_minor",
+          "currency"
+        ],
+        "title": "CreateTransactionPostingRequest"
+      },
+      "CreateTransactionRequest": {
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/TransactionType"
+          },
+          "postings": {
+            "items": {
+              "$ref": "#/components/schemas/CreateTransactionPostingRequest"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Postings"
+          },
+          "occurred_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred On"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "merchant_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "postings"
+        ],
+        "title": "CreateTransactionRequest"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -685,25 +987,69 @@
         ],
         "title": "HealthResponse"
       },
-      "MoneyRequest": {
+      "IncomeCategoryResponse": {
         "properties": {
-          "amount_minor": {
-            "type": "integer",
-            "exclusiveMinimum": 0.0,
-            "title": "Amount Minor"
-          },
-          "currency": {
+          "id": {
             "type": "string",
-            "minLength": 1,
-            "title": "Currency"
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "sort_order": {
+            "type": "integer",
+            "title": "Sort Order"
+          },
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/IncomeCategoryResponse"
+            },
+            "type": "array",
+            "title": "Children"
           }
         },
         "type": "object",
         "required": [
-          "amount_minor",
-          "currency"
+          "id",
+          "name",
+          "parent_id",
+          "sort_order"
         ],
-        "title": "MoneyRequest"
+        "title": "IncomeCategoryResponse"
       },
       "MoneyResponse": {
         "properties": {
@@ -723,6 +1069,63 @@
           "currency"
         ],
         "title": "MoneyResponse"
+      },
+      "PostingResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "amount_minor": {
+            "type": "integer",
+            "title": "Amount Minor"
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Currency"
+          },
+          "memo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "amount_minor",
+          "currency"
+        ],
+        "title": "PostingResponse"
       },
       "SpendingCategoryResponse": {
         "properties": {
@@ -788,6 +1191,117 @@
         ],
         "title": "SpendingCategoryResponse"
       },
+      "TransactionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "occurred_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Occurred On"
+          },
+          "posted_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posted On"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "merchant_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TransactionStatus"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TransactionType"
+          },
+          "postings": {
+            "items": {
+              "$ref": "#/components/schemas/PostingResponse"
+            },
+            "type": "array",
+            "title": "Postings"
+          },
+          "created_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Created On"
+          },
+          "updated_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Updated On"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "occurred_on",
+          "status",
+          "type",
+          "postings",
+          "created_on",
+          "updated_on"
+        ],
+        "title": "TransactionResponse"
+      },
+      "TransactionStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "posted",
+          "void"
+        ],
+        "title": "TransactionStatus"
+      },
+      "TransactionType": {
+        "type": "string",
+        "enum": [
+          "expense",
+          "income",
+          "transfer",
+          "adjustment"
+        ],
+        "title": "TransactionType"
+      },
       "UpdateAccountProfileRequest": {
         "properties": {
           "name": {
@@ -816,6 +1330,68 @@
           "type"
         ],
         "title": "UpdateAccountProfileRequest"
+      },
+      "UpdateIncomeCategoryRequest": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "sort_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort Order"
+          }
+        },
+        "type": "object",
+        "title": "UpdateIncomeCategoryRequest"
       },
       "UpdateSpendingCategoryRequest": {
         "properties": {

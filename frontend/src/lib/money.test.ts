@@ -15,12 +15,21 @@ describe("money helpers", () => {
     })
   })
 
-  it("accepts zero for account opening but rejects it for withdrawals", () => {
+  it("accepts zero for account opening but rejects it for transactions", () => {
     expect(parseMajorAmount("0", "ARS", { allowZero: true })).toEqual({
       amountMinor: 0,
     })
     expect(parseMajorAmount("0", "ARS")).toEqual({
       error: "Enter an amount greater than 0.",
+    })
+  })
+
+  it("supports negative amounts when explicitly allowed", () => {
+    expect(parseMajorAmount("-42", "USD", { allowNegative: true })).toEqual({
+      amountMinor: -4200,
+    })
+    expect(parseMajorAmount("-42", "USD")).toEqual({
+      error: "Enter a positive amount.",
     })
   })
 

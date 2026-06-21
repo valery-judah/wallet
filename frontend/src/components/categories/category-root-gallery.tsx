@@ -1,16 +1,18 @@
 import { PencilLine } from "lucide-react"
-import type { SpendingCategoryResponse } from "@/client"
 import { CategoryIcon, formatCategoryCount } from "@/components/categories/category-appearance"
 import { Button } from "@/components/ui/button"
+import type { CategoryTreeNode } from "@/lib/categories"
 import { cn } from "@/lib/utils"
 
 export function CategoryRootGallery({
+  categoryLabel,
   rootCategories,
   selectedCategoryId,
   onEdit,
   onSelect,
 }: {
-  rootCategories: Array<SpendingCategoryResponse>
+  categoryLabel: string
+  rootCategories: Array<CategoryTreeNode>
   selectedCategoryId?: string
   onEdit: (categoryId: string) => void
   onSelect: (categoryId: string) => void
@@ -19,7 +21,7 @@ export function CategoryRootGallery({
     <section className="overflow-hidden rounded-[2rem] border border-border/70 bg-gradient-to-br from-card via-card to-muted/30 p-5 shadow-sm dark:border-white/8 dark:from-[#13161d] dark:via-[#151922] dark:to-[#11141a]">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold">Top-level categories</p>
+          <p className="text-sm font-semibold">Top-level {categoryLabel.toLowerCase()} categories</p>
           <p className="text-sm text-muted-foreground">
             Pick a root category to manage its child categories.
           </p>

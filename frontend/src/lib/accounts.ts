@@ -3,7 +3,6 @@ import {
   AccountsService,
   type AccountResponse,
   type CreateAccountRequest,
-  type MoneyRequest,
   type UpdateAccountProfileRequest,
 } from "@/client"
 
@@ -48,17 +47,6 @@ export function createAccount(
   }).then((result) => result.data)
 }
 
-export function withdrawFromAccount(
-  accountId: string,
-  payload: MoneyRequest,
-): Promise<AccountResponse> {
-  return AccountsService.accountsWithdrawFromAccount<true>({
-    path: { account_id: accountId },
-    body: payload,
-    throwOnError: true,
-  }).then((result) => result.data)
-}
-
 export function updateAccountProfile(
   accountId: string,
   payload: UpdateAccountProfileRequest,
@@ -70,8 +58,8 @@ export function updateAccountProfile(
   }).then((result) => result.data)
 }
 
-export function closeAccount(accountId: string): Promise<AccountResponse> {
-  return AccountsService.accountsCloseAccount<true>({
+export function archiveAccount(accountId: string): Promise<AccountResponse> {
+  return AccountsService.accountsArchiveAccount<true>({
     path: { account_id: accountId },
     throwOnError: true,
   }).then((result) => result.data)

@@ -4,18 +4,17 @@
 
 Wallet tracks the places where a user keeps or spends money from.
 
-For the current MVP, the product is centered on **manual accounts**:
+For the current MVP, the product is centered on **manual accounts backed by a transaction ledger**:
 
 - Users can create and view accounts.
-- Users can assign an account type and currency.
-- Users can start an account from a current balance.
+- Users can assign an account type, currency, and opening balance.
 - Users can update account profile metadata such as display color and icon.
-- Users can close an account without deleting its history.
-- Users can move the balance directly through deposit and withdrawal actions.
-- Users can manage spending categories for future expense classification.
+- Users can archive an account without deleting its history.
+- Users can record transactions directly against an account.
+- Users can manage separate spending and income category trees.
 
-This MVP intentionally keeps a **single current balance** on each account. It does
-not yet require a full transaction ledger to derive balances.
+The current account balance remains visible in account read responses, but it is
+derived from ledger postings rather than stored as the source of truth.
 
 ## Primary Concept
 
@@ -46,13 +45,11 @@ The approved account taxonomy for MVP is:
 
 | Type | User-facing label | Examples |
 | --- | --- | --- |
-| `card` | Card | Debit card, credit card, prepaid card |
+| `debit_card` | Debit card | Debit card and prepaid card balances |
+| `credit_card` | Credit card | Credit card balances and liabilities |
 | `cash` | Cash | Cash wallet, USD cash, ARS cash |
-| `bank` | Bank account | Checking and current accounts |
-| `wallet` | Digital wallet | Mercado Pago, PayPal, Wise |
-| `platform` | Money platform | Payoneer and payout balances |
-| `savings` | Savings | Reserve and emergency funds |
-| `other` | Other | Anything outside the standard set |
+| `bank_account` | Bank account | Checking and current accounts |
+| `wallet` | Digital wallet | Mercado Pago, PayPal, Wise, payout balances |
 
 ## Account Lifecycle
 
@@ -60,44 +57,62 @@ An account currently supports these lifecycle actions:
 
 - Open account
 - Update account profile
-- Deposit into account
-- Withdraw from account
-- Close account
+- Record transactions against the account ledger
+- Archive account
 
-Closed accounts remain visible for history and reporting, but they do not accept
-new balance movements.
+Archived accounts remain visible for history, but they do not accept new
+transactions.
 
 ## Balance Model
 
-For MVP, the current balance is stored directly on the account.
+For MVP, account balances are ledger-derived.
 
 Rules:
 
 - One account has one currency.
-- Balances are stored in minor units plus currency code.
+- Balances are expressed in minor units plus currency code.
 - Multi-currency ownership is modeled as multiple accounts.
-- Account balances must stay non-negative in the current MVP.
+- User-visible account balances are derived by summing account postings.
+- Hidden system-equity accounts may exist internally to balance adjustment-style
+  transactions and must never appear in user-facing account lists.
 
-Direct balance mutations are a temporary operating model. Future expenses,
-incomes, and transfers should become the normal way balances evolve once the
-transaction layer is introduced.
+## Transaction Model
 
-## Spending Categories
+The MVP transaction ledger supports four transaction types:
 
-The MVP also includes a manual spending-category tree for organizing future
-expense classification work.
+- `expense`
+- `income`
+- `transfer`
+- `adjustment`
 
 Rules:
 
-- Spending categories are currently managed as a single in-memory tree for the
-  running app instance.
-- The hierarchy supports only two levels: parent category and child category.
-- Categories can be created and updated, but not deleted or archived yet.
-- Uncategorized spending remains a future transaction-level `NULL` concept, not
-  a real category row.
+- Transactions are created directly as `posted`.
+- Every transaction must balance to zero across its postings.
+- Every posting targets exactly one account or one category.
+- Expense transactions use exactly one account posting and one or more
+  spending-category postings.
+- Income transactions use exactly one account posting and one income-category
+  posting.
+- Transfer transactions use exactly two account postings and no categories.
+- Adjustment transactions are account-only and persist as one user-account
+  posting plus one hidden system-equity posting.
 
-This is intentionally setup-only scope for now. The MVP still does not include
-transactions, transaction splits, or category-based reporting behavior.
+## Category Trees
+
+The MVP includes two manual category trees for transaction classification:
+
+- `SpendingCategory` for expense classification
+- `IncomeCategory` for income classification
+
+Rules:
+
+- Spending and income categories are separate in-memory trees for the running
+  app instance.
+- Each tree supports only two levels: parent category and child category.
+- Categories can be created and updated, but not deleted or archived yet.
+- Uncategorized spending or income remains a future transaction-level `NULL`
+  concept, not a real category row.
 
 ## Manual-First Scope
 
@@ -108,16 +123,16 @@ Reserved future concepts:
 - Connected account
 - Bank sync
 - Import pipelines
-- Transaction-derived balances
+- Pending and void transaction workflows
 
 ## Out of Scope
 
 The MVP does not yet include:
 
-- Credit debt semantics such as statement cycles, limits, and liabilities
+- Rich credit-card workflows such as statement cycles and limits
 - Investment valuation
 - Account merging
 - Shared-account permissions
 - Bank connections or sync
-- Transfer flows between accounts
+- Multi-currency FX transactions
 - Budget rules based on transaction classification

@@ -1,12 +1,19 @@
 from .accounts import (
     AccountService,
-    CloseAccount,
+    AccountSnapshot,
+    ArchiveAccount,
     CreateAccountRejectedError,
-    CreditAccount,
-    DebitAccount,
     OpenAccount,
     UpdateAccountProfile,
     UpdateAccountRejectedError,
+)
+from .income_categories import (
+    CreateIncomeCategory,
+    CreateIncomeCategoryRejectedError,
+    IncomeCategoryService,
+    IncomeCategoryTreeNode,
+    UpdateIncomeCategory,
+    UpdateIncomeCategoryRejectedError,
 )
 from .spending_categories import (
     CreateSpendingCategory,
@@ -16,20 +23,35 @@ from .spending_categories import (
     UpdateSpendingCategory,
     UpdateSpendingCategoryRejectedError,
 )
+from .transactions import (
+    CreatePosting,
+    CreateTransaction,
+    CreateTransactionRejectedError,
+    TransactionService,
+)
 
 __all__ = [
+    "ArchiveAccount",
     "AccountService",
-    "CloseAccount",
+    "AccountSnapshot",
+    "CreateIncomeCategory",
+    "CreateIncomeCategoryRejectedError",
     "CreateAccountRejectedError",
-    "CreditAccount",
-    "DebitAccount",
-    "OpenAccount",
-    "UpdateAccountProfile",
-    "UpdateAccountRejectedError",
+    "CreatePosting",
     "CreateSpendingCategory",
     "CreateSpendingCategoryRejectedError",
+    "CreateTransaction",
+    "CreateTransactionRejectedError",
+    "IncomeCategoryService",
+    "IncomeCategoryTreeNode",
+    "OpenAccount",
     "SpendingCategoryService",
     "SpendingCategoryTreeNode",
+    "TransactionService",
+    "UpdateAccountProfile",
+    "UpdateAccountRejectedError",
+    "UpdateIncomeCategory",
+    "UpdateIncomeCategoryRejectedError",
     "UpdateSpendingCategory",
     "UpdateSpendingCategoryRejectedError",
 ]

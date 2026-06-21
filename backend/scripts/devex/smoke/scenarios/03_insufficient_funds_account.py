@@ -7,7 +7,7 @@ from scripts.devex.smoke.common import (
     unique_account_name,
 )
 
-name = "insufficient_funds"
+name = "invalid_transaction"
 
 
 def run(client: HttpClient) -> None:
@@ -15,20 +15,34 @@ def run(client: HttpClient) -> None:
         "POST",
         "/api/v1/accounts",
         payload={
-            "name": unique_account_name("Insufficient funds"),
-            "type": "card",
+            "name": unique_account_name("Invalid transaction"),
+            "type": "debit_card",
             "currency": "ARS",
         },
     )
     assert_status(create_response, 201)
     created_account = assert_json_object(create_response)
 
-    withdraw_response = client.request(
+    invalid_response = client.request(
         "POST",
-        f"/api/v1/accounts/{created_account['id']}/withdrawals",
-        payload={"amount_minor": 100, "currency": "ARS"},
+        "/api/v1/transactions",
+        payload={
+            "type": "transfer",
+            "postings": [
+                {
+                    "account_id": created_account["id"],
+                    "amount_minor": -100,
+                    "currency": "ARS",
+                },
+                {
+                    "category_id": "category_food",
+                    "amount_minor": 100,
+                    "currency": "ARS",
+                },
+            ],
+        },
     )
-    assert_status(withdraw_response, 409)
-    response_body = assert_json_object(withdraw_response)
-    if response_body.get("detail") != "insufficient funds":
-        raise AssertionError(f"unexpected insufficient funds payload: {response_body!r}")
+    assert_status(invalid_response, 400)
+    response_body = assert_json_object(invalid_response)
+    if response_body.get("detail") != "transfer transactions must not use categories":
+        raise AssertionError(f"unexpected invalid transaction payload: {response_body!r}")

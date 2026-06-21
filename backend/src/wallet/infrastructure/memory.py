@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from wallet.domain.accounts import Account
+from wallet.domain.income_categories import IncomeCategory
 from wallet.domain.spending_categories import SpendingCategory
+from wallet.domain.transactions import Transaction
 
 
 class InMemoryAccountRepository:
@@ -36,3 +38,34 @@ class InMemorySpendingCategoryRepository:
 
     def list(self) -> list[SpendingCategory]:
         return list(self._categories_by_id.values())
+
+
+class InMemoryIncomeCategoryRepository:
+    def __init__(self) -> None:
+        self._categories_by_id: dict[str, IncomeCategory] = {}
+
+    def add(self, category: IncomeCategory) -> None:
+        self._categories_by_id[category.id] = category
+
+    def get(self, category_id: str) -> IncomeCategory | None:
+        return self._categories_by_id.get(category_id)
+
+    def save(self, category: IncomeCategory) -> None:
+        self._categories_by_id[category.id] = category
+
+    def list(self) -> list[IncomeCategory]:
+        return list(self._categories_by_id.values())
+
+
+class InMemoryTransactionRepository:
+    def __init__(self) -> None:
+        self._transactions_by_id: dict[str, Transaction] = {}
+
+    def add(self, transaction: Transaction) -> None:
+        self._transactions_by_id[transaction.id] = transaction
+
+    def get(self, transaction_id: str) -> Transaction | None:
+        return self._transactions_by_id.get(transaction_id)
+
+    def list(self) -> list[Transaction]:
+        return list(self._transactions_by_id.values())

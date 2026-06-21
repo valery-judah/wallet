@@ -1,59 +1,23 @@
-import { queryOptions } from "@tanstack/react-query"
-import {
-  SpendingCategoriesService,
-  type CreateSpendingCategoryRequest,
-  type SpendingCategoryResponse,
-  type UpdateSpendingCategoryRequest,
-} from "@/client"
-
-const STALE_TIME_MS = 30_000
-
-export const categoryKeys = {
-  all: ["spending-categories"] as const,
-  tree: () => [...categoryKeys.all, "tree"] as const,
+export type CategoryTreeNode = {
+  id: string
+  name: string
+  parent_id: string | null
+  icon?: string | null
+  color?: string | null
+  sort_order: number
+  children?: Array<CategoryTreeNode>
 }
 
-export function categoriesTreeOptions() {
-  return queryOptions({
-    queryKey: categoryKeys.tree(),
-    queryFn: () =>
-      SpendingCategoriesService.spendingCategoriesListSpendingCategories<true>({
-        throwOnError: true,
-      }).then((result) => result.data),
-    staleTime: STALE_TIME_MS,
-  })
-}
-
-export function createCategory(
-  payload: CreateSpendingCategoryRequest,
-): Promise<SpendingCategoryResponse> {
-  return SpendingCategoriesService.spendingCategoriesCreateSpendingCategory<true>({
-    body: payload,
-    throwOnError: true,
-  }).then((result) => result.data)
-}
-
-export function updateCategory(
+export function findCategoryInTree<T extends CategoryTreeNode>(
+  categories: Array<T>,
   categoryId: string,
-  payload: UpdateSpendingCategoryRequest,
-): Promise<SpendingCategoryResponse> {
-  return SpendingCategoriesService.spendingCategoriesUpdateSpendingCategory<true>({
-    body: payload,
-    path: { category_id: categoryId },
-    throwOnError: true,
-  }).then((result) => result.data)
-}
-
-export function findCategoryInTree(
-  categories: Array<SpendingCategoryResponse>,
-  categoryId: string,
-): SpendingCategoryResponse | undefined {
+): T | undefined {
   for (const category of categories) {
     if (category.id === categoryId) {
       return category
     }
 
-    const child = (category.children ?? []).find((item) => item.id === categoryId)
+    const child = (category.children ?? []).find((item) => item.id === categoryId) as T | undefined
     if (child) {
       return child
     }
@@ -62,13 +26,13 @@ export function findCategoryInTree(
   return undefined
 }
 
-export function upsertCategoryTree(
-  categories: Array<SpendingCategoryResponse> | undefined,
-  incoming: SpendingCategoryResponse,
-): Array<SpendingCategoryResponse> {
+export function upsertCategoryTree<T extends CategoryTreeNode>(
+  categories: Array<T> | undefined,
+  incoming: T,
+): Array<T> {
   const currentCategories = categories ?? []
   const existing = findCategoryInTree(currentCategories, incoming.id)
-  const nextCategory: SpendingCategoryResponse = {
+  const nextCategory: T = {
     ...incoming,
     children: existing?.children ?? incoming.children ?? [],
   }
@@ -91,10 +55,10 @@ export function upsertCategoryTree(
   )
 }
 
-function removeCategoryFromTree(
-  categories: Array<SpendingCategoryResponse>,
+function removeCategoryFromTree<T extends CategoryTreeNode>(
+  categories: Array<T>,
   categoryId: string,
-): Array<SpendingCategoryResponse> {
+): Array<T> {
   return categories
     .filter((category) => category.id !== categoryId)
     .map((category) => ({
@@ -103,18 +67,14 @@ function removeCategoryFromTree(
     }))
 }
 
-function sortCategoryTree(
-  categories: Array<SpendingCategoryResponse>,
-): Array<SpendingCategoryResponse> {
+function sortCategoryTree<T extends CategoryTreeNode>(categories: Array<T>): Array<T> {
   return sortCategorySiblings(categories).map((category) => ({
     ...category,
     children: sortCategorySiblings(category.children ?? []),
   }))
 }
 
-function sortCategorySiblings(
-  categories: Array<SpendingCategoryResponse>,
-): Array<SpendingCategoryResponse> {
+function sortCategorySiblings<T extends CategoryTreeNode>(categories: Array<T>): Array<T> {
   return [...categories].sort((left, right) => {
     if (left.sort_order !== right.sort_order) {
       return left.sort_order - right.sort_order

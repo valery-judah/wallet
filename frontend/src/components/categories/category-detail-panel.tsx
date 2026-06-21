@@ -1,16 +1,18 @@
 import { PencilLine, Plus } from "lucide-react"
-import type { SpendingCategoryResponse } from "@/client"
 import { CategoryIcon, formatCategoryCount } from "@/components/categories/category-appearance"
 import { Button } from "@/components/ui/button"
+import type { CategoryTreeNode } from "@/lib/categories"
 import { cn } from "@/lib/utils"
 
 export function CategoryDetailPanel({
+  categoryLabel,
   selectedRoot,
   onCreateChild,
   onEditChild,
   onEditRoot,
 }: {
-  selectedRoot?: SpendingCategoryResponse
+  categoryLabel: string
+  selectedRoot?: CategoryTreeNode
   onCreateChild: (categoryId: string) => void
   onEditChild: (categoryId: string) => void
   onEditRoot: (categoryId: string) => void
@@ -18,7 +20,7 @@ export function CategoryDetailPanel({
   if (!selectedRoot) {
     return (
       <section className="rounded-[2rem] border border-dashed border-border/70 bg-card/60 p-8 text-center shadow-sm">
-        <p className="text-lg font-semibold">Choose a category</p>
+        <p className="text-lg font-semibold">Choose a {categoryLabel.toLowerCase()} category</p>
         <p className="mt-2 text-sm text-muted-foreground">
           Select a root category to inspect and manage its child categories.
         </p>
@@ -88,7 +90,7 @@ export function CategoryDetailPanel({
           <div className="rounded-[1.5rem] border border-dashed border-border/70 bg-background/60 px-5 py-8 text-center dark:border-white/10 dark:bg-white/[0.03]">
             <p className="font-medium">No subcategories yet.</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Add one to keep future spending classification organized.
+              Add one to keep future {categoryLabel.toLowerCase()} classification organized.
             </p>
           </div>
         ) : (

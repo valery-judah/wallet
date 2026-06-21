@@ -9,14 +9,21 @@ from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
 from wallet.application.accounts import CreateAccountRejectedError, UpdateAccountRejectedError
+from wallet.application.income_categories import (
+    CreateIncomeCategoryRejectedError,
+    UpdateIncomeCategoryRejectedError,
+)
 from wallet.application.spending_categories import (
     CreateSpendingCategoryRejectedError,
     UpdateSpendingCategoryRejectedError,
 )
+from wallet.application.transactions import CreateTransactionRejectedError
 from wallet.config import Settings, get_settings
-from wallet.domain.accounts import AccountClosedError, AccountNotFoundError, InsufficientFundsError
+from wallet.domain.accounts import AccountClosedError, AccountNotFoundError
+from wallet.domain.income_categories import IncomeCategoryNotFoundError
 from wallet.domain.money import CurrencyMismatchError
 from wallet.domain.spending_categories import SpendingCategoryNotFoundError
+from wallet.domain.transactions import TransactionNotFoundError
 
 from .deps import build_container
 from .routes import api_router
@@ -96,6 +103,36 @@ def _register_exception_handlers(app: FastAPI) -> None:
             detail=str(exc),
         )
 
+    @app.exception_handler(CreateIncomeCategoryRejectedError)
+    async def handle_create_income_category_rejected(
+        request: Request,
+        exc: CreateIncomeCategoryRejectedError,
+    ) -> JSONResponse:
+        return _error_response(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    @app.exception_handler(UpdateIncomeCategoryRejectedError)
+    async def handle_update_income_category_rejected(
+        request: Request,
+        exc: UpdateIncomeCategoryRejectedError,
+    ) -> JSONResponse:
+        return _error_response(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    @app.exception_handler(CreateTransactionRejectedError)
+    async def handle_create_transaction_rejected(
+        request: Request,
+        exc: CreateTransactionRejectedError,
+    ) -> JSONResponse:
+        return _error_response(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
     @app.exception_handler(AccountNotFoundError)
     async def handle_account_not_found(
         request: Request,
@@ -118,14 +155,26 @@ def _register_exception_handlers(app: FastAPI) -> None:
             detail=f"spending category not found: {category_id}",
         )
 
-    @app.exception_handler(InsufficientFundsError)
-    async def handle_insufficient_funds(
+    @app.exception_handler(IncomeCategoryNotFoundError)
+    async def handle_income_category_not_found(
         request: Request,
-        exc: InsufficientFundsError,
+        exc: IncomeCategoryNotFoundError,
     ) -> JSONResponse:
+        category_id = exc.args[0] if exc.args else "unknown"
         return _error_response(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(exc),
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"income category not found: {category_id}",
+        )
+
+    @app.exception_handler(TransactionNotFoundError)
+    async def handle_transaction_not_found(
+        request: Request,
+        exc: TransactionNotFoundError,
+    ) -> JSONResponse:
+        transaction_id = exc.args[0] if exc.args else "unknown"
+        return _error_response(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"transaction not found: {transaction_id}",
         )
 
     @app.exception_handler(AccountClosedError)

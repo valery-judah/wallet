@@ -1,14 +1,19 @@
 import userEvent from "@testing-library/user-event"
 import { screen, waitFor } from "@testing-library/react"
 import {
+  IncomeCategoriesService,
   SpendingCategoriesService,
+  type IncomeCategoryResponse,
   type SpendingCategoryResponse,
 } from "@/client"
+import type { CategoryTreeNode } from "@/lib/categories"
 import { renderApp } from "@/test/render-app"
 
+type CategoryFamily = "spending" | "income"
+
 function buildCategory(
-  overrides: Partial<SpendingCategoryResponse> & Pick<SpendingCategoryResponse, "id" | "name">,
-): SpendingCategoryResponse {
+  overrides: Partial<CategoryTreeNode> & Pick<CategoryTreeNode, "id" | "name">,
+): CategoryTreeNode {
   return {
     id: overrides.id,
     name: overrides.name,
@@ -20,7 +25,44 @@ function buildCategory(
   }
 }
 
-function buildDefaultTree(): Array<SpendingCategoryResponse> {
+function buildDefaultTree(family: CategoryFamily): Array<CategoryTreeNode> {
+  if (family === "income") {
+    return [
+      buildCategory({
+        id: "income_salary",
+        name: "Salary",
+        sort_order: 10,
+        children: [
+          buildCategory({
+            id: "income_salary_payroll",
+            name: "Payroll",
+            parent_id: "income_salary",
+            sort_order: 10,
+          }),
+          buildCategory({
+            id: "income_salary_bonus",
+            name: "Bonus",
+            parent_id: "income_salary",
+            sort_order: 20,
+          }),
+        ],
+      }),
+      buildCategory({
+        id: "income_investments",
+        name: "Investments",
+        sort_order: 20,
+        children: [
+          buildCategory({
+            id: "income_investments_dividends",
+            name: "Dividends",
+            parent_id: "income_investments",
+            sort_order: 10,
+          }),
+        ],
+      }),
+    ]
+  }
+
   return [
     buildCategory({
       id: "category_food",
@@ -72,34 +114,31 @@ function buildSuccess<T>(data: T) {
   }
 }
 
-function cloneCategory(category: SpendingCategoryResponse): SpendingCategoryResponse {
+function cloneCategory<T extends CategoryTreeNode>(category: T): T {
   return {
     ...category,
-    children: (category.children ?? []).map(cloneCategory),
+    children: (category.children ?? []).map((child) => cloneCategory(child as T)),
   }
 }
 
-function cloneTree(tree: Array<SpendingCategoryResponse>): Array<SpendingCategoryResponse> {
-  return tree.map(cloneCategory)
+function cloneTree<T extends CategoryTreeNode>(tree: Array<T>): Array<T> {
+  return tree.map((category) => cloneCategory(category))
 }
 
-function stripChildren(category: SpendingCategoryResponse): SpendingCategoryResponse {
+function stripChildren<T extends CategoryTreeNode>(category: T): T {
   return {
     ...category,
     children: [],
   }
 }
 
-function findCategory(
-  tree: Array<SpendingCategoryResponse>,
-  categoryId: string,
-): SpendingCategoryResponse | undefined {
+function findCategory<T extends CategoryTreeNode>(tree: Array<T>, categoryId: string): T | undefined {
   for (const category of tree) {
     if (category.id === categoryId) {
       return category
     }
 
-    const child = (category.children ?? []).find((item) => item.id === categoryId)
+    const child = (category.children ?? []).find((item) => item.id === categoryId) as T | undefined
     if (child) {
       return child
     }
@@ -108,9 +147,7 @@ function findCategory(
   return undefined
 }
 
-function sortCategories(
-  categories: Array<SpendingCategoryResponse>,
-): Array<SpendingCategoryResponse> {
+function sortCategories<T extends CategoryTreeNode>(categories: Array<T>): Array<T> {
   return [...categories].sort((left, right) => {
     if (left.sort_order !== right.sort_order) {
       return left.sort_order - right.sort_order
@@ -120,10 +157,7 @@ function sortCategories(
   })
 }
 
-function upsertTree(
-  tree: Array<SpendingCategoryResponse>,
-  incoming: SpendingCategoryResponse,
-): Array<SpendingCategoryResponse> {
+function upsertTree<T extends CategoryTreeNode>(tree: Array<T>, incoming: T): Array<T> {
   const existing = findCategory(tree, incoming.id)
   const nextCategory = {
     ...incoming,
@@ -160,39 +194,48 @@ function upsertTree(
 }
 
 function mockCategoriesApi({
-  initialTree = buildDefaultTree(),
-  onCreate,
-  onUpdate,
+  spendingTree = buildDefaultTree("spending") as Array<SpendingCategoryResponse>,
+  incomeTree = buildDefaultTree("income") as Array<IncomeCategoryResponse>,
+  onIncomeCreate,
+  onSpendingCreate,
+  onSpendingUpdate,
 }: {
-  initialTree?: Array<SpendingCategoryResponse>
-  onCreate?: (payload: {
+  incomeTree?: Array<IncomeCategoryResponse>
+  onSpendingCreate?: (payload: {
     body: Record<string, unknown>
     setTree: (nextTree: Array<SpendingCategoryResponse>) => void
     tree: Array<SpendingCategoryResponse>
   }) => Promise<ReturnType<typeof buildSuccess<SpendingCategoryResponse>>>
-  onUpdate?: (payload: {
+  onSpendingUpdate?: (payload: {
     body: Record<string, unknown>
     categoryId: string
     setTree: (nextTree: Array<SpendingCategoryResponse>) => void
     tree: Array<SpendingCategoryResponse>
   }) => Promise<ReturnType<typeof buildSuccess<SpendingCategoryResponse>>>
+  onIncomeCreate?: (payload: {
+    body: Record<string, unknown>
+    setTree: (nextTree: Array<IncomeCategoryResponse>) => void
+    tree: Array<IncomeCategoryResponse>
+  }) => Promise<ReturnType<typeof buildSuccess<IncomeCategoryResponse>>>
+  spendingTree?: Array<SpendingCategoryResponse>
 } = {}) {
-  let currentTree = cloneTree(initialTree)
+  let currentSpendingTree = cloneTree(spendingTree)
+  let currentIncomeTree = cloneTree(incomeTree)
 
-  const listSpy = vi
+  const spendingListSpy = vi
     .spyOn(SpendingCategoriesService, "spendingCategoriesListSpendingCategories")
-    .mockImplementation(async () => buildSuccess(cloneTree(currentTree)))
+    .mockImplementation(async () => buildSuccess(cloneTree(currentSpendingTree)))
 
-  const createSpy = vi
+  const spendingCreateSpy = vi
     .spyOn(SpendingCategoriesService, "spendingCategoriesCreateSpendingCategory")
     .mockImplementation(async ({ body }) => {
-      if (onCreate) {
-        return onCreate({
+      if (onSpendingCreate) {
+        return onSpendingCreate({
           body: body as Record<string, unknown>,
           setTree: (nextTree) => {
-            currentTree = cloneTree(nextTree)
+            currentSpendingTree = cloneTree(nextTree)
           },
-          tree: cloneTree(currentTree),
+          tree: cloneTree(currentSpendingTree),
         })
       }
 
@@ -201,28 +244,27 @@ function mockCategoriesApi({
         name: String(body.name),
         parent_id: (body.parent_id as string | null | undefined) ?? null,
         sort_order: Number(body.sort_order ?? 0),
-      })
+      }) as SpendingCategoryResponse
 
-      currentTree = upsertTree(currentTree, created)
+      currentSpendingTree = upsertTree(currentSpendingTree, created)
       return buildSuccess(stripChildren(created))
     })
 
-  const updateSpy = vi
+  const spendingUpdateSpy = vi
     .spyOn(SpendingCategoriesService, "spendingCategoriesUpdateSpendingCategory")
     .mockImplementation(async ({ body, path }) => {
-      if (onUpdate) {
-        return onUpdate({
+      if (onSpendingUpdate) {
+        return onSpendingUpdate({
           body: body as Record<string, unknown>,
           categoryId: path.category_id,
           setTree: (nextTree) => {
-            currentTree = cloneTree(nextTree)
+            currentSpendingTree = cloneTree(nextTree)
           },
-          tree: cloneTree(currentTree),
+          tree: cloneTree(currentSpendingTree),
         })
       }
 
-      const existing = findCategory(currentTree, path.category_id)
-
+      const existing = findCategory(currentSpendingTree, path.category_id)
       if (!existing) {
         throw buildApiError(404, `spending category not found: ${path.category_id}`)
       }
@@ -235,36 +277,91 @@ function mockCategoriesApi({
           body.parent_id === undefined
             ? existing.parent_id
             : ((body.parent_id as string | null) ?? null),
-        sort_order:
-          typeof body.sort_order === "number" ? body.sort_order : existing.sort_order,
+        sort_order: typeof body.sort_order === "number" ? body.sort_order : existing.sort_order,
         children: existing.children ?? [],
-      })
+      }) as SpendingCategoryResponse
 
-      currentTree = upsertTree(currentTree, updated)
+      currentSpendingTree = upsertTree(currentSpendingTree, updated)
       return buildSuccess(stripChildren(updated))
     })
 
-  return { createSpy, listSpy, updateSpy }
+  const incomeListSpy = vi
+    .spyOn(IncomeCategoriesService, "incomeCategoriesListIncomeCategories")
+    .mockImplementation(async () => buildSuccess(cloneTree(currentIncomeTree)))
+
+  const incomeCreateSpy = vi
+    .spyOn(IncomeCategoriesService, "incomeCategoriesCreateIncomeCategory")
+    .mockImplementation(async ({ body }) => {
+      if (onIncomeCreate) {
+        return onIncomeCreate({
+          body: body as Record<string, unknown>,
+          setTree: (nextTree) => {
+            currentIncomeTree = cloneTree(nextTree)
+          },
+          tree: cloneTree(currentIncomeTree),
+        })
+      }
+
+      const created = buildCategory({
+        id: `income_${String(body.name).trim().toLocaleLowerCase().replaceAll(/\s+/g, "_")}`,
+        name: String(body.name),
+        parent_id: (body.parent_id as string | null | undefined) ?? null,
+        sort_order: Number(body.sort_order ?? 0),
+      }) as IncomeCategoryResponse
+
+      currentIncomeTree = upsertTree(currentIncomeTree, created)
+      return buildSuccess(stripChildren(created))
+    })
+
+  const incomeUpdateSpy = vi
+    .spyOn(IncomeCategoriesService, "incomeCategoriesUpdateIncomeCategory")
+    .mockImplementation(async ({ body, path }) => {
+      const existing = findCategory(currentIncomeTree, path.category_id)
+      if (!existing) {
+        throw buildApiError(404, `income category not found: ${path.category_id}`)
+      }
+
+      const updated = buildCategory({
+        ...existing,
+        id: existing.id,
+        name: (body.name as string | undefined) ?? existing.name,
+        parent_id:
+          body.parent_id === undefined
+            ? existing.parent_id
+            : ((body.parent_id as string | null) ?? null),
+        sort_order: typeof body.sort_order === "number" ? body.sort_order : existing.sort_order,
+        children: existing.children ?? [],
+      }) as IncomeCategoryResponse
+
+      currentIncomeTree = upsertTree(currentIncomeTree, updated)
+      return buildSuccess(stripChildren(updated))
+    })
+
+  return {
+    incomeCreateSpy,
+    incomeListSpy,
+    incomeUpdateSpy,
+    spendingCreateSpy,
+    spendingListSpy,
+    spendingUpdateSpy,
+  }
 }
 
-describe("spending categories route", () => {
+describe("categories route", () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  it("renders the categories route, sidebar entry, and default selected root", async () => {
+  it("renders the categories route and defaults to spending categories", async () => {
     mockCategoriesApi()
 
     renderApp("/categories")
 
-    expect(
-      await screen.findByRole("heading", { name: "Spending categories" }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Category trees" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Categories" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Spending" })).toHaveAttribute("aria-pressed", "true")
     expect(screen.getAllByText("Food").length).toBeGreaterThan(0)
-    expect(screen.getAllByText("Housing").length).toBeGreaterThan(0)
     expect(screen.getByText("Groceries")).toBeInTheDocument()
-    expect(screen.getByText("Restaurants")).toBeInTheDocument()
   })
 
   it("shows a loading state while categories are pending", async () => {
@@ -279,6 +376,10 @@ describe("spending categories route", () => {
           response: Response
         }>(() => undefined),
     )
+    vi.spyOn(
+      IncomeCategoriesService,
+      "incomeCategoriesListIncomeCategories",
+    ).mockImplementation(async () => buildSuccess([]))
 
     const { unmount } = renderApp("/categories")
 
@@ -286,11 +387,15 @@ describe("spending categories route", () => {
     unmount()
   })
 
-  it("shows an API error when categories fail to load", async () => {
+  it("shows an API error when the active category tree fails to load", async () => {
     vi.spyOn(
       SpendingCategoriesService,
       "spendingCategoriesListSpendingCategories",
     ).mockRejectedValue(buildApiError(500, "backend unavailable"))
+    vi.spyOn(
+      IncomeCategoriesService,
+      "incomeCategoriesListIncomeCategories",
+    ).mockImplementation(async () => buildSuccess([]))
 
     renderApp("/categories")
 
@@ -298,28 +403,29 @@ describe("spending categories route", () => {
     expect(screen.getByText("backend unavailable")).toBeInTheDocument()
   })
 
-  it("switches the selected root category and renders its children", async () => {
+  it("switches to income categories and renders the income tree", async () => {
     mockCategoriesApi()
     const user = userEvent.setup()
 
     renderApp("/categories")
 
-    expect(await screen.findByText("Groceries")).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Housing 1 subcategory" }))
+    await screen.findByText("Groceries")
+    await user.click(screen.getByRole("button", { name: "Income" }))
 
-    expect(await screen.findByText("Rent")).toBeInTheDocument()
+    expect(await screen.findAllByText("Salary")).not.toHaveLength(0)
+    expect(screen.getByText("Payroll")).toBeInTheDocument()
     expect(screen.queryByText("Groceries")).not.toBeInTheDocument()
   })
 
   it("uses the fallback icon mapping for unknown categories", async () => {
     mockCategoriesApi({
-      initialTree: [
+      spendingTree: [
         buildCategory({
           id: "category_mystery",
           name: "Mystery",
           sort_order: 10,
           children: [],
-        }),
+        }) as SpendingCategoryResponse,
       ],
     })
 
@@ -332,20 +438,20 @@ describe("spending categories route", () => {
     )
   })
 
-  it("creates a new root category from the page intro action", async () => {
-    const { createSpy } = mockCategoriesApi()
+  it("creates a new spending root category from the page intro action", async () => {
+    const { spendingCreateSpy } = mockCategoriesApi()
     const user = userEvent.setup()
 
     renderApp("/categories")
 
     await screen.findByText("Food")
-    await user.click(screen.getByRole("button", { name: "New category" }))
+    await user.click(screen.getByRole("button", { name: "New spending category" }))
     await user.type(screen.getByLabelText("Name"), "Hobbies")
-    await user.click(screen.getByRole("button", { name: "Create category" }))
+    await user.click(screen.getByRole("button", { name: "Create spending category" }))
 
     expect(await screen.findAllByText("Hobbies")).not.toHaveLength(0)
     await waitFor(() => {
-      expect(createSpy).toHaveBeenCalledWith(
+      expect(spendingCreateSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           body: expect.objectContaining({
             name: "Hobbies",
@@ -357,30 +463,32 @@ describe("spending categories route", () => {
     })
   })
 
-  it("creates a child category from the selected root panel", async () => {
-    const { createSpy } = mockCategoriesApi()
+  it("creates an income subcategory after switching tabs", async () => {
+    const { incomeCreateSpy } = mockCategoriesApi()
     const user = userEvent.setup()
 
     renderApp("/categories")
 
-    await screen.findByText("Groceries")
-    await user.click(screen.getByRole("button", { name: "Add subcategory to Food" }))
-    await user.type(screen.getByLabelText("Name"), "Board Games")
-    await user.click(screen.getByRole("button", { name: "Create category" }))
+    await screen.findByText("Food")
+    await user.click(screen.getByRole("button", { name: "Income" }))
+    await screen.findByText("Payroll")
+    await user.click(screen.getByRole("button", { name: "Add subcategory to Salary" }))
+    await user.type(screen.getByLabelText("Name"), "Freelance")
+    await user.click(screen.getByRole("button", { name: "Create income category" }))
 
-    expect(await screen.findByText("Board Games")).toBeInTheDocument()
-    expect(createSpy).toHaveBeenCalledWith(
+    expect(await screen.findByText("Freelance")).toBeInTheDocument()
+    expect(incomeCreateSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         body: expect.objectContaining({
-          name: "Board Games",
-          parent_id: "category_food",
+          name: "Freelance",
+          parent_id: "income_salary",
         }),
       }),
     )
   })
 
-  it("edits a child category name", async () => {
-    const { updateSpy } = mockCategoriesApi()
+  it("edits a spending child category name", async () => {
+    const { spendingUpdateSpy } = mockCategoriesApi()
     const user = userEvent.setup()
 
     renderApp("/categories")
@@ -389,58 +497,19 @@ describe("spending categories route", () => {
     await user.click(screen.getByRole("button", { name: "Edit Groceries" }))
     await user.clear(screen.getByLabelText("Name"))
     await user.type(screen.getByLabelText("Name"), "Pantry")
-    await user.click(screen.getByRole("button", { name: "Save category" }))
+    await user.click(screen.getByRole("button", { name: "Save spending category" }))
 
     expect(await screen.findByText("Pantry")).toBeInTheDocument()
-    expect(updateSpy).toHaveBeenCalledWith(
+    expect(spendingUpdateSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         path: { category_id: "category_food_groceries" },
       }),
     )
   })
 
-  it("reparents a child category to a different root", async () => {
-    const { updateSpy } = mockCategoriesApi()
-    const user = userEvent.setup()
-
-    renderApp("/categories")
-
-    await screen.findByText("Groceries")
-    await user.click(screen.getByRole("button", { name: "Edit Groceries" }))
-    await user.selectOptions(screen.getByLabelText("Parent category"), "category_housing")
-    await user.click(screen.getByRole("button", { name: "Save category" }))
-
-    await user.click(screen.getByRole("button", { name: "Housing 2 subcategories" }))
-
-    expect(await screen.findByText("Groceries")).toBeInTheDocument()
-    expect(updateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        body: expect.objectContaining({
-          parent_id: "category_housing",
-        }),
-        path: { category_id: "category_food_groceries" },
-      }),
-    )
-  })
-
-  it("converts a child category into a root category by clearing the parent", async () => {
-    const user = userEvent.setup()
-
-    mockCategoriesApi()
-    renderApp("/categories")
-
-    await screen.findByText("Groceries")
-    await user.click(screen.getByRole("button", { name: "Edit Groceries" }))
-    await user.selectOptions(screen.getByLabelText("Parent category"), "")
-    await user.click(screen.getByRole("button", { name: "Save category" }))
-
-    expect(await screen.findByText("No subcategories yet")).toBeInTheDocument()
-    expect(screen.getAllByText("Groceries").length).toBeGreaterThan(0)
-  })
-
-  it("shows a duplicate-name error inline when the API rejects creation", async () => {
+  it("shows a duplicate-name error inline when the spending API rejects creation", async () => {
     mockCategoriesApi({
-      onCreate: async () => {
+      onSpendingCreate: async () => {
         throw buildApiError(400, "category name must be unique within its sibling group")
       },
     })
@@ -451,16 +520,16 @@ describe("spending categories route", () => {
     await screen.findByText("Groceries")
     await user.click(screen.getByRole("button", { name: "Add subcategory to Food" }))
     await user.type(screen.getByLabelText("Name"), "Restaurants")
-    await user.click(screen.getByRole("button", { name: "Create category" }))
+    await user.click(screen.getByRole("button", { name: "Create spending category" }))
 
     expect(
       await screen.findByText("category name must be unique within its sibling group"),
     ).toBeInTheDocument()
   })
 
-  it("shows an invalid-hierarchy error inline when reparenting a populated root", async () => {
+  it("shows an invalid-hierarchy error inline when reparenting a populated spending root", async () => {
     mockCategoriesApi({
-      onUpdate: async ({ body }) => {
+      onSpendingUpdate: async ({ body }) => {
         if (body.parent_id) {
           throw buildApiError(400, "category with children cannot become a child category")
         }
@@ -475,7 +544,7 @@ describe("spending categories route", () => {
     await screen.findByText("Groceries")
     await user.click(screen.getAllByRole("button", { name: "Edit Food" })[1])
     await user.selectOptions(screen.getByLabelText("Parent category"), "category_housing")
-    await user.click(screen.getByRole("button", { name: "Save category" }))
+    await user.click(screen.getByRole("button", { name: "Save spending category" }))
 
     expect(
       await screen.findByText("category with children cannot become a child category"),

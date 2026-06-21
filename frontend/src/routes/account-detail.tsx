@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link, useParams } from "@tanstack/react-router"
 import { useState } from "react"
-import type { AccountResponse } from "@/client"
+import type { AccountResponse, TransactionResponse } from "@/client"
 import {
   AccountIcon,
+  type AccountTypeValue,
   getAccountColorTheme,
   getAccountTypeLabel,
 } from "@/components/accounts/account-appearance"
@@ -15,7 +16,7 @@ import {
   AccountSplitLayout,
 } from "@/components/accounts/account-layout"
 import { AccountProfileForm } from "@/components/accounts/account-profile-form"
-import { WithdrawForm } from "@/components/accounts/withdraw-form"
+import { TransactionComposer } from "@/components/accounts/transaction-composer"
 import {
   Card,
   CardContent,
@@ -25,14 +26,21 @@ import {
 } from "@/components/ui/card"
 import { getApiErrorMessage } from "@/lib/api-errors"
 import {
+  archiveAccount,
   accountDetailOptions,
   accountKeys,
-  closeAccount,
+  accountsListOptions,
   upsertAccountInList,
   updateAccountProfile,
-  withdrawFromAccount,
 } from "@/lib/accounts"
 import { formatDate, formatMoney } from "@/lib/format"
+import { incomeCategoriesTreeOptions } from "@/lib/income-categories"
+import { spendingCategoriesTreeOptions } from "@/lib/spending-categories"
+import {
+  createTransaction,
+  transactionKeys,
+  transactionsListOptions,
+} from "@/lib/transactions"
 import { cn } from "@/lib/utils"
 
 function formatAccountReference(accountId: string) {
@@ -46,23 +54,26 @@ function formatAccountReference(accountId: string) {
 export function AccountDetailRoute() {
   const { accountId } = useParams({ from: "/accounts/$accountId" })
   const queryClient = useQueryClient()
-  const [withdrawErrorMessage, setWithdrawErrorMessage] = useState<string>()
+  const [transactionErrorMessage, setTransactionErrorMessage] = useState<string>()
   const [profileErrorMessage, setProfileErrorMessage] = useState<string>()
-  const [closeErrorMessage, setCloseErrorMessage] = useState<string>()
+  const [archiveErrorMessage, setArchiveErrorMessage] = useState<string>()
   const accountQuery = useQuery(accountDetailOptions(accountId))
+  const accountsQuery = useQuery(accountsListOptions())
+  const spendingCategoriesQuery = useQuery(spendingCategoriesTreeOptions())
+  const incomeCategoriesQuery = useQuery(incomeCategoriesTreeOptions())
+  const transactionsQuery = useQuery(transactionsListOptions(accountId))
 
-  const withdrawMutation = useMutation({
-    mutationFn: (values: { amount_minor: number; currency: string }) =>
-      withdrawFromAccount(accountId, values),
-    onSuccess: async (account) => {
-      setWithdrawErrorMessage(undefined)
-      await syncAccount(account)
+  const transactionMutation = useMutation({
+    mutationFn: createTransaction,
+    onSuccess: async () => {
+      setTransactionErrorMessage(undefined)
+      await refreshAccountState()
     },
   })
   const updateProfileMutation = useMutation({
     mutationFn: (values: {
       name: string
-      type: "card" | "cash" | "bank" | "wallet" | "platform" | "savings" | "other"
+      type: AccountTypeValue
       color_key?: string
     }) => updateAccountProfile(accountId, values),
     onSuccess: async (account) => {
@@ -70,10 +81,10 @@ export function AccountDetailRoute() {
       await syncAccount(account)
     },
   })
-  const closeMutation = useMutation({
-    mutationFn: () => closeAccount(accountId),
+  const archiveMutation = useMutation({
+    mutationFn: () => archiveAccount(accountId),
     onSuccess: async (account) => {
-      setCloseErrorMessage(undefined)
+      setArchiveErrorMessage(undefined)
       await syncAccount(account)
     },
   })
@@ -87,22 +98,27 @@ export function AccountDetailRoute() {
     await queryClient.invalidateQueries({ queryKey: accountKeys.list() })
   }
 
-  async function handleWithdraw(values: {
-    amount_minor: number
-    currency: string
-  }) {
-    setWithdrawErrorMessage(undefined)
+  async function refreshAccountState() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: accountKeys.detail(accountId) }),
+      queryClient.invalidateQueries({ queryKey: accountKeys.list() }),
+      queryClient.invalidateQueries({ queryKey: transactionKeys.list(accountId) }),
+    ])
+  }
+
+  async function handleTransactionSubmit(values: Parameters<typeof createTransaction>[0]) {
+    setTransactionErrorMessage(undefined)
 
     try {
-      await withdrawMutation.mutateAsync(values)
+      await transactionMutation.mutateAsync(values)
     } catch (error) {
-      setWithdrawErrorMessage(getApiErrorMessage(error))
+      setTransactionErrorMessage(getApiErrorMessage(error))
     }
   }
 
   async function handleProfileUpdate(values: {
     name: string
-    type: "card" | "cash" | "bank" | "wallet" | "platform" | "savings" | "other"
+    type: AccountTypeValue
     color_key?: string
   }) {
     setProfileErrorMessage(undefined)
@@ -114,13 +130,13 @@ export function AccountDetailRoute() {
     }
   }
 
-  async function handleCloseAccount() {
-    setCloseErrorMessage(undefined)
+  async function handleArchiveAccount() {
+    setArchiveErrorMessage(undefined)
 
     try {
-      await closeMutation.mutateAsync()
+      await archiveMutation.mutateAsync()
     } catch (error) {
-      setCloseErrorMessage(getApiErrorMessage(error))
+      setArchiveErrorMessage(getApiErrorMessage(error))
     }
   }
 
@@ -150,7 +166,8 @@ export function AccountDetailRoute() {
   }
 
   const account = accountQuery.data
-  const theme = getAccountColorTheme(account?.type ?? "card", account?.color_key)
+  const theme = getAccountColorTheme(account?.type ?? "debit_card", account?.color_key)
+  const isArchived = account?.archived_at != null
 
   if (!account) {
     return (
@@ -159,6 +176,11 @@ export function AccountDetailRoute() {
       </section>
     )
   }
+
+  const accounts = accountsQuery.data ?? []
+  const spendingCategories = spendingCategoriesQuery.data ?? []
+  const incomeCategories = incomeCategoriesQuery.data ?? []
+  const transactions = transactionsQuery.data ?? []
 
   return (
     <AccountSplitLayout>
@@ -198,9 +220,9 @@ export function AccountDetailRoute() {
                 <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
                   {account.currency}
                 </span>
-                <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                  {account.status}
-                </span>
+                  <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                    {isArchived ? "archived" : "active"}
+                  </span>
               </div>
             </div>
             <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border/60 pt-4 md:col-start-2 md:pt-3">
@@ -233,8 +255,8 @@ export function AccountDetailRoute() {
                   value={formatDate(account.opened_on)}
                 />
                 <AccountFactRow
-                  label="Closed on"
-                  value={account.closed_on ? formatDate(account.closed_on) : "Open"}
+                  label="Archived at"
+                  value={account.archived_at ? formatDate(account.archived_at) : "Active"}
                 />
               </AccountFactList>
             </div>
@@ -266,61 +288,120 @@ export function AccountDetailRoute() {
 
         <AccountSectionCard
           description={
-            account.status === "closed"
-              ? "Closed accounts keep their final balance and cannot move money."
-              : "Enter an amount like 25 or 25.50 to withdraw from this account."
+            isArchived
+              ? "Archived accounts keep their final balance and cannot post new transactions."
+              : "Record expense, income, transfers, or manual adjustments directly into the ledger."
           }
-          title={account.status === "closed" ? "Balance is locked" : "Withdraw money"}
+          title={isArchived ? "Ledger is locked" : "Record transaction"}
         >
-          {account.status === "closed" ? (
+          {isArchived ? (
             <div className="rounded-[1.6rem] border border-border/70 bg-muted/15 p-5">
               <p className="text-sm text-muted-foreground">
-                This account is closed and cannot accept new balance changes.
+                This account is archived and cannot accept new transactions.
               </p>
             </div>
           ) : (
-            <WithdrawForm
-              currency={account.currency}
-              errorMessage={withdrawErrorMessage}
-              isPending={withdrawMutation.isPending}
-              onSubmit={handleWithdraw}
+            <TransactionComposer
+              account={account}
+              accounts={accounts}
+              incomeCategories={incomeCategories}
+              errorMessage={transactionErrorMessage}
+              isPending={transactionMutation.isPending}
+              onSubmit={handleTransactionSubmit}
+              spendingCategories={spendingCategories}
             />
           )}
         </AccountSectionCard>
 
         <AccountSectionCard
+          description="Recent ledger activity for this account."
+          title="Recent activity"
+        >
+          {transactionsQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading transactions...</p>
+          ) : transactions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No transactions yet for this account.
+            </p>
+          ) : (
+            <div className="grid gap-3">
+              {transactions.map((transaction) => {
+                const accountAmount = getAccountAmount(transaction, account.id)
+                return (
+                  <div
+                    className="rounded-[1.4rem] border border-border/70 bg-background/40 px-4 py-3"
+                    key={transaction.id}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-medium">
+                          {transaction.description || getTransactionLabel(transaction.type)}
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {formatDate(transaction.occurred_on)} · {transaction.type}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold">
+                        {formatMoney(accountAmount, account.currency)}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </AccountSectionCard>
+
+        <AccountSectionCard
           description={
-            account.status === "closed"
-              ? "This account is already closed."
-              : "This keeps history but blocks future balance changes."
+            isArchived ? "This account is already archived." : "This keeps history but blocks future transactions."
           }
           footer={
-            account.status === "active" ? (
+            !isArchived ? (
               <button
                 className="inline-flex rounded-full border border-destructive/40 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10"
-                disabled={closeMutation.isPending}
-                onClick={() => void handleCloseAccount()}
+                disabled={archiveMutation.isPending}
+                onClick={() => void handleArchiveAccount()}
                 type="button"
               >
-                {closeMutation.isPending ? "Closing..." : "Close account"}
+                {archiveMutation.isPending ? "Archiving..." : "Archive account"}
               </button>
             ) : undefined
           }
-          title="Close account"
+          title="Archive account"
         >
-          {closeErrorMessage ? (
+          {archiveErrorMessage ? (
             <p className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {closeErrorMessage}
+              {archiveErrorMessage}
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              {account.status === "closed"
-                ? "Closed accounts stay visible with their final balance."
-                : "After closing, deposits and withdrawals will no longer be available."}
+              {isArchived
+                ? "Archived accounts stay visible with their final balance."
+                : "After archiving, new ledger entries will no longer be allowed for this account."}
             </p>
           )}
         </AccountSectionCard>
       </AccountSectionStack>
     </AccountSplitLayout>
   )
+}
+
+function getAccountAmount(transaction: TransactionResponse, accountId: string) {
+  return (
+    transaction.postings.find((posting) => posting.account_id === accountId)?.amount_minor ?? 0
+  )
+}
+
+function getTransactionLabel(type: TransactionResponse["type"]) {
+  switch (type) {
+    case "expense":
+      return "Expense"
+    case "income":
+      return "Income"
+    case "transfer":
+      return "Transfer"
+    case "adjustment":
+      return "Adjustment"
+  }
 }

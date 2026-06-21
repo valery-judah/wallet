@@ -1,10 +1,11 @@
 import { CURRENCY_MINOR_UNIT_BY_CODE } from "@/lib/generated-currency-meta"
 
 const DEFAULT_MINOR_UNIT = 2
-const MAJOR_AMOUNT_PATTERN = /^\d+(?:\.(\d*))?$/
+const MAJOR_AMOUNT_PATTERN = /^-?\d+(?:\.(\d*))?$/
 
 type ParseMajorAmountOptions = {
   allowZero?: boolean
+  allowNegative?: boolean
 }
 
 type ParseMajorAmountResult =
@@ -52,13 +53,24 @@ export function parseMajorAmount(
   const divisor = 10 ** minorUnit
   const fractionPart =
     minorUnit === 0 ? 0 : Number.parseInt(fractionDigits.padEnd(minorUnit, "0") || "0", 10)
-  const amountMinor = Number.parseInt(wholePart, 10) * divisor + fractionPart
+  const sign = wholePart.startsWith("-") ? -1 : 1
+  const normalizedWholePart = wholePart.replace("-", "")
+  const amountMinor =
+    sign * (Number.parseInt(normalizedWholePart, 10) * divisor + fractionPart)
 
   if (!Number.isSafeInteger(amountMinor)) {
     return { error: "Amount is too large." }
   }
 
-  if (!options.allowZero && amountMinor <= 0) {
+  if (!options.allowNegative && amountMinor < 0) {
+    return { error: "Enter a positive amount." }
+  }
+
+  if (!options.allowZero && options.allowNegative && amountMinor === 0) {
+    return { error: "Enter an amount greater than 0." }
+  }
+
+  if (!options.allowZero && !options.allowNegative && amountMinor <= 0) {
     return { error: "Enter an amount greater than 0." }
   }
 

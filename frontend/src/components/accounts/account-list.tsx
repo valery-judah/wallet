@@ -68,8 +68,8 @@ export function AccountList({ accounts }: AccountListProps) {
     )
   }
 
-  const activeAccounts = accounts.filter((account) => account.status === "active")
-  const closedAccounts = accounts.filter((account) => account.status === "closed")
+  const activeAccounts = accounts.filter((account) => account.archived_at === null)
+  const archivedAccounts = accounts.filter((account) => account.archived_at !== null)
   const groupedAccounts = groupAccounts(accounts)
 
   return (
@@ -91,10 +91,10 @@ export function AccountList({ accounts }: AccountListProps) {
             Lifecycle
           </p>
           <p className="mt-3 text-[1.65rem] font-semibold tracking-[-0.03em]">
-            {activeAccounts.length} active · {closedAccounts.length} closed
+            {activeAccounts.length} active · {archivedAccounts.length} archived
           </p>
           <p className="mt-1.5 text-sm leading-5 text-muted-foreground">
-            Closed accounts remain visible for history and reporting.
+            Archived accounts remain visible for history and reporting.
           </p>
         </article>
         <article className="rounded-[1.75rem] border border-border/70 bg-card/80 px-5 py-4">
@@ -186,12 +186,12 @@ export function AccountList({ accounts }: AccountListProps) {
                         <span
                           className={cn(
                             "rounded-full px-2.5 py-1 text-[0.72rem] font-semibold",
-                            account.status === "closed"
+                            account.archived_at
                               ? "bg-slate-500/12 text-slate-200"
                               : theme.badgeClassName,
                           )}
                         >
-                          {account.status}
+                          {account.archived_at ? "archived" : "active"}
                         </span>
                       </div>
 
@@ -204,8 +204,8 @@ export function AccountList({ accounts }: AccountListProps) {
                         </p>
                         <div className="mt-5 flex items-end justify-between gap-3">
                           <p className="text-sm text-muted-foreground">
-                          {account.status === "closed" && account.closed_on
-                            ? `Closed ${formatDate(account.closed_on)}`
+                          {account.archived_at
+                            ? `Archived ${formatDate(account.archived_at)}`
                             : `Opened ${formatDate(account.opened_on)}`}
                           </p>
 

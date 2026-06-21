@@ -1,23 +1,19 @@
 import type { ComponentType } from "react"
 import {
   Banknote,
-  Briefcase,
-  CircleHelp,
   CreditCard,
   Landmark,
-  PiggyBank,
   Wallet,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export type AccountTypeValue =
-  | "card"
   | "cash"
-  | "bank"
+  | "debit_card"
+  | "credit_card"
+  | "bank_account"
   | "wallet"
-  | "platform"
-  | "savings"
-  | "other"
+  | "system"
 
 export type AccountColorKey =
   | "violet"
@@ -45,10 +41,16 @@ type AccountColorTheme = {
 
 export const ACCOUNT_TYPE_OPTIONS: Array<AccountPresentation> = [
   {
-    value: "card",
-    label: "Card",
-    description: "Debit, credit, and prepaid cards.",
+    value: "debit_card",
+    label: "Debit card",
+    description: "Cards tied to money you already have available.",
     defaultColorKey: "violet",
+  },
+  {
+    value: "credit_card",
+    label: "Credit card",
+    description: "Cards that can carry debt and often start below zero.",
+    defaultColorKey: "rose",
   },
   {
     value: "cash",
@@ -57,7 +59,7 @@ export const ACCOUNT_TYPE_OPTIONS: Array<AccountPresentation> = [
     defaultColorKey: "emerald",
   },
   {
-    value: "bank",
+    value: "bank_account",
     label: "Bank account",
     description: "Checking, current, and standard bank balances.",
     defaultColorKey: "blue",
@@ -67,24 +69,6 @@ export const ACCOUNT_TYPE_OPTIONS: Array<AccountPresentation> = [
     label: "Digital wallet",
     description: "Wallet apps like Mercado Pago, PayPal, or Wise.",
     defaultColorKey: "cyan",
-  },
-  {
-    value: "platform",
-    label: "Money platform",
-    description: "Platforms like Payoneer or payout balances.",
-    defaultColorKey: "amber",
-  },
-  {
-    value: "savings",
-    label: "Savings",
-    description: "Reserve funds and dedicated savings balances.",
-    defaultColorKey: "rose",
-  },
-  {
-    value: "other",
-    label: "Other",
-    description: "Anything that does not fit the standard account set.",
-    defaultColorKey: "slate",
   },
 ]
 
@@ -155,16 +139,23 @@ const ACCOUNT_COLOR_THEMES: Record<AccountColorKey, AccountColorTheme> = {
 }
 
 const ICONS: Record<AccountTypeValue, ComponentType<{ className?: string }>> = {
-  card: CreditCard,
+  debit_card: CreditCard,
+  credit_card: CreditCard,
   cash: Banknote,
-  bank: Landmark,
+  bank_account: Landmark,
   wallet: Wallet,
-  platform: Briefcase,
-  savings: PiggyBank,
-  other: CircleHelp,
+  system: Landmark,
 }
 
 export function getAccountTypeOption(type: AccountTypeValue): AccountPresentation {
+  if (type === "system") {
+    return {
+      value: "system",
+      label: "System",
+      description: "Internal balancing account.",
+      defaultColorKey: "slate",
+    }
+  }
   return ACCOUNT_TYPE_OPTIONS.find((option) => option.value === type) ?? ACCOUNT_TYPE_OPTIONS[0]
 }
 

@@ -16,7 +16,7 @@ import {
   Tag,
   UtensilsCrossed,
 } from "lucide-react"
-import type { SpendingCategoryResponse } from "@/client"
+import type { CategoryTreeNode } from "@/lib/categories"
 import { cn } from "@/lib/utils"
 
 type CategoryIconComponent = ComponentType<{ className?: string }>
@@ -56,7 +56,7 @@ const ICONS_BY_NORMALIZED_NAME: Record<string, CategoryIconComponent> = {
 }
 
 export function getCategoryIconComponent(
-  category: SpendingCategoryResponse,
+  category: CategoryTreeNode,
 ): CategoryIconComponent {
   return (
     ICONS_BY_ID[category.id] ??
@@ -65,7 +65,7 @@ export function getCategoryIconComponent(
   )
 }
 
-export function getCategoryIconName(category: SpendingCategoryResponse): string {
+export function getCategoryIconName(category: CategoryTreeNode): string {
   if (ICONS_BY_ID[category.id]) {
     return category.id
   }
@@ -82,7 +82,7 @@ export function CategoryIcon({
   category,
   className,
 }: {
-  category: SpendingCategoryResponse
+  category: CategoryTreeNode
   className?: string
 }) {
   const Icon = getCategoryIconComponent(category)

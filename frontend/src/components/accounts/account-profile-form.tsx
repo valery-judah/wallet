@@ -77,7 +77,7 @@ export function AccountProfileForm({
             colorKey={colorKey}
             currency={account.currency}
             name={name}
-            statusLabel={account.status}
+            statusLabel={account.archived_at ? "archived" : "active"}
             type={type}
           />
         </div>

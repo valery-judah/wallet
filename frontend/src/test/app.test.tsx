@@ -1,24 +1,83 @@
 import userEvent from "@testing-library/user-event"
 import { screen, waitFor } from "@testing-library/react"
-import { AccountsService, type AccountResponse } from "@/client"
+import {
+  AccountsService,
+  IncomeCategoriesService,
+  SpendingCategoriesService,
+  TransactionsService,
+  type AccountResponse,
+  type IncomeCategoryResponse,
+  type SpendingCategoryResponse,
+  type TransactionResponse,
+} from "@/client"
+import type { CategoryTreeNode } from "@/lib/categories"
 import { renderApp } from "@/test/render-app"
 
 function buildAccount(overrides: Partial<AccountResponse> = {}): AccountResponse {
   return {
     id: "account-123",
     name: "Everyday Account",
-    type: "card",
+    type: "debit_card",
     currency: "ARS",
     current_balance: {
       amount_minor: 12_500,
       currency: "ARS",
     },
-    status: "active",
     color_key: "violet",
     opened_on: "2026-06-18",
-    closed_on: null,
+    archived_at: null,
     created_on: "2026-06-18",
     updated_on: "2026-06-18",
+    ...overrides,
+  }
+}
+
+function buildCategory(
+  overrides: Partial<CategoryTreeNode> & Pick<CategoryTreeNode, "id" | "name">,
+): CategoryTreeNode {
+  return {
+    id: overrides.id,
+    name: overrides.name,
+    parent_id: overrides.parent_id ?? null,
+    icon: overrides.icon ?? null,
+    color: overrides.color ?? null,
+    sort_order: overrides.sort_order ?? 0,
+    children: overrides.children ?? [],
+  }
+}
+
+function buildTransaction(
+  overrides: Partial<TransactionResponse> = {},
+): TransactionResponse {
+  return {
+    id: "transaction-123",
+    occurred_on: "2026-06-20",
+    posted_on: "2026-06-20",
+    description: "Lunch",
+    merchant_name: null,
+    notes: null,
+    status: "posted",
+    type: "expense",
+    postings: [
+      {
+        id: "posting-1",
+        account_id: "account-123",
+        category_id: null,
+        amount_minor: -2_500,
+        currency: "ARS",
+        memo: null,
+      },
+      {
+        id: "posting-2",
+        account_id: null,
+        category_id: "category_food_groceries",
+        amount_minor: 2_500,
+        currency: "ARS",
+        memo: null,
+      },
+    ],
+    created_on: "2026-06-20",
+    updated_on: "2026-06-20",
     ...overrides,
   }
 }
@@ -36,6 +95,62 @@ function buildSuccess<T>(data: T) {
     request: new Request("http://localhost:8000"),
     response: new Response(),
   }
+}
+
+function mockSharedDetailQueries({
+  account = buildAccount(),
+  accounts = [buildAccount()],
+  spendingCategories = [
+    buildCategory({
+      id: "category_food",
+      name: "Food",
+      children: [
+        buildCategory({
+          id: "category_food_groceries",
+          name: "Groceries",
+          parent_id: "category_food",
+        }),
+      ],
+    }),
+  ],
+  incomeCategories = [
+    buildCategory({
+      id: "income_salary",
+      name: "Salary",
+      children: [
+        buildCategory({
+          id: "income_salary_payroll",
+          name: "Payroll",
+          parent_id: "income_salary",
+        }),
+      ],
+    }),
+  ],
+  transactions = [],
+}: {
+  account?: AccountResponse
+  accounts?: Array<AccountResponse>
+  incomeCategories?: Array<IncomeCategoryResponse>
+  spendingCategories?: Array<SpendingCategoryResponse>
+  transactions?: Array<TransactionResponse>
+} = {}) {
+  vi.spyOn(AccountsService, "accountsGetAccount").mockImplementation(async () =>
+    buildSuccess(account),
+  )
+  vi.spyOn(AccountsService, "accountsListAccounts").mockImplementation(async () =>
+    buildSuccess(accounts),
+  )
+  vi.spyOn(
+    SpendingCategoriesService,
+    "spendingCategoriesListSpendingCategories",
+  ).mockImplementation(async () => buildSuccess(spendingCategories))
+  vi.spyOn(
+    IncomeCategoriesService,
+    "incomeCategoriesListIncomeCategories",
+  ).mockImplementation(async () => buildSuccess(incomeCategories))
+  vi.spyOn(TransactionsService, "transactionsListTransactions").mockImplementation(async () =>
+    buildSuccess(transactions),
+  )
 }
 
 describe("wallet frontend routes", () => {
@@ -72,7 +187,7 @@ describe("wallet frontend routes", () => {
     expect(screen.getAllByText("USD 32.00").length).toBeGreaterThan(0)
     expect(
       screen.getByRole("heading", {
-        name: "Card",
+        name: "Debit card",
       }),
     ).toBeInTheDocument()
     expect(screen.getByText("ARS 150.00")).toBeInTheDocument()
@@ -81,12 +196,6 @@ describe("wallet frontend routes", () => {
         name: "See every account, grouped by type and balance.",
       }),
     ).toBeInTheDocument()
-    expect(screen.getByText("Tracked balance")).toBeInTheDocument()
-    expect(screen.getByText("Lifecycle")).toBeInTheDocument()
-    expect(screen.getAllByText("Open account").length).toBeGreaterThan(0)
-    expect(
-      screen.queryByText("Template-style list, wallet-backed data."),
-    ).not.toBeInTheDocument()
   })
 
   it("navigates to the dedicated create route from the accounts list", async () => {
@@ -105,20 +214,14 @@ describe("wallet frontend routes", () => {
         name: "Set up a new account.",
       }),
     ).toBeInTheDocument()
-    expect(screen.getByText("Tips")).toBeInTheDocument()
-    expect(screen.getByText("Each account uses one currency.")).toBeInTheDocument()
     expect(
-      screen.getAllByText("Track where your money lives and how you spend it.").length,
-    ).toBeGreaterThan(0)
+      screen.getByText("Choose the account type, currency, and opening balance for this account."),
+    ).toBeInTheDocument()
+    expect(screen.getByText("Each account uses one currency.")).toBeInTheDocument()
   })
 
   it("opens account detail when clicking an account card", async () => {
-    vi.spyOn(AccountsService, "accountsListAccounts").mockImplementation(async () =>
-      buildSuccess([buildAccount()]),
-    )
-    vi.spyOn(AccountsService, "accountsGetAccount").mockImplementation(async () =>
-      buildSuccess(buildAccount()),
-    )
+    mockSharedDetailQueries()
 
     const user = userEvent.setup()
     renderApp("/accounts")
@@ -128,6 +231,7 @@ describe("wallet frontend routes", () => {
 
     expect((await screen.findAllByText("Everyday Account")).length).toBeGreaterThan(0)
     expect(screen.getByText("Current balance")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Record transaction" })).toBeInTheDocument()
   })
 
   it("creates an account from the dedicated route and lands on the detail route", async () => {
@@ -136,26 +240,22 @@ describe("wallet frontend routes", () => {
         buildAccount({
           id: "account-new",
           name: "Travel Fund",
-          type: "bank",
+          type: "bank_account",
           currency: "USD",
           current_balance: { amount_minor: 15_000, currency: "USD" },
         }),
       ),
     )
-    vi.spyOn(AccountsService, "accountsListAccounts").mockImplementation(async () =>
-      buildSuccess([]),
-    )
-    vi.spyOn(AccountsService, "accountsGetAccount").mockImplementation(async () =>
-      buildSuccess(
-        buildAccount({
-          id: "account-new",
-          name: "Travel Fund",
-          type: "bank",
-          currency: "USD",
-          current_balance: { amount_minor: 15_000, currency: "USD" },
-        }),
-      ),
-    )
+    mockSharedDetailQueries({
+      account: buildAccount({
+        id: "account-new",
+        name: "Travel Fund",
+        type: "bank_account",
+        currency: "USD",
+        current_balance: { amount_minor: 15_000, currency: "USD" },
+      }),
+      accounts: [],
+    })
 
     const user = userEvent.setup()
     renderApp("/accounts/new")
@@ -163,12 +263,6 @@ describe("wallet frontend routes", () => {
     await screen.findByRole("heading", {
       name: "Set up a new account.",
     })
-    expect(
-      screen.getByText(
-        "Choose the account type, currency, and starting balance for this account.",
-      ),
-    ).toBeInTheDocument()
-    expect(screen.getByText("Account setup")).toBeInTheDocument()
     await user.type(
       screen.getByPlaceholderText("Main card, cash wallet, reserve fund"),
       "Travel Fund",
@@ -176,9 +270,9 @@ describe("wallet frontend routes", () => {
     await user.click(screen.getByRole("radio", { name: /bank account/i }))
     await user.clear(screen.getByDisplayValue("ARS"))
     await user.type(screen.getByRole("textbox", { name: /currency/i }), "USD")
-    await user.clear(screen.getByRole("textbox", { name: /starting balance/i }))
+    await user.clear(screen.getByRole("textbox", { name: /opening balance/i }))
     await user.type(
-      screen.getByRole("textbox", { name: /starting balance/i }),
+      screen.getByRole("textbox", { name: /opening balance/i }),
       "150",
     )
     expect(screen.getAllByText("USD 150.00").length).toBeGreaterThan(0)
@@ -192,26 +286,176 @@ describe("wallet frontend routes", () => {
     expect(AccountsService.accountsCreateAccount).toHaveBeenCalledWith(
       expect.objectContaining({
         body: expect.objectContaining({
-          current_balance_minor: 15_000,
+          opening_balance_minor: 15_000,
           currency: "USD",
           name: "Travel Fund",
-          type: "bank",
+          type: "bank_account",
         }),
       }),
     )
   })
 
-  it("withdraws money and updates the balance", async () => {
-    vi.spyOn(AccountsService, "accountsGetAccount").mockImplementation(async () =>
-      buildSuccess(buildAccount()),
+  it("records an expense transaction and shows recent activity", async () => {
+    const updatedAccount = buildAccount({
+      current_balance: {
+        amount_minor: 10_000,
+        currency: "ARS",
+      },
+    })
+    mockSharedDetailQueries({
+      account: updatedAccount,
+      accounts: [updatedAccount, buildAccount({ id: "account-456", name: "Reserve" })],
+      spendingCategories: [
+        buildCategory({
+          id: "category_food",
+          name: "Food",
+          children: [
+            buildCategory({
+              id: "category_food_groceries",
+              name: "Groceries",
+              parent_id: "category_food",
+            }),
+            buildCategory({
+              id: "category_food_restaurants",
+              name: "Restaurants",
+              parent_id: "category_food",
+            }),
+          ],
+        }),
+        buildCategory({
+          id: "category_transport",
+          name: "Transport",
+          children: [
+            buildCategory({
+              id: "category_transport_taxi",
+              name: "Taxi",
+              parent_id: "category_transport",
+            }),
+          ],
+        }),
+      ],
+      transactions: [buildTransaction()],
+    })
+    vi.spyOn(TransactionsService, "transactionsCreateTransaction").mockImplementation(async () =>
+      buildSuccess(buildTransaction()),
     )
-    vi.spyOn(AccountsService, "accountsWithdrawFromAccount").mockImplementation(async () =>
+
+    const user = userEvent.setup()
+    renderApp("/accounts/account-123")
+
+    expect((await screen.findAllByText("ARS 100.00")).length).toBeGreaterThan(0)
+    expect(screen.getByRole("heading", { name: "Recent activity" })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Add split" }))
+    await user.click(screen.getByRole("button", { name: "Add split" }))
+    await user.selectOptions(
+      screen.getAllByLabelText("Expense category")[0] as HTMLSelectElement,
+      "category_food_groceries",
+    )
+    await user.selectOptions(
+      screen.getAllByLabelText("Expense category")[1] as HTMLSelectElement,
+      "category_food_restaurants",
+    )
+    await user.selectOptions(
+      screen.getAllByLabelText("Expense category")[2] as HTMLSelectElement,
+      "category_transport_taxi",
+    )
+    await user.type(screen.getAllByLabelText("Split amount")[0] as HTMLInputElement, "10")
+    await user.type(screen.getAllByLabelText("Split amount")[1] as HTMLInputElement, "8")
+    await user.type(screen.getAllByLabelText("Split amount")[2] as HTMLInputElement, "7")
+    await user.click(screen.getByRole("button", { name: "Record transaction" }))
+
+    await waitFor(() => {
+      expect(TransactionsService.transactionsCreateTransaction).toHaveBeenCalled()
+    })
+    expect(TransactionsService.transactionsCreateTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          type: "expense",
+          postings: [
+            { account_id: "account-123", amount_minor: -2_500, currency: "ARS" },
+            {
+              category_id: "category_food_groceries",
+              amount_minor: 1_000,
+              currency: "ARS",
+            },
+            {
+              category_id: "category_food_restaurants",
+              amount_minor: 800,
+              currency: "ARS",
+            },
+            {
+              category_id: "category_transport_taxi",
+              amount_minor: 700,
+              currency: "ARS",
+            },
+          ],
+        }),
+      }),
+    )
+    expect(await screen.findByText("Lunch")).toBeInTheDocument()
+  })
+
+  it("shows an inline error when transaction creation is rejected", async () => {
+    mockSharedDetailQueries()
+    vi.spyOn(TransactionsService, "transactionsCreateTransaction").mockRejectedValue(
+      buildApiError(400, "expense transactions must use spending categories"),
+    )
+
+    const user = userEvent.setup()
+    renderApp("/accounts/account-123")
+
+    expect((await screen.findAllByText("Everyday Account")).length).toBeGreaterThan(0)
+    await user.type(screen.getByLabelText("Split amount"), "25")
+    await user.click(screen.getByRole("button", { name: "Record transaction" }))
+
+    expect(
+      await screen.findByText("expense transactions must use spending categories"),
+    ).toBeInTheDocument()
+  })
+
+  it("blocks malformed decimal input before submitting the transaction", async () => {
+    mockSharedDetailQueries()
+    const transactionSpy = vi.spyOn(TransactionsService, "transactionsCreateTransaction")
+
+    const user = userEvent.setup()
+    renderApp("/accounts/account-123")
+
+    expect((await screen.findAllByText("Everyday Account")).length).toBeGreaterThan(0)
+    await user.type(screen.getByLabelText("Split amount"), "12.345")
+    await user.click(screen.getByRole("button", { name: "Record transaction" }))
+
+    expect(
+      await screen.findByText("Split 1: Use at most 2 decimal places for ARS."),
+    ).toBeInTheDocument()
+    expect(transactionSpy).not.toHaveBeenCalled()
+  })
+
+  it("submits a one-posting adjustment and relies on backend balancing", async () => {
+    mockSharedDetailQueries()
+    vi.spyOn(TransactionsService, "transactionsCreateTransaction").mockImplementation(async () =>
       buildSuccess(
-        buildAccount({
-          current_balance: {
-            amount_minor: 10_000,
-            currency: "ARS",
-          },
+        buildTransaction({
+          id: "transaction-adjustment",
+          type: "adjustment",
+          description: "Correction",
+          postings: [
+            {
+              id: "posting-1",
+              account_id: "account-123",
+              category_id: null,
+              amount_minor: 2_500,
+              currency: "ARS",
+              memo: null,
+            },
+            {
+              id: "posting-2",
+              account_id: "system_equity_ars",
+              category_id: null,
+              amount_minor: -2_500,
+              currency: "ARS",
+              memo: null,
+            },
+          ],
         }),
       ),
     )
@@ -219,56 +463,21 @@ describe("wallet frontend routes", () => {
     const user = userEvent.setup()
     renderApp("/accounts/account-123")
 
-    expect((await screen.findAllByText("ARS 125.00")).length).toBeGreaterThan(0)
-    expect(screen.getByText("Opened on")).toBeInTheDocument()
-    expect(screen.getByText("Closed on")).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Close account" })).toBeInTheDocument()
-    expect(screen.getAllByRole("heading", { name: "Withdraw money" })).toHaveLength(1)
-
+    expect((await screen.findAllByText("Everyday Account")).length).toBeGreaterThan(0)
+    await user.click(screen.getByRole("button", { name: "Adjustment" }))
     await user.type(screen.getByLabelText("Amount"), "25")
-    await user.click(screen.getByRole("button", { name: "Withdraw" }))
+    await user.click(screen.getByRole("button", { name: "Record transaction" }))
 
-    expect((await screen.findAllByText("ARS 100.00")).length).toBeGreaterThan(0)
-    expect(AccountsService.accountsWithdrawFromAccount).toHaveBeenCalledWith(
+    await waitFor(() => {
+      expect(TransactionsService.transactionsCreateTransaction).toHaveBeenCalled()
+    })
+    expect(TransactionsService.transactionsCreateTransaction).toHaveBeenCalledWith(
       expect.objectContaining({
-        body: { amount_minor: 2_500, currency: "ARS" },
-        path: { account_id: "account-123" },
+        body: expect.objectContaining({
+          type: "adjustment",
+          postings: [{ account_id: "account-123", amount_minor: 2_500, currency: "ARS" }],
+        }),
       }),
     )
-  })
-
-  it("shows an inline error when the withdrawal is rejected", async () => {
-    vi.spyOn(AccountsService, "accountsGetAccount").mockImplementation(async () =>
-      buildSuccess(buildAccount()),
-    )
-    vi.spyOn(AccountsService, "accountsWithdrawFromAccount").mockRejectedValue(
-      buildApiError(409, "insufficient funds"),
-    )
-
-    const user = userEvent.setup()
-    renderApp("/accounts/account-123")
-
-    expect((await screen.findAllByText("Everyday Account")).length).toBeGreaterThan(0)
-    await user.type(screen.getByLabelText("Amount"), "5000")
-    await user.click(screen.getByRole("button", { name: "Withdraw" }))
-
-    expect(await screen.findByText("insufficient funds")).toBeInTheDocument()
-  })
-
-  it("blocks malformed decimal input before submitting the withdrawal", async () => {
-    vi.spyOn(AccountsService, "accountsGetAccount").mockImplementation(async () =>
-      buildSuccess(buildAccount()),
-    )
-    const withdrawSpy = vi.spyOn(AccountsService, "accountsWithdrawFromAccount")
-
-    const user = userEvent.setup()
-    renderApp("/accounts/account-123")
-
-    expect((await screen.findAllByText("Everyday Account")).length).toBeGreaterThan(0)
-    await user.type(screen.getByLabelText("Amount"), "12.345")
-    await user.click(screen.getByRole("button", { name: "Withdraw" }))
-
-    expect(await screen.findByText("Use at most 2 decimal places for ARS.")).toBeInTheDocument()
-    expect(withdrawSpy).not.toHaveBeenCalled()
   })
 })

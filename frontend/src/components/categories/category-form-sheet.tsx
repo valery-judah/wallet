@@ -1,5 +1,4 @@
 import { useEffect, useId, useState } from "react"
-import type { SpendingCategoryResponse } from "@/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,6 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import type { CategoryTreeNode } from "@/lib/categories"
 import { cn } from "@/lib/utils"
 
 const selectClassName =
@@ -28,6 +28,7 @@ export type CategoryFormValues = {
 }
 
 export function CategoryFormSheet({
+  categoryLabel,
   currentCategory,
   errorMessage,
   isPending,
@@ -37,14 +38,15 @@ export function CategoryFormSheet({
   open,
   rootCategories,
 }: {
-  currentCategory?: SpendingCategoryResponse
+  categoryLabel: string
+  currentCategory?: CategoryTreeNode
   errorMessage?: string
   isPending: boolean
   mode: CategoryFormMode | null
   onOpenChange: (open: boolean) => void
   onSubmit: (values: CategoryFormValues) => Promise<void>
   open: boolean
-  rootCategories: Array<SpendingCategoryResponse>
+  rootCategories: Array<CategoryTreeNode>
 }) {
   const nameId = useId()
   const parentId = useId()
@@ -92,17 +94,17 @@ export function CategoryFormSheet({
 
   const title =
     mode.kind === "create-root"
-      ? "Create root category"
+      ? `Create root ${categoryLabel.toLowerCase()} category`
       : mode.kind === "create-child"
-        ? "Create subcategory"
-        : "Edit category"
+        ? `Create ${categoryLabel.toLowerCase()} subcategory`
+        : `Edit ${categoryLabel.toLowerCase()} category`
 
   const description =
     mode.kind === "create-root"
-      ? "Add a new top-level spending category."
+      ? `Add a new top-level ${categoryLabel.toLowerCase()} category.`
       : mode.kind === "create-child"
         ? "Add a category underneath the selected root category."
-        : "Update the category name or parent placement."
+        : `Update the ${categoryLabel.toLowerCase()} category name or parent placement.`
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -128,7 +130,11 @@ export function CategoryFormSheet({
               <Input
                 id={nameId}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Groceries, Utilities, Streaming"
+                placeholder={
+                  categoryLabel === "Income"
+                    ? "Salary, Bonus, Dividends"
+                    : "Groceries, Utilities, Streaming"
+                }
                 required
                 value={name}
               />
@@ -171,8 +177,8 @@ export function CategoryFormSheet({
                   ? "Saving..."
                   : "Creating..."
                 : mode.kind === "edit"
-                  ? "Save category"
-                  : "Create category"}
+                  ? `Save ${categoryLabel.toLowerCase()} category`
+                  : `Create ${categoryLabel.toLowerCase()} category`}
             </Button>
           </SheetFooter>
         </form>

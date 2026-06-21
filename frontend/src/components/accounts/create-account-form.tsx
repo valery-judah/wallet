@@ -24,7 +24,7 @@ type CreateAccountValues = {
   name: string
   type: AccountTypeValue
   currency: string
-  current_balance_minor: number
+  opening_balance_minor: number
   opened_on?: string
   color_key?: string
 }
@@ -45,26 +45,28 @@ export function CreateAccountForm({
   const balanceId = useId()
   const openedOnId = useId()
   const [name, setName] = useState("")
-  const [type, setType] = useState<AccountTypeValue>("card")
+  const [type, setType] = useState<AccountTypeValue>("debit_card")
   const [currency, setCurrency] = useState("ARS")
-  const [currentBalanceInput, setCurrentBalanceInput] = useState(
+  const [openingBalanceInput, setOpeningBalanceInput] = useState(
     formatMajorAmountInput(0, "ARS"),
   )
   const [openedOn, setOpenedOn] = useState(new Date().toISOString().slice(0, 10))
   const [colorKey, setColorKey] = useState<AccountColorKey | undefined>(undefined)
   const [balanceErrorMessage, setBalanceErrorMessage] = useState<string>()
-  const parsedCurrentBalance = parseMajorAmount(currentBalanceInput, currency, {
+  const allowNegativeOpeningBalance = type === "credit_card"
+  const parsedOpeningBalance = parseMajorAmount(openingBalanceInput, currency, {
     allowZero: true,
+    allowNegative: allowNegativeOpeningBalance,
   })
-  const currentBalanceErrorMessage =
+  const openingBalanceErrorMessage =
     balanceErrorMessage ??
-    (currentBalanceInput.trim().length > 0 ? parsedCurrentBalance.error : undefined)
+    (openingBalanceInput.trim().length > 0 ? parsedOpeningBalance.error : undefined)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (parsedCurrentBalance.amountMinor === undefined) {
-      setBalanceErrorMessage(parsedCurrentBalance.error)
+    if (parsedOpeningBalance.amountMinor === undefined) {
+      setBalanceErrorMessage(parsedOpeningBalance.error)
       return
     }
 
@@ -72,7 +74,7 @@ export function CreateAccountForm({
       name,
       type,
       currency,
-      current_balance_minor: parsedCurrentBalance.amountMinor,
+      opening_balance_minor: parsedOpeningBalance.amountMinor,
       opened_on: openedOn || undefined,
       color_key: colorKey,
     })
@@ -104,7 +106,7 @@ export function CreateAccountForm({
                 Account setup
               </p>
               <p className="text-sm text-muted-foreground">
-                Set the currency, starting balance, and opening date for this
+                Set the currency, opening balance, and opening date for this
                 account.
               </p>
             </div>
@@ -128,28 +130,31 @@ export function CreateAccountForm({
               </AccountFieldStack>
 
               <AccountFieldStack>
-                <Label htmlFor={balanceId}>Starting balance</Label>
+                <Label htmlFor={balanceId}>Opening balance</Label>
                 <Input
-                  aria-invalid={currentBalanceErrorMessage ? true : undefined}
+                  aria-invalid={openingBalanceErrorMessage ? true : undefined}
                   id={balanceId}
                   inputMode="decimal"
                   onChange={(event) => {
-                    setCurrentBalanceInput(event.target.value)
+                    setOpeningBalanceInput(event.target.value)
                     setBalanceErrorMessage(undefined)
                   }}
-                  placeholder="300 or 300.50"
+                  placeholder={allowNegativeOpeningBalance ? "-300 or -300.50" : "300 or 300.50"}
                   required
                   type="text"
-                  value={currentBalanceInput}
+                  value={openingBalanceInput}
                 />
                 <p
                   className={
-                    currentBalanceErrorMessage
+                    openingBalanceErrorMessage
                       ? "min-h-5 text-xs leading-5 text-destructive"
                       : "min-h-5 text-xs leading-5 text-muted-foreground"
                   }
                 >
-                  {currentBalanceErrorMessage ?? "Enter an amount like 300 or 300.50."}
+                  {openingBalanceErrorMessage ??
+                    (allowNegativeOpeningBalance
+                      ? "Negative balances are allowed for credit cards."
+                      : "Enter an amount like 300 or 300.50.")}
                 </p>
               </AccountFieldStack>
 
@@ -178,7 +183,7 @@ export function CreateAccountForm({
               </p>
             </div>
             <AccountPreviewCard
-              balanceMinor={parsedCurrentBalance.amountMinor}
+              balanceMinor={parsedOpeningBalance.amountMinor}
               colorKey={colorKey}
               currency={currency}
               name={name}

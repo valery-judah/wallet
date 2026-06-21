@@ -20,9 +20,6 @@ export const AccountResponseSchema = {
         current_balance: {
             '$ref': '#/components/schemas/MoneyResponse'
         },
-        status: {
-            '$ref': '#/components/schemas/AccountStatus'
-        },
         color_key: {
             anyOf: [
                 {
@@ -39,7 +36,7 @@ export const AccountResponseSchema = {
             format: 'date',
             title: 'Opened On'
         },
-        closed_on: {
+        archived_at: {
             anyOf: [
                 {
                     type: 'string',
@@ -49,7 +46,7 @@ export const AccountResponseSchema = {
                     type: 'null'
                 }
             ],
-            title: 'Closed On'
+            title: 'Archived At'
         },
         created_on: {
             type: 'string',
@@ -63,19 +60,13 @@ export const AccountResponseSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'name', 'type', 'currency', 'current_balance', 'status', 'opened_on', 'created_on', 'updated_on'],
+    required: ['id', 'name', 'type', 'currency', 'current_balance', 'opened_on', 'created_on', 'updated_on'],
     title: 'AccountResponse'
-} as const;
-
-export const AccountStatusSchema = {
-    type: 'string',
-    enum: ['active', 'closed'],
-    title: 'AccountStatus'
 } as const;
 
 export const AccountTypeSchema = {
     type: 'string',
-    enum: ['card', 'cash', 'bank', 'wallet', 'platform', 'savings', 'other'],
+    enum: ['cash', 'debit_card', 'credit_card', 'bank_account', 'wallet', 'system'],
     title: 'AccountType'
 } as const;
 
@@ -88,7 +79,7 @@ export const CreateAccountRequestSchema = {
         },
         type: {
             '$ref': '#/components/schemas/AccountType',
-            default: 'card'
+            default: 'debit_card'
         },
         currency: {
             type: 'string',
@@ -96,10 +87,9 @@ export const CreateAccountRequestSchema = {
             title: 'Currency',
             default: 'ARS'
         },
-        current_balance_minor: {
+        opening_balance_minor: {
             type: 'integer',
-            minimum: 0,
-            title: 'Current Balance Minor',
+            title: 'Opening Balance Minor',
             default: 0
         },
         opened_on: {
@@ -129,6 +119,57 @@ export const CreateAccountRequestSchema = {
     type: 'object',
     required: ['name'],
     title: 'CreateAccountRequest'
+} as const;
+
+export const CreateIncomeCategoryRequestSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            minLength: 1,
+            title: 'Name'
+        },
+        parent_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Parent Id'
+        },
+        icon: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Icon'
+        },
+        color: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Color'
+        },
+        sort_order: {
+            type: 'integer',
+            title: 'Sort Order',
+            default: 0
+        }
+    },
+    type: 'object',
+    required: ['name'],
+    title: 'CreateIncomeCategoryRequest'
 } as const;
 
 export const CreateSpendingCategoryRequestSchema = {
@@ -182,6 +223,120 @@ export const CreateSpendingCategoryRequestSchema = {
     title: 'CreateSpendingCategoryRequest'
 } as const;
 
+export const CreateTransactionPostingRequestSchema = {
+    properties: {
+        account_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Account Id'
+        },
+        category_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Category Id'
+        },
+        amount_minor: {
+            type: 'integer',
+            title: 'Amount Minor'
+        },
+        currency: {
+            type: 'string',
+            minLength: 1,
+            title: 'Currency'
+        },
+        memo: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Memo'
+        }
+    },
+    type: 'object',
+    required: ['amount_minor', 'currency'],
+    title: 'CreateTransactionPostingRequest'
+} as const;
+
+export const CreateTransactionRequestSchema = {
+    properties: {
+        type: {
+            '$ref': '#/components/schemas/TransactionType'
+        },
+        postings: {
+            items: {
+                '$ref': '#/components/schemas/CreateTransactionPostingRequest'
+            },
+            type: 'array',
+            minItems: 1,
+            title: 'Postings'
+        },
+        occurred_on: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occurred On'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        merchant_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Merchant Name'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        }
+    },
+    type: 'object',
+    required: ['type', 'postings'],
+    title: 'CreateTransactionRequest'
+} as const;
+
 export const HTTPValidationErrorSchema = {
     properties: {
         detail: {
@@ -216,22 +371,64 @@ export const HealthResponseSchema = {
     title: 'HealthResponse'
 } as const;
 
-export const MoneyRequestSchema = {
+export const IncomeCategoryResponseSchema = {
     properties: {
-        amount_minor: {
-            type: 'integer',
-            exclusiveMinimum: 0,
-            title: 'Amount Minor'
-        },
-        currency: {
+        id: {
             type: 'string',
-            minLength: 1,
-            title: 'Currency'
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        parent_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Parent Id'
+        },
+        icon: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Icon'
+        },
+        color: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Color'
+        },
+        sort_order: {
+            type: 'integer',
+            title: 'Sort Order'
+        },
+        children: {
+            items: {
+                '$ref': '#/components/schemas/IncomeCategoryResponse'
+            },
+            type: 'array',
+            title: 'Children'
         }
     },
     type: 'object',
-    required: ['amount_minor', 'currency'],
-    title: 'MoneyRequest'
+    required: ['id', 'name', 'parent_id', 'sort_order'],
+    title: 'IncomeCategoryResponse'
 } as const;
 
 export const MoneyResponseSchema = {
@@ -249,6 +446,60 @@ export const MoneyResponseSchema = {
     type: 'object',
     required: ['amount_minor', 'currency'],
     title: 'MoneyResponse'
+} as const;
+
+export const PostingResponseSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            title: 'Id'
+        },
+        account_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Account Id'
+        },
+        category_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Category Id'
+        },
+        amount_minor: {
+            type: 'integer',
+            title: 'Amount Minor'
+        },
+        currency: {
+            type: 'string',
+            minLength: 1,
+            title: 'Currency'
+        },
+        memo: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Memo'
+        }
+    },
+    type: 'object',
+    required: ['id', 'amount_minor', 'currency'],
+    title: 'PostingResponse'
 } as const;
 
 export const SpendingCategoryResponseSchema = {
@@ -311,6 +562,103 @@ export const SpendingCategoryResponseSchema = {
     title: 'SpendingCategoryResponse'
 } as const;
 
+export const TransactionResponseSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            title: 'Id'
+        },
+        occurred_on: {
+            type: 'string',
+            format: 'date',
+            title: 'Occurred On'
+        },
+        posted_on: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Posted On'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        merchant_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Merchant Name'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
+        status: {
+            '$ref': '#/components/schemas/TransactionStatus'
+        },
+        type: {
+            '$ref': '#/components/schemas/TransactionType'
+        },
+        postings: {
+            items: {
+                '$ref': '#/components/schemas/PostingResponse'
+            },
+            type: 'array',
+            title: 'Postings'
+        },
+        created_on: {
+            type: 'string',
+            format: 'date',
+            title: 'Created On'
+        },
+        updated_on: {
+            type: 'string',
+            format: 'date',
+            title: 'Updated On'
+        }
+    },
+    type: 'object',
+    required: ['id', 'occurred_on', 'status', 'type', 'postings', 'created_on', 'updated_on'],
+    title: 'TransactionResponse'
+} as const;
+
+export const TransactionStatusSchema = {
+    type: 'string',
+    enum: ['pending', 'posted', 'void'],
+    title: 'TransactionStatus'
+} as const;
+
+export const TransactionTypeSchema = {
+    type: 'string',
+    enum: ['expense', 'income', 'transfer', 'adjustment'],
+    title: 'TransactionType'
+} as const;
+
 export const UpdateAccountProfileRequestSchema = {
     properties: {
         name: {
@@ -336,6 +684,69 @@ export const UpdateAccountProfileRequestSchema = {
     type: 'object',
     required: ['name', 'type'],
     title: 'UpdateAccountProfileRequest'
+} as const;
+
+export const UpdateIncomeCategoryRequestSchema = {
+    properties: {
+        name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        parent_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Parent Id'
+        },
+        icon: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Icon'
+        },
+        color: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Color'
+        },
+        sort_order: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sort Order'
+        }
+    },
+    type: 'object',
+    title: 'UpdateIncomeCategoryRequest'
 } as const;
 
 export const UpdateSpendingCategoryRequestSchema = {

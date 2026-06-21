@@ -18,7 +18,6 @@ export type AccountResponse = {
      */
     currency: string;
     current_balance: MoneyResponse;
-    status: AccountStatus;
     /**
      * Color Key
      */
@@ -28,9 +27,9 @@ export type AccountResponse = {
      */
     opened_on: string;
     /**
-     * Closed On
+     * Archived At
      */
-    closed_on?: string | null;
+    archived_at?: string | null;
     /**
      * Created On
      */
@@ -42,14 +41,9 @@ export type AccountResponse = {
 };
 
 /**
- * AccountStatus
- */
-export type AccountStatus = 'active' | 'closed';
-
-/**
  * AccountType
  */
-export type AccountType = 'card' | 'cash' | 'bank' | 'wallet' | 'platform' | 'savings' | 'other';
+export type AccountType = 'cash' | 'debit_card' | 'credit_card' | 'bank_account' | 'wallet' | 'system';
 
 /**
  * CreateAccountRequest
@@ -65,9 +59,9 @@ export type CreateAccountRequest = {
      */
     currency?: string;
     /**
-     * Current Balance Minor
+     * Opening Balance Minor
      */
-    current_balance_minor?: number;
+    opening_balance_minor?: number;
     /**
      * Opened On
      */
@@ -76,6 +70,32 @@ export type CreateAccountRequest = {
      * Color Key
      */
     color_key?: string | null;
+};
+
+/**
+ * CreateIncomeCategoryRequest
+ */
+export type CreateIncomeCategoryRequest = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Parent Id
+     */
+    parent_id?: string | null;
+    /**
+     * Icon
+     */
+    icon?: string | null;
+    /**
+     * Color
+     */
+    color?: string | null;
+    /**
+     * Sort Order
+     */
+    sort_order?: number;
 };
 
 /**
@@ -102,6 +122,59 @@ export type CreateSpendingCategoryRequest = {
      * Sort Order
      */
     sort_order?: number;
+};
+
+/**
+ * CreateTransactionPostingRequest
+ */
+export type CreateTransactionPostingRequest = {
+    /**
+     * Account Id
+     */
+    account_id?: string | null;
+    /**
+     * Category Id
+     */
+    category_id?: string | null;
+    /**
+     * Amount Minor
+     */
+    amount_minor: number;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Memo
+     */
+    memo?: string | null;
+};
+
+/**
+ * CreateTransactionRequest
+ */
+export type CreateTransactionRequest = {
+    type: TransactionType;
+    /**
+     * Postings
+     */
+    postings: Array<CreateTransactionPostingRequest>;
+    /**
+     * Occurred On
+     */
+    occurred_on?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Merchant Name
+     */
+    merchant_name?: string | null;
+    /**
+     * Notes
+     */
+    notes?: string | null;
 };
 
 /**
@@ -133,17 +206,37 @@ export type HealthResponse = {
 };
 
 /**
- * MoneyRequest
+ * IncomeCategoryResponse
  */
-export type MoneyRequest = {
+export type IncomeCategoryResponse = {
     /**
-     * Amount Minor
+     * Id
      */
-    amount_minor: number;
+    id: string;
     /**
-     * Currency
+     * Name
      */
-    currency: string;
+    name: string;
+    /**
+     * Parent Id
+     */
+    parent_id: string | null;
+    /**
+     * Icon
+     */
+    icon?: string | null;
+    /**
+     * Color
+     */
+    color?: string | null;
+    /**
+     * Sort Order
+     */
+    sort_order: number;
+    /**
+     * Children
+     */
+    children?: Array<IncomeCategoryResponse>;
 };
 
 /**
@@ -158,6 +251,36 @@ export type MoneyResponse = {
      * Currency
      */
     currency: string;
+};
+
+/**
+ * PostingResponse
+ */
+export type PostingResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Account Id
+     */
+    account_id?: string | null;
+    /**
+     * Category Id
+     */
+    category_id?: string | null;
+    /**
+     * Amount Minor
+     */
+    amount_minor: number;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Memo
+     */
+    memo?: string | null;
 };
 
 /**
@@ -195,6 +318,60 @@ export type SpendingCategoryResponse = {
 };
 
 /**
+ * TransactionResponse
+ */
+export type TransactionResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Occurred On
+     */
+    occurred_on: string;
+    /**
+     * Posted On
+     */
+    posted_on?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Merchant Name
+     */
+    merchant_name?: string | null;
+    /**
+     * Notes
+     */
+    notes?: string | null;
+    status: TransactionStatus;
+    type: TransactionType;
+    /**
+     * Postings
+     */
+    postings: Array<PostingResponse>;
+    /**
+     * Created On
+     */
+    created_on: string;
+    /**
+     * Updated On
+     */
+    updated_on: string;
+};
+
+/**
+ * TransactionStatus
+ */
+export type TransactionStatus = 'pending' | 'posted' | 'void';
+
+/**
+ * TransactionType
+ */
+export type TransactionType = 'expense' | 'income' | 'transfer' | 'adjustment';
+
+/**
  * UpdateAccountProfileRequest
  */
 export type UpdateAccountProfileRequest = {
@@ -207,6 +384,32 @@ export type UpdateAccountProfileRequest = {
      * Color Key
      */
     color_key?: string | null;
+};
+
+/**
+ * UpdateIncomeCategoryRequest
+ */
+export type UpdateIncomeCategoryRequest = {
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Parent Id
+     */
+    parent_id?: string | null;
+    /**
+     * Icon
+     */
+    icon?: string | null;
+    /**
+     * Color
+     */
+    color?: string | null;
+    /**
+     * Sort Order
+     */
+    sort_order?: number | null;
 };
 
 /**
@@ -381,67 +584,7 @@ export type AccountsUpdateAccountProfileResponses = {
 
 export type AccountsUpdateAccountProfileResponse = AccountsUpdateAccountProfileResponses[keyof AccountsUpdateAccountProfileResponses];
 
-export type AccountsDepositToAccountData = {
-    body: MoneyRequest;
-    path: {
-        /**
-         * Account Id
-         */
-        account_id: string;
-    };
-    query?: never;
-    url: '/api/v1/accounts/{account_id}/deposits';
-};
-
-export type AccountsDepositToAccountErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type AccountsDepositToAccountError = AccountsDepositToAccountErrors[keyof AccountsDepositToAccountErrors];
-
-export type AccountsDepositToAccountResponses = {
-    /**
-     * Successful Response
-     */
-    200: AccountResponse;
-};
-
-export type AccountsDepositToAccountResponse = AccountsDepositToAccountResponses[keyof AccountsDepositToAccountResponses];
-
-export type AccountsWithdrawFromAccountData = {
-    body: MoneyRequest;
-    path: {
-        /**
-         * Account Id
-         */
-        account_id: string;
-    };
-    query?: never;
-    url: '/api/v1/accounts/{account_id}/withdrawals';
-};
-
-export type AccountsWithdrawFromAccountErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type AccountsWithdrawFromAccountError = AccountsWithdrawFromAccountErrors[keyof AccountsWithdrawFromAccountErrors];
-
-export type AccountsWithdrawFromAccountResponses = {
-    /**
-     * Successful Response
-     */
-    200: AccountResponse;
-};
-
-export type AccountsWithdrawFromAccountResponse = AccountsWithdrawFromAccountResponses[keyof AccountsWithdrawFromAccountResponses];
-
-export type AccountsCloseAccountData = {
+export type AccountsArchiveAccountData = {
     body?: never;
     path: {
         /**
@@ -450,26 +593,26 @@ export type AccountsCloseAccountData = {
         account_id: string;
     };
     query?: never;
-    url: '/api/v1/accounts/{account_id}/close';
+    url: '/api/v1/accounts/{account_id}/archive';
 };
 
-export type AccountsCloseAccountErrors = {
+export type AccountsArchiveAccountErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type AccountsCloseAccountError = AccountsCloseAccountErrors[keyof AccountsCloseAccountErrors];
+export type AccountsArchiveAccountError = AccountsArchiveAccountErrors[keyof AccountsArchiveAccountErrors];
 
-export type AccountsCloseAccountResponses = {
+export type AccountsArchiveAccountResponses = {
     /**
      * Successful Response
      */
     200: AccountResponse;
 };
 
-export type AccountsCloseAccountResponse = AccountsCloseAccountResponses[keyof AccountsCloseAccountResponses];
+export type AccountsArchiveAccountResponse = AccountsArchiveAccountResponses[keyof AccountsArchiveAccountResponses];
 
 export type SpendingCategoriesListSpendingCategoriesData = {
     body?: never;
@@ -542,6 +685,164 @@ export type SpendingCategoriesUpdateSpendingCategoryResponses = {
 };
 
 export type SpendingCategoriesUpdateSpendingCategoryResponse = SpendingCategoriesUpdateSpendingCategoryResponses[keyof SpendingCategoriesUpdateSpendingCategoryResponses];
+
+export type IncomeCategoriesListIncomeCategoriesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/income-categories';
+};
+
+export type IncomeCategoriesListIncomeCategoriesResponses = {
+    /**
+     * Response Income-Categories-List Income Categories
+     * Successful Response
+     */
+    200: Array<IncomeCategoryResponse>;
+};
+
+export type IncomeCategoriesListIncomeCategoriesResponse = IncomeCategoriesListIncomeCategoriesResponses[keyof IncomeCategoriesListIncomeCategoriesResponses];
+
+export type IncomeCategoriesCreateIncomeCategoryData = {
+    body: CreateIncomeCategoryRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/income-categories';
+};
+
+export type IncomeCategoriesCreateIncomeCategoryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type IncomeCategoriesCreateIncomeCategoryError = IncomeCategoriesCreateIncomeCategoryErrors[keyof IncomeCategoriesCreateIncomeCategoryErrors];
+
+export type IncomeCategoriesCreateIncomeCategoryResponses = {
+    /**
+     * Successful Response
+     */
+    201: IncomeCategoryResponse;
+};
+
+export type IncomeCategoriesCreateIncomeCategoryResponse = IncomeCategoriesCreateIncomeCategoryResponses[keyof IncomeCategoriesCreateIncomeCategoryResponses];
+
+export type IncomeCategoriesUpdateIncomeCategoryData = {
+    body: UpdateIncomeCategoryRequest;
+    path: {
+        /**
+         * Category Id
+         */
+        category_id: string;
+    };
+    query?: never;
+    url: '/api/v1/income-categories/{category_id}';
+};
+
+export type IncomeCategoriesUpdateIncomeCategoryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type IncomeCategoriesUpdateIncomeCategoryError = IncomeCategoriesUpdateIncomeCategoryErrors[keyof IncomeCategoriesUpdateIncomeCategoryErrors];
+
+export type IncomeCategoriesUpdateIncomeCategoryResponses = {
+    /**
+     * Successful Response
+     */
+    200: IncomeCategoryResponse;
+};
+
+export type IncomeCategoriesUpdateIncomeCategoryResponse = IncomeCategoriesUpdateIncomeCategoryResponses[keyof IncomeCategoriesUpdateIncomeCategoryResponses];
+
+export type TransactionsListTransactionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Account Id
+         */
+        account_id?: string | null;
+    };
+    url: '/api/v1/transactions';
+};
+
+export type TransactionsListTransactionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TransactionsListTransactionsError = TransactionsListTransactionsErrors[keyof TransactionsListTransactionsErrors];
+
+export type TransactionsListTransactionsResponses = {
+    /**
+     * Response Transactions-List Transactions
+     * Successful Response
+     */
+    200: Array<TransactionResponse>;
+};
+
+export type TransactionsListTransactionsResponse = TransactionsListTransactionsResponses[keyof TransactionsListTransactionsResponses];
+
+export type TransactionsCreateTransactionData = {
+    body: CreateTransactionRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/transactions';
+};
+
+export type TransactionsCreateTransactionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TransactionsCreateTransactionError = TransactionsCreateTransactionErrors[keyof TransactionsCreateTransactionErrors];
+
+export type TransactionsCreateTransactionResponses = {
+    /**
+     * Successful Response
+     */
+    201: TransactionResponse;
+};
+
+export type TransactionsCreateTransactionResponse = TransactionsCreateTransactionResponses[keyof TransactionsCreateTransactionResponses];
+
+export type TransactionsGetTransactionData = {
+    body?: never;
+    path: {
+        /**
+         * Transaction Id
+         */
+        transaction_id: string;
+    };
+    query?: never;
+    url: '/api/v1/transactions/{transaction_id}';
+};
+
+export type TransactionsGetTransactionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TransactionsGetTransactionError = TransactionsGetTransactionErrors[keyof TransactionsGetTransactionErrors];
+
+export type TransactionsGetTransactionResponses = {
+    /**
+     * Successful Response
+     */
+    200: TransactionResponse;
+};
+
+export type TransactionsGetTransactionResponse = TransactionsGetTransactionResponses[keyof TransactionsGetTransactionResponses];
 
 export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});

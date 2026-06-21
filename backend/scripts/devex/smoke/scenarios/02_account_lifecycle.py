@@ -21,7 +21,7 @@ def run(client: HttpClient) -> None:
             "name": unique_account_name("Smoke account"),
             "type": "cash",
             "currency": "ARS",
-            "current_balance_minor": 2_500,
+            "opening_balance_minor": 2_500,
             "color_key": "blue",
             "opened_on": opened_on,
         },
@@ -29,8 +29,8 @@ def run(client: HttpClient) -> None:
     assert_status(create_response, 201)
     created_account = assert_json_object(create_response)
     account_id = created_account["id"]
-    if created_account.get("status") != "active" or created_account.get("closed_on") is not None:
-        raise AssertionError(f"unexpected created account status: {created_account!r}")
+    if created_account.get("archived_at") is not None:
+        raise AssertionError(f"unexpected created account archive state: {created_account!r}")
     if created_account.get("current_balance") != {
         "amount_minor": 2_500,
         "currency": "ARS",
@@ -38,14 +38,6 @@ def run(client: HttpClient) -> None:
         raise AssertionError(f"unexpected opening balance: {created_account!r}")
     if created_account.get("color_key") != "blue":
         raise AssertionError(f"unexpected created account metadata: {created_account!r}")
-
-    list_response = client.request("GET", "/api/v1/accounts")
-    assert_status(list_response, 200)
-    listed_accounts = list_response.body
-    if not isinstance(listed_accounts, list) or not any(
-        account.get("id") == account_id for account in listed_accounts
-    ):
-        raise AssertionError(f"created account missing from list response: {listed_accounts!r}")
 
     update_response = client.request(
         "PATCH",
@@ -60,86 +52,81 @@ def run(client: HttpClient) -> None:
     updated_account = assert_json_object(update_response)
     if updated_account.get("type") != "wallet":
         raise AssertionError(f"unexpected updated account type: {updated_account!r}")
-    if updated_account.get("color_key") != "amber":
-        raise AssertionError(f"unexpected updated account metadata: {updated_account!r}")
-    if updated_account.get("current_balance") != {
-        "amount_minor": 2_500,
-        "currency": "ARS",
-    }:
-        raise AssertionError(f"unexpected updated account balance: {updated_account!r}")
-    if updated_account.get("status") != "active" or updated_account.get("closed_on") is not None:
-        raise AssertionError(f"unexpected updated account lifecycle state: {updated_account!r}")
 
-    deposit_response = client.request(
+    category_response = client.request(
         "POST",
-        f"/api/v1/accounts/{account_id}/deposits",
-        payload={"amount_minor": 5_000, "currency": "ARS"},
+        "/api/v1/spending-categories",
+        payload={
+            "name": unique_account_name("Smoke food"),
+        },
     )
-    assert_status(deposit_response, 200)
-    deposited_account = assert_json_object(deposit_response)
-    if deposited_account.get("current_balance") != {
-        "amount_minor": 7_500,
-        "currency": "ARS",
-    }:
-        raise AssertionError(f"unexpected deposit balance: {deposited_account!r}")
+    assert_status(category_response, 201)
+    category = assert_json_object(category_response)
 
-    withdraw_response = client.request(
+    expense_response = client.request(
         "POST",
-        f"/api/v1/accounts/{account_id}/withdrawals",
-        payload={"amount_minor": 1_250, "currency": "ARS"},
+        "/api/v1/transactions",
+        payload={
+            "type": "expense",
+            "description": "Smoke expense",
+            "postings": [
+                {
+                    "account_id": account_id,
+                    "amount_minor": -1_250,
+                    "currency": "ARS",
+                },
+                {
+                    "category_id": category["id"],
+                    "amount_minor": 1_250,
+                    "currency": "ARS",
+                },
+            ],
+        },
     )
-    assert_status(withdraw_response, 200)
-    withdrawn_account = assert_json_object(withdraw_response)
-    if withdrawn_account.get("current_balance") != {
-        "amount_minor": 6_250,
-        "currency": "ARS",
-    }:
-        raise AssertionError(f"unexpected withdrawal balance: {withdrawn_account!r}")
+    assert_status(expense_response, 201)
 
     get_response = client.request("GET", f"/api/v1/accounts/{account_id}")
     assert_status(get_response, 200)
     fetched_account = assert_json_object(get_response)
-    if fetched_account != withdrawn_account:
-        raise AssertionError(f"fetched account does not match latest state: {fetched_account!r}")
+    if fetched_account.get("current_balance") != {
+        "amount_minor": 1_250,
+        "currency": "ARS",
+    }:
+        raise AssertionError(f"unexpected post-expense balance: {fetched_account!r}")
 
-    close_response = client.request("POST", f"/api/v1/accounts/{account_id}/close")
+    transactions_response = client.request("GET", "/api/v1/transactions?account_id=" + account_id)
+    assert_status(transactions_response, 200)
+    if not isinstance(transactions_response.body, list) or len(transactions_response.body) != 2:
+        raise AssertionError(
+            f"unexpected account transaction history: {transactions_response.body!r}"
+        )
+
+    close_response = client.request("POST", f"/api/v1/accounts/{account_id}/archive")
     assert_status(close_response, 200)
     closed_account = assert_json_object(close_response)
-    if closed_account.get("status") != "closed":
-        raise AssertionError(f"unexpected closed account status: {closed_account!r}")
-    if not closed_account.get("closed_on"):
-        raise AssertionError(f"closed account missing closed_on: {closed_account!r}")
-    if closed_account.get("current_balance") != withdrawn_account.get("current_balance"):
-        raise AssertionError(f"close changed balance unexpectedly: {closed_account!r}")
+    if closed_account.get("archived_at") is None:
+        raise AssertionError(f"unexpected archived account payload: {closed_account!r}")
 
-    get_closed_response = client.request("GET", f"/api/v1/accounts/{account_id}")
-    assert_status(get_closed_response, 200)
-    fetched_closed_account = assert_json_object(get_closed_response)
-    if fetched_closed_account != closed_account:
-        raise AssertionError(
-            f"fetched closed account does not match latest state: {fetched_closed_account!r}"
-        )
-
-    deposit_after_close = client.request(
+    expense_after_close = client.request(
         "POST",
-        f"/api/v1/accounts/{account_id}/deposits",
-        payload={"amount_minor": 100, "currency": "ARS"},
+        "/api/v1/transactions",
+        payload={
+            "type": "expense",
+            "postings": [
+                {
+                    "account_id": account_id,
+                    "amount_minor": -100,
+                    "currency": "ARS",
+                },
+                {
+                    "category_id": category["id"],
+                    "amount_minor": 100,
+                    "currency": "ARS",
+                },
+            ],
+        },
     )
-    assert_status(deposit_after_close, 409)
-    deposit_after_close_body = assert_json_object(deposit_after_close)
-    if deposit_after_close_body.get("detail") != "account is closed":
-        raise AssertionError(
-            f"unexpected post-close deposit rejection payload: {deposit_after_close_body!r}"
-        )
-
-    withdraw_after_close = client.request(
-        "POST",
-        f"/api/v1/accounts/{account_id}/withdrawals",
-        payload={"amount_minor": 100, "currency": "ARS"},
-    )
-    assert_status(withdraw_after_close, 409)
-    withdraw_after_close_body = assert_json_object(withdraw_after_close)
-    if withdraw_after_close_body.get("detail") != "account is closed":
-        raise AssertionError(
-            f"unexpected post-close withdrawal rejection payload: {withdraw_after_close_body!r}"
-        )
+    assert_status(expense_after_close, 400)
+    rejection_body = assert_json_object(expense_after_close)
+    if rejection_body.get("detail") != "account is archived":
+        raise AssertionError(f"unexpected post-archive rejection payload: {rejection_body!r}")

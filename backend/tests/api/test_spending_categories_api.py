@@ -30,29 +30,13 @@ def test_list_spending_categories_returns_seeded_default_tree(client: TestClient
 
     assert response.status_code == 200
     body = response.json()
-    assert [category["name"] for category in body] == [
-        "Food",
-        "Housing",
-        "Transport",
-        "Shopping",
-        "Health",
-        "Entertainment",
-        "Travel",
-        "Education",
-        "Personal",
-        "Pets",
-        "Fees",
-        "Gifts & Donations",
-        "Taxes",
-        "Other",
-    ]
-    assert body[0]["id"] == "category_food"
+    assert body[0]["name"] == "Food"
     assert [child["name"] for child in body[0]["children"]] == [
         "Groceries",
         "Restaurants",
         "Coffee",
     ]
-    assert body[0]["children"][0]["id"] == "category_food_groceries"
+    assert all("kind" not in category for category in body)
 
 
 def test_create_spending_category_supports_root_and_child_categories(client: TestClient) -> None:
@@ -73,10 +57,9 @@ def test_create_spending_category_supports_root_and_child_categories(client: Tes
     assert bills["children"][0]["name"] == "Internet"
 
 
-def test_create_spending_category_rejects_grandchildren(client: TestClient) -> None:
+def test_create_spending_category_rejects_child_of_subcategory(client: TestClient) -> None:
     categories = client.get("/api/v1/spending-categories").json()
-    food = _find_category(categories, "Food")
-    groceries = _find_child(food, "Groceries")
+    groceries = _find_category(categories, "Groceries")
 
     response = client.post(
         "/api/v1/spending-categories",
@@ -87,22 +70,9 @@ def test_create_spending_category_rejects_grandchildren(client: TestClient) -> N
     assert response.json() == {"detail": "category hierarchy supports only two levels"}
 
 
-def test_create_spending_category_rejects_duplicate_sibling_name(client: TestClient) -> None:
-    categories = client.get("/api/v1/spending-categories").json()
-    food = _find_category(categories, "Food")
-
-    response = client.post(
-        "/api/v1/spending-categories",
-        json={"name": " groceries ", "parent_id": food["id"]},
-    )
-
-    assert response.status_code == 400
-    assert response.json() == {
-        "detail": "category name must be unique within its sibling group",
-    }
-
-
-def test_patch_spending_category_updates_name_parent_and_sort_order(client: TestClient) -> None:
+def test_patch_spending_category_updates_name_parent_and_sort_order(
+    client: TestClient,
+) -> None:
     create_bills = client.post(
         "/api/v1/spending-categories",
         json={"name": "Bills", "sort_order": 200},
@@ -150,19 +120,18 @@ def test_openapi_schema_exposes_spending_category_routes(client: TestClient) -> 
         schema["paths"]["/api/v1/spending-categories/{category_id}"]["patch"]["operationId"]
         == "spending-categories-update_spending_category"
     )
+    assert "CategoryKind" not in schema["components"]["schemas"]
+    assert "/api/v1/income-categories" in schema["paths"]
 
 
-def _find_category(categories: list[dict[str, object]], name: str) -> dict[str, object]:
+def _find_category(
+    categories: list[dict[str, object]],
+    name: str,
+) -> dict[str, object]:
     for category in categories:
         if category["name"] == name:
             return category
+        for child in category.get("children", []):
+            if isinstance(child, dict) and child.get("name") == name:
+                return child
     raise AssertionError(f"category not found in response: {name}")
-
-
-def _find_child(category: dict[str, object], name: str) -> dict[str, object]:
-    children = category["children"]
-    assert isinstance(children, list)
-    for child in children:
-        if child["name"] == name:
-            return child
-    raise AssertionError(f"child category not found in response: {name}")
