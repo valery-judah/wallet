@@ -20,6 +20,8 @@ services:
       dockerfile: backend/Dockerfile
     working_dir: /app/backend
     command: ["uvicorn", "--factory", "wallet.api.app:create_app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    environment:
+      WALLET_SEED_SAMPLE_DATA: "true"
     env_file:
       - path: .env
         required: false

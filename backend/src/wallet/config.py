@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     frontend_host: str = "http://localhost:5173"
     backend_cors_origins: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = []
+    seed_sample_data: bool = False
 
     @field_validator("api_v1_prefix")
     @classmethod

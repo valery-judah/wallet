@@ -2,15 +2,12 @@ import userEvent from "@testing-library/user-event"
 import { screen, waitFor } from "@testing-library/react"
 import {
   AccountsService,
-  IncomeCategoriesService,
   SpendingCategoriesService,
   TransactionsService,
   type AccountResponse,
-  type IncomeCategoryResponse,
   type SpendingCategoryResponse,
   type TransactionResponse,
 } from "@/client"
-import type { CategoryTreeNode } from "@/lib/categories"
 import { renderApp } from "@/test/render-app"
 
 function buildAccount(overrides: Partial<AccountResponse> = {}): AccountResponse {
@@ -29,20 +26,6 @@ function buildAccount(overrides: Partial<AccountResponse> = {}): AccountResponse
     created_on: "2026-06-18",
     updated_on: "2026-06-18",
     ...overrides,
-  }
-}
-
-function buildCategory(
-  overrides: Partial<CategoryTreeNode> & Pick<CategoryTreeNode, "id" | "name">,
-): CategoryTreeNode {
-  return {
-    id: overrides.id,
-    name: overrides.name,
-    parent_id: overrides.parent_id ?? null,
-    icon: overrides.icon ?? null,
-    color: overrides.color ?? null,
-    sort_order: overrides.sort_order ?? 0,
-    children: overrides.children ?? [],
   }
 }
 
@@ -82,11 +65,28 @@ function buildTransaction(
   }
 }
 
-function buildApiError(status: number, detail: unknown) {
-  return {
-    detail,
-    status,
-  }
+function buildSpendingCategoryTree(): Array<SpendingCategoryResponse> {
+  return [
+    {
+      id: "category_food",
+      name: "Food",
+      parent_id: null,
+      icon: null,
+      color: null,
+      sort_order: 10,
+      children: [
+        {
+          id: "category_food_groceries",
+          name: "Groceries",
+          parent_id: "category_food",
+          icon: null,
+          color: null,
+          sort_order: 20,
+          children: [],
+        },
+      ],
+    },
+  ]
 }
 
 function buildSuccess<T>(data: T) {
@@ -100,38 +100,10 @@ function buildSuccess<T>(data: T) {
 function mockSharedDetailQueries({
   account = buildAccount(),
   accounts = [buildAccount()],
-  spendingCategories = [
-    buildCategory({
-      id: "category_food",
-      name: "Food",
-      children: [
-        buildCategory({
-          id: "category_food_groceries",
-          name: "Groceries",
-          parent_id: "category_food",
-        }),
-      ],
-    }),
-  ],
-  incomeCategories = [
-    buildCategory({
-      id: "income_salary",
-      name: "Salary",
-      children: [
-        buildCategory({
-          id: "income_salary_payroll",
-          name: "Payroll",
-          parent_id: "income_salary",
-        }),
-      ],
-    }),
-  ],
   transactions = [],
 }: {
   account?: AccountResponse
   accounts?: Array<AccountResponse>
-  incomeCategories?: Array<IncomeCategoryResponse>
-  spendingCategories?: Array<SpendingCategoryResponse>
   transactions?: Array<TransactionResponse>
 } = {}) {
   vi.spyOn(AccountsService, "accountsGetAccount").mockImplementation(async () =>
@@ -140,14 +112,26 @@ function mockSharedDetailQueries({
   vi.spyOn(AccountsService, "accountsListAccounts").mockImplementation(async () =>
     buildSuccess(accounts),
   )
-  vi.spyOn(
-    SpendingCategoriesService,
-    "spendingCategoriesListSpendingCategories",
-  ).mockImplementation(async () => buildSuccess(spendingCategories))
-  vi.spyOn(
-    IncomeCategoriesService,
-    "incomeCategoriesListIncomeCategories",
-  ).mockImplementation(async () => buildSuccess(incomeCategories))
+  vi.spyOn(TransactionsService, "transactionsListTransactions").mockImplementation(async () =>
+    buildSuccess(transactions),
+  )
+}
+
+function mockTransactionRouteQueries({
+  accounts = [buildAccount()],
+  spendingCategories = buildSpendingCategoryTree(),
+  transactions = [buildTransaction()],
+}: {
+  accounts?: Array<AccountResponse>
+  spendingCategories?: Array<SpendingCategoryResponse>
+  transactions?: Array<TransactionResponse>
+} = {}) {
+  vi.spyOn(AccountsService, "accountsListAccounts").mockImplementation(async () =>
+    buildSuccess(accounts),
+  )
+  vi.spyOn(SpendingCategoriesService, "spendingCategoriesListSpendingCategories").mockImplementation(
+    async () => buildSuccess(spendingCategories),
+  )
   vi.spyOn(TransactionsService, "transactionsListTransactions").mockImplementation(async () =>
     buildSuccess(transactions),
   )
@@ -187,15 +171,46 @@ describe("wallet frontend routes", () => {
     expect(screen.getAllByText("USD 32.00").length).toBeGreaterThan(0)
     expect(
       screen.getByRole("heading", {
-        name: "Debit card",
+        name: "Accounts",
       }),
     ).toBeInTheDocument()
-    expect(screen.getByText("ARS 150.00")).toBeInTheDocument()
+    expect(screen.getByText(/Total balance:/)).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /add account/i })).toBeInTheDocument()
+    expect(screen.getAllByText("Healthy Status").length).toBeGreaterThan(0)
+  })
+
+  it("shows a visual edit affordance only for active account cards", async () => {
+    mockSharedDetailQueries({
+      accounts: [
+        buildAccount(),
+        buildAccount({
+          id: "account-archived",
+          name: "Archived Reserve",
+          archived_at: "2026-06-19",
+        }),
+      ],
+    })
+
+    const user = userEvent.setup()
+    renderApp("/accounts")
+
     expect(
-      screen.getByRole("heading", {
-        name: "See every account, grouped by type and balance.",
-      }),
+      await screen.findByTestId("account-edit-affordance-account-123"),
     ).toBeInTheDocument()
+    expect(
+      screen.queryByTestId("account-edit-affordance-account-archived"),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /edit/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /edit/i })).not.toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("link", {
+        name: /everyday account/i,
+      }),
+    )
+
+    expect((await screen.findAllByText("Everyday Account")).length).toBeGreaterThan(0)
+    expect(screen.getByText("Current balance")).toBeInTheDocument()
   })
 
   it("navigates to the dedicated create route from the accounts list", async () => {
@@ -220,7 +235,7 @@ describe("wallet frontend routes", () => {
     expect(screen.getByText("Each account uses one currency.")).toBeInTheDocument()
   })
 
-  it("opens account detail when clicking an account card", async () => {
+  it("opens account detail as a read-only info page", async () => {
     mockSharedDetailQueries()
 
     const user = userEvent.setup()
@@ -231,7 +246,11 @@ describe("wallet frontend routes", () => {
 
     expect((await screen.findAllByText("Everyday Account")).length).toBeGreaterThan(0)
     expect(screen.getByText("Current balance")).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Record transaction" })).toBeInTheDocument()
+    expect(screen.getByText("Transaction count")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Recent activity" })).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Record transaction" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Account profile" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Archive account" })).not.toBeInTheDocument()
   })
 
   it("creates an account from the dedicated route and lands on the detail route", async () => {
@@ -279,7 +298,7 @@ describe("wallet frontend routes", () => {
     await user.click(screen.getByRole("button", { name: "Create account" }))
 
     expect((await screen.findAllByText("Travel Fund")).length).toBeGreaterThan(0)
-    expect((await screen.findAllByText("USD 150.00")).length).toBeGreaterThan(0)
+    expect(screen.getByRole("heading", { name: "Recent activity" })).toBeInTheDocument()
     await waitFor(() => {
       expect(AccountsService.accountsCreateAccount).toHaveBeenCalled()
     })
@@ -295,74 +314,238 @@ describe("wallet frontend routes", () => {
     )
   })
 
-  it("records an expense transaction and shows recent activity", async () => {
-    const updatedAccount = buildAccount({
-      current_balance: {
-        amount_minor: 10_000,
-        currency: "ARS",
-      },
-    })
+  it("shows derived metrics and only the latest five account transactions", async () => {
     mockSharedDetailQueries({
-      account: updatedAccount,
-      accounts: [updatedAccount, buildAccount({ id: "account-456", name: "Reserve" })],
-      spendingCategories: [
-        buildCategory({
-          id: "category_food",
-          name: "Food",
-          children: [
-            buildCategory({
-              id: "category_food_groceries",
-              name: "Groceries",
-              parent_id: "category_food",
-            }),
-            buildCategory({
-              id: "category_food_restaurants",
-              name: "Restaurants",
-              parent_id: "category_food",
-            }),
+      account: buildAccount({
+        current_balance: {
+          amount_minor: 8_300,
+          currency: "ARS",
+        },
+      }),
+      transactions: [
+        buildTransaction({
+          id: "transaction-1",
+          occurred_on: "2026-06-22",
+          created_on: "2026-06-23",
+          description: "Salary payout",
+          type: "income",
+          postings: [
+            {
+              id: "posting-1",
+              account_id: "account-123",
+              category_id: null,
+              amount_minor: 9_000,
+              currency: "ARS",
+              memo: null,
+            },
+            {
+              id: "posting-2",
+              account_id: null,
+              category_id: "income_salary",
+              amount_minor: -9_000,
+              currency: "ARS",
+              memo: null,
+            },
           ],
         }),
-        buildCategory({
-          id: "category_transport",
-          name: "Transport",
-          children: [
-            buildCategory({
-              id: "category_transport_taxi",
-              name: "Taxi",
-              parent_id: "category_transport",
-            }),
+        buildTransaction({
+          id: "transaction-2",
+          occurred_on: "2026-06-22",
+          created_on: "2026-06-22",
+          description: "Freelance client",
+          type: "income",
+          postings: [
+            {
+              id: "posting-1",
+              account_id: "account-123",
+              category_id: null,
+              amount_minor: 2_000,
+              currency: "ARS",
+              memo: null,
+            },
+            {
+              id: "posting-2",
+              account_id: null,
+              category_id: "income_business",
+              amount_minor: -2_000,
+              currency: "ARS",
+              memo: null,
+            },
+          ],
+        }),
+        buildTransaction({
+          id: "transaction-3",
+          occurred_on: "2026-06-20",
+          created_on: "2026-06-20",
+          description: "Groceries",
+          postings: [
+            {
+              id: "posting-1",
+              account_id: "account-123",
+              category_id: null,
+              amount_minor: -1_500,
+              currency: "ARS",
+              memo: null,
+            },
+            {
+              id: "posting-2",
+              account_id: null,
+              category_id: "category_food_groceries",
+              amount_minor: 1_500,
+              currency: "ARS",
+              memo: null,
+            },
+          ],
+        }),
+        buildTransaction({
+          id: "transaction-4",
+          occurred_on: "2026-06-19",
+          created_on: "2026-06-19",
+          description: "Subway",
+          postings: [
+            {
+              id: "posting-1",
+              account_id: "account-123",
+              category_id: null,
+              amount_minor: -700,
+              currency: "ARS",
+              memo: null,
+            },
+            {
+              id: "posting-2",
+              account_id: null,
+              category_id: "category_transport",
+              amount_minor: 700,
+              currency: "ARS",
+              memo: null,
+            },
+          ],
+        }),
+        buildTransaction({
+          id: "transaction-5",
+          occurred_on: "2026-06-18",
+          created_on: "2026-06-18",
+          description: "Rent",
+          postings: [
+            {
+              id: "posting-1",
+              account_id: "account-123",
+              category_id: null,
+              amount_minor: -1_500,
+              currency: "ARS",
+              memo: null,
+            },
+            {
+              id: "posting-2",
+              account_id: null,
+              category_id: "category_home",
+              amount_minor: 1_500,
+              currency: "ARS",
+              memo: null,
+            },
+          ],
+        }),
+        buildTransaction({
+          id: "transaction-6",
+          occurred_on: "2026-06-17",
+          created_on: "2026-06-17",
+          description: "Seed adjustment",
+          type: "adjustment",
+          postings: [
+            {
+              id: "posting-1",
+              account_id: "account-123",
+              category_id: null,
+              amount_minor: 1_000,
+              currency: "ARS",
+              memo: null,
+            },
+            {
+              id: "posting-2",
+              account_id: "system_equity_ars",
+              category_id: null,
+              amount_minor: -1_000,
+              currency: "ARS",
+              memo: null,
+            },
           ],
         }),
       ],
-      transactions: [buildTransaction()],
     })
-    vi.spyOn(TransactionsService, "transactionsCreateTransaction").mockImplementation(async () =>
-      buildSuccess(buildTransaction()),
-    )
 
-    const user = userEvent.setup()
     renderApp("/accounts/account-123")
 
-    expect((await screen.findAllByText("ARS 100.00")).length).toBeGreaterThan(0)
-    expect(screen.getByRole("heading", { name: "Recent activity" })).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Add split" }))
-    await user.click(screen.getByRole("button", { name: "Add split" }))
-    await user.selectOptions(
-      screen.getAllByLabelText("Expense category")[0] as HTMLSelectElement,
-      "category_food_groceries",
+    expect(await screen.findByText("ARS 83.00")).toBeInTheDocument()
+    expect(screen.getByText("+ARS 120.00")).toBeInTheDocument()
+    expect(screen.getByText("-ARS 37.00")).toBeInTheDocument()
+    expect(screen.getByText("6")).toBeInTheDocument()
+    expect(screen.getAllByText("Salary payout").length).toBeGreaterThan(0)
+    expect(screen.getByText("2026-06-22")).toBeInTheDocument()
+    expect(screen.getByText("Freelance client")).toBeInTheDocument()
+    expect(screen.getByText("Groceries")).toBeInTheDocument()
+    expect(screen.getByText("Subway")).toBeInTheDocument()
+    expect(screen.getByText("Rent")).toBeInTheDocument()
+    expect(screen.queryByText("Seed adjustment")).not.toBeInTheDocument()
+  })
+
+  it("shows an empty read-only activity state for accounts with no transactions", async () => {
+    mockSharedDetailQueries()
+
+    renderApp("/accounts/account-123")
+
+    expect((await screen.findAllByText("Everyday Account")).length).toBeGreaterThan(0)
+    expect(screen.getByText("+ARS 0.00")).toBeInTheDocument()
+    expect(screen.getByText("-ARS 0.00")).toBeInTheDocument()
+    expect(screen.getByText("No activity yet")).toBeInTheDocument()
+    expect(screen.getByText("No transactions found for this account.")).toBeInTheDocument()
+    expect(screen.queryByText("View Full History")).not.toBeInTheDocument()
+  })
+
+  it("adds transactions to the sidebar and posts a withdraw-style expense transaction", async () => {
+    vi.spyOn(TransactionsService, "transactionsCreateTransaction").mockImplementation(async () =>
+      buildSuccess(
+        buildTransaction({
+          id: "transaction-new",
+          description: "Corner cafe",
+          merchant_name: "Corner cafe",
+          postings: [
+            {
+              id: "posting-account",
+              account_id: "account-123",
+              category_id: null,
+              amount_minor: -1_250,
+              currency: "ARS",
+              memo: null,
+            },
+            {
+              id: "posting-category",
+              account_id: null,
+              category_id: "category_food_groceries",
+              amount_minor: 1_250,
+              currency: "ARS",
+              memo: null,
+            },
+          ],
+        }),
+      ),
     )
-    await user.selectOptions(
-      screen.getAllByLabelText("Expense category")[1] as HTMLSelectElement,
-      "category_food_restaurants",
-    )
-    await user.selectOptions(
-      screen.getAllByLabelText("Expense category")[2] as HTMLSelectElement,
-      "category_transport_taxi",
-    )
-    await user.type(screen.getAllByLabelText("Split amount")[0] as HTMLInputElement, "10")
-    await user.type(screen.getAllByLabelText("Split amount")[1] as HTMLInputElement, "8")
-    await user.type(screen.getAllByLabelText("Split amount")[2] as HTMLInputElement, "7")
-    await user.click(screen.getByRole("button", { name: "Record transaction" }))
+    mockTransactionRouteQueries()
+
+    const user = userEvent.setup()
+    renderApp("/transactions")
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Withdraw from an account.",
+      }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Transactions" })).toBeInTheDocument()
+    expect(screen.getByText("Recent withdrawals")).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText("Spending category"), "category_food_groceries")
+    await user.type(screen.getByLabelText("Amount"), "12.50")
+    await user.type(screen.getByLabelText("Merchant"), "Corner cafe")
+    await user.click(screen.getByRole("button", { name: "Withdraw" }))
 
     await waitFor(() => {
       expect(TransactionsService.transactionsCreateTransaction).toHaveBeenCalled()
@@ -371,113 +554,25 @@ describe("wallet frontend routes", () => {
       expect.objectContaining({
         body: expect.objectContaining({
           type: "expense",
+          merchant_name: "Corner cafe",
+          description: "Corner cafe",
           postings: [
-            { account_id: "account-123", amount_minor: -2_500, currency: "ARS" },
-            {
-              category_id: "category_food_groceries",
-              amount_minor: 1_000,
-              currency: "ARS",
-            },
-            {
-              category_id: "category_food_restaurants",
-              amount_minor: 800,
-              currency: "ARS",
-            },
-            {
-              category_id: "category_transport_taxi",
-              amount_minor: 700,
-              currency: "ARS",
-            },
-          ],
-        }),
-      }),
-    )
-    expect(await screen.findByText("Lunch")).toBeInTheDocument()
-  })
-
-  it("shows an inline error when transaction creation is rejected", async () => {
-    mockSharedDetailQueries()
-    vi.spyOn(TransactionsService, "transactionsCreateTransaction").mockRejectedValue(
-      buildApiError(400, "expense transactions must use spending categories"),
-    )
-
-    const user = userEvent.setup()
-    renderApp("/accounts/account-123")
-
-    expect((await screen.findAllByText("Everyday Account")).length).toBeGreaterThan(0)
-    await user.type(screen.getByLabelText("Split amount"), "25")
-    await user.click(screen.getByRole("button", { name: "Record transaction" }))
-
-    expect(
-      await screen.findByText("expense transactions must use spending categories"),
-    ).toBeInTheDocument()
-  })
-
-  it("blocks malformed decimal input before submitting the transaction", async () => {
-    mockSharedDetailQueries()
-    const transactionSpy = vi.spyOn(TransactionsService, "transactionsCreateTransaction")
-
-    const user = userEvent.setup()
-    renderApp("/accounts/account-123")
-
-    expect((await screen.findAllByText("Everyday Account")).length).toBeGreaterThan(0)
-    await user.type(screen.getByLabelText("Split amount"), "12.345")
-    await user.click(screen.getByRole("button", { name: "Record transaction" }))
-
-    expect(
-      await screen.findByText("Split 1: Use at most 2 decimal places for ARS."),
-    ).toBeInTheDocument()
-    expect(transactionSpy).not.toHaveBeenCalled()
-  })
-
-  it("submits a one-posting adjustment and relies on backend balancing", async () => {
-    mockSharedDetailQueries()
-    vi.spyOn(TransactionsService, "transactionsCreateTransaction").mockImplementation(async () =>
-      buildSuccess(
-        buildTransaction({
-          id: "transaction-adjustment",
-          type: "adjustment",
-          description: "Correction",
-          postings: [
-            {
-              id: "posting-1",
+            expect.objectContaining({
               account_id: "account-123",
-              category_id: null,
-              amount_minor: 2_500,
+              amount_minor: -1_250,
               currency: "ARS",
-              memo: null,
-            },
-            {
-              id: "posting-2",
-              account_id: "system_equity_ars",
-              category_id: null,
-              amount_minor: -2_500,
+            }),
+            expect.objectContaining({
+              category_id: "category_food_groceries",
+              amount_minor: 1_250,
               currency: "ARS",
-              memo: null,
-            },
+            }),
           ],
-        }),
-      ),
-    )
-
-    const user = userEvent.setup()
-    renderApp("/accounts/account-123")
-
-    expect((await screen.findAllByText("Everyday Account")).length).toBeGreaterThan(0)
-    await user.click(screen.getByRole("button", { name: "Adjustment" }))
-    await user.type(screen.getByLabelText("Amount"), "25")
-    await user.click(screen.getByRole("button", { name: "Record transaction" }))
-
-    await waitFor(() => {
-      expect(TransactionsService.transactionsCreateTransaction).toHaveBeenCalled()
-    })
-    expect(TransactionsService.transactionsCreateTransaction).toHaveBeenCalledWith(
-      expect.objectContaining({
-        body: expect.objectContaining({
-          type: "adjustment",
-          postings: [{ account_id: "account-123", amount_minor: 2_500, currency: "ARS" }],
         }),
       }),
     )
+    expect(
+      await screen.findByText("Recorded ARS 12.50 from Everyday Account."),
+    ).toBeInTheDocument()
   })
 })

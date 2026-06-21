@@ -11,6 +11,7 @@ def test_settings_defaults() -> None:
     assert settings.debug is False
     assert settings.api_v1_prefix == "/api/v1"
     assert settings.frontend_host == "http://localhost:5173"
+    assert settings.seed_sample_data is False
     assert settings.all_cors_origins == [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
@@ -23,6 +24,7 @@ def test_get_settings_respects_environment_overrides(monkeypatch) -> None:
     monkeypatch.setenv("WALLET_DEBUG", "true")
     monkeypatch.setenv("WALLET_API_V1_PREFIX", "/api/custom/")
     monkeypatch.setenv("WALLET_FRONTEND_HOST", "http://localhost:4173/")
+    monkeypatch.setenv("WALLET_SEED_SAMPLE_DATA", "true")
     monkeypatch.setenv(
         "WALLET_BACKEND_CORS_ORIGINS",
         "http://localhost:3000/,https://wallet.example.com",
@@ -36,6 +38,7 @@ def test_get_settings_respects_environment_overrides(monkeypatch) -> None:
     assert settings.debug is True
     assert settings.api_v1_prefix == "/api/custom"
     assert settings.frontend_host == "http://localhost:4173/"
+    assert settings.seed_sample_data is True
     assert settings.all_cors_origins == [
         "http://localhost:4173",
         "http://127.0.0.1:4173",

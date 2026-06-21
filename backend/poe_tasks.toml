@@ -44,6 +44,10 @@ cmd = "python scripts/devex/export_openapi.py"
 help = "Remove caches and generated local artifacts"
 cmd = "python scripts/devex/clean.py"
 
+[tasks.seed-sample-data]
+help = "Build and print the local sample dataset"
+cmd = "python scripts/devex/seed_sample_data.py"
+
 [tasks.verify]
 help = "Run the read-only verification suite"
 sequence = ["lint", "type", "test"]

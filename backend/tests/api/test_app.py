@@ -6,20 +6,26 @@ import pytest
 from fastapi.testclient import TestClient
 
 from wallet.api.app import create_app
+from wallet.bootstrap.sample_data import (
+    get_sample_archived_account_id,
+    get_sample_transfer_account_ids,
+    list_sample_account_ids,
+    list_sample_transaction_types,
+)
 from wallet.config import Settings
 
 
 @pytest.fixture
 def client() -> Iterator[TestClient]:
-    app = create_app(
-        Settings(
-            app_name="Wallet Test API",
-            environment="test",
-            debug=False,
-            api_v1_prefix="/api/v1",
-            frontend_host="http://localhost:5173",
-        )
-    )
+    app = create_app(_test_settings())
+
+    with TestClient(app) as test_client:
+        yield test_client
+
+
+@pytest.fixture
+def seeded_client() -> Iterator[TestClient]:
+    app = create_app(_test_settings(seed_sample_data=True))
 
     with TestClient(app) as test_client:
         yield test_client
@@ -366,6 +372,68 @@ def test_openapi_schema_exposes_tagged_routes_and_stable_operation_ids(
     )
 
 
+def test_seeded_app_exposes_sample_accounts_and_transaction_types(
+    seeded_client: TestClient,
+) -> None:
+    accounts_response = seeded_client.get("/api/v1/accounts")
+    transactions_response = seeded_client.get("/api/v1/transactions")
+
+    assert accounts_response.status_code == 200
+    assert transactions_response.status_code == 200
+    assert [account["id"] for account in accounts_response.json()] == list_sample_account_ids()
+    assert {transaction["type"] for transaction in transactions_response.json()} >= {
+        transaction_type.value for transaction_type in list_sample_transaction_types()
+    }
+
+
+def test_seeded_app_archived_account_rejects_new_transactions(
+    seeded_client: TestClient,
+) -> None:
+    archived_account_id = get_sample_archived_account_id()
+
+    response = seeded_client.post(
+        "/api/v1/transactions",
+        json={
+            "type": "expense",
+            "postings": [
+                {"account_id": archived_account_id, "amount_minor": -100, "currency": "ARS"},
+                {
+                    "category_id": "category_food_groceries",
+                    "amount_minor": 100,
+                    "currency": "ARS",
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "account is archived"}
+
+
+def test_seeded_app_includes_transfer_ready_same_currency_accounts(
+    seeded_client: TestClient,
+) -> None:
+    from_account_id, to_account_id = get_sample_transfer_account_ids()
+
+    accounts_response = seeded_client.get("/api/v1/accounts")
+    transactions_response = seeded_client.get("/api/v1/transactions")
+
+    assert accounts_response.status_code == 200
+    assert transactions_response.status_code == 200
+
+    accounts_by_id = {account["id"]: account for account in accounts_response.json()}
+    assert accounts_by_id[from_account_id]["currency"] == "ARS"
+    assert accounts_by_id[to_account_id]["currency"] == "ARS"
+    assert accounts_by_id[from_account_id]["archived_at"] is None
+    assert accounts_by_id[to_account_id]["archived_at"] is None
+    assert any(
+        transaction["type"] == "transfer"
+        and {posting["account_id"] for posting in transaction["postings"] if posting["account_id"]}
+        == {from_account_id, to_account_id}
+        for transaction in transactions_response.json()
+    )
+
+
 def _open_account(
     client: TestClient,
     *,
@@ -379,3 +447,14 @@ def _open_account(
     )
     assert response.status_code == 201
     return response.json()
+
+
+def _test_settings(*, seed_sample_data: bool = False) -> Settings:
+    return Settings(
+        app_name="Wallet Test API",
+        environment="test",
+        debug=False,
+        api_v1_prefix="/api/v1",
+        frontend_host="http://localhost:5173",
+        seed_sample_data=seed_sample_data,
+    )

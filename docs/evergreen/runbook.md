@@ -32,6 +32,8 @@ Optional full-stack Docker flow:
 make run-stack
 ```
 
+`make run-stack` starts the local Docker stack with sample backend data enabled by default.
+
 ## Preferred Workflows
 
 ```bash
@@ -48,7 +50,7 @@ make clean
 
 - `make run-backend`: run the backend locally with reload on the host
 - `make run-frontend`: run the frontend dev server in Docker
-- `make run-stack`: run backend and frontend together in Docker
+- `make run-stack`: run backend and frontend together in Docker with sample data seeded by default
 - `make gen-client`: export OpenAPI, ensure frontend dependencies, and regenerate the frontend API client
 - `make verify`: run the backend verification suite plus frontend TypeScript validation
 
@@ -158,6 +160,7 @@ make logs-stack
 ```
 
 - `make run-stack` runs the optional local stack on `http://localhost:8000` and `http://localhost:5173`.
+- `make run-backend` keeps the backend empty by default unless `WALLET_SEED_SAMPLE_DATA=true` is set explicitly.
 - The canonical backend developer flow remains host `uv` plus the frontend Bun container commands.
 
 ## API Operations

@@ -9,7 +9,7 @@ from wallet.application.accounts import AccountService
 from wallet.application.income_categories import IncomeCategoryService
 from wallet.application.spending_categories import SpendingCategoryService
 from wallet.application.transactions import TransactionService
-from wallet.bootstrap import seed_default_categories
+from wallet.bootstrap import seed_default_categories, seed_sample_data
 from wallet.config import Settings, get_settings
 from wallet.infrastructure.memory import (
     InMemoryAccountRepository,
@@ -33,13 +33,21 @@ class AppContainer:
 
 
 def build_container(settings: Settings | None = None) -> AppContainer:
+    resolved_settings = settings or get_settings()
     accounts = InMemoryAccountRepository()
     income_categories = InMemoryIncomeCategoryRepository()
     spending_categories = InMemorySpendingCategoryRepository()
     transactions = InMemoryTransactionRepository()
     seed_default_categories(spending_categories, income_categories)
+    if resolved_settings.seed_sample_data:
+        seed_sample_data(
+            accounts,
+            spending_categories,
+            income_categories,
+            transactions,
+        )
     return AppContainer(
-        settings=settings or get_settings(),
+        settings=resolved_settings,
         accounts=accounts,
         income_categories=income_categories,
         spending_categories=spending_categories,

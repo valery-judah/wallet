@@ -57,6 +57,7 @@ WALLET_DEBUG
 WALLET_API_V1_PREFIX
 WALLET_FRONTEND_HOST
 WALLET_BACKEND_CORS_ORIGINS
+WALLET_SEED_SAMPLE_DATA
 ```
 
 `WALLET_FRONTEND_HOST` is always included in the allowed CORS origins
@@ -70,7 +71,15 @@ preview or a staging frontend domain. The `export-openapi` task writes to
 back to repo-root `openapi.json`.
 
 The optional Docker Compose workflow also reads the repo-root `.env` file and
-publishes the backend on `http://localhost:8000`.
+publishes the backend on `http://localhost:8000`. `make run-stack` enables
+`WALLET_SEED_SAMPLE_DATA=true` for the backend service, while `make run-backend`
+keeps the backend empty by default unless the env var is set explicitly.
+
+You can also build and print the demo dataset directly with:
+
+```bash
+uv --directory backend run poe seed-sample-data
+```
 
 With the current repo layout, the canonical flow is:
 

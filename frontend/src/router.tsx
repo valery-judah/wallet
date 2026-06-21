@@ -12,6 +12,7 @@ import { AccountsListRoute } from "@/routes/accounts-list"
 import { AccountsNewRoute } from "@/routes/accounts-new"
 import { CategoriesRoute } from "@/routes/categories"
 import { ErrorPage, NotFoundPage, RootLayout } from "@/routes/root"
+import { TransactionsRoute } from "@/routes/transactions"
 
 function HomeRedirect() {
   const navigate = useNavigate()
@@ -66,11 +67,18 @@ const categoriesRoute = createRoute({
   component: CategoriesRoute,
 })
 
+const transactionsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "transactions",
+  component: TransactionsRoute,
+})
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   accountsRoute,
   accountsNewRoute,
   accountDetailRoute,
+  transactionsRoute,
   categoriesRoute,
 ])
 

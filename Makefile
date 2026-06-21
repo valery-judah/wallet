@@ -180,7 +180,7 @@ frontend-bun: ## Compatibility alias for arbitrary Bun commands in Docker
 # --- Local Full Stack (Optional Docker Compose) ---
 
 .PHONY: run-stack
-run-stack: frontend-install ## Run the optional local Docker Compose stack on http://localhost:8000 and http://localhost:5173
+run-stack: frontend-install ## Run the optional seeded local Docker Compose stack on http://localhost:8000 and http://localhost:5173
 	$(DEV_COMPOSE) up --build
 
 .PHONY: dev-up

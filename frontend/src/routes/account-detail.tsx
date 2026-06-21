@@ -1,144 +1,35 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { Link, useParams } from "@tanstack/react-router"
-import { useState } from "react"
-import type { AccountResponse, TransactionResponse } from "@/client"
+import type { ReactNode } from "react"
+import {
+  Clock3,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  X,
+} from "lucide-react"
+import type { TransactionResponse } from "@/client"
 import {
   AccountIcon,
   type AccountTypeValue,
   getAccountColorTheme,
   getAccountTypeLabel,
 } from "@/components/accounts/account-appearance"
-import {
-  AccountFactList,
-  AccountFactRow,
-  AccountSectionCard,
-  AccountSectionStack,
-  AccountSplitLayout,
-} from "@/components/accounts/account-layout"
-import { AccountProfileForm } from "@/components/accounts/account-profile-form"
-import { TransactionComposer } from "@/components/accounts/transaction-composer"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { getApiErrorMessage } from "@/lib/api-errors"
-import {
-  archiveAccount,
-  accountDetailOptions,
-  accountKeys,
-  accountsListOptions,
-  upsertAccountInList,
-  updateAccountProfile,
-} from "@/lib/accounts"
+import { accountDetailOptions } from "@/lib/accounts"
 import { formatDate, formatMoney } from "@/lib/format"
-import { incomeCategoriesTreeOptions } from "@/lib/income-categories"
-import { spendingCategoriesTreeOptions } from "@/lib/spending-categories"
-import {
-  createTransaction,
-  transactionKeys,
-  transactionsListOptions,
-} from "@/lib/transactions"
+import { transactionsListOptions } from "@/lib/transactions"
 import { cn } from "@/lib/utils"
 
-function formatAccountReference(accountId: string) {
-  if (accountId.length <= 16) {
-    return accountId
-  }
-
-  return `${accountId.slice(0, 10)}…${accountId.slice(-6)}`
+type ActivitySnapshot = {
+  incomeMinor: number
+  expenseMinor: number
 }
 
 export function AccountDetailRoute() {
   const { accountId } = useParams({ from: "/accounts/$accountId" })
-  const queryClient = useQueryClient()
-  const [transactionErrorMessage, setTransactionErrorMessage] = useState<string>()
-  const [profileErrorMessage, setProfileErrorMessage] = useState<string>()
-  const [archiveErrorMessage, setArchiveErrorMessage] = useState<string>()
   const accountQuery = useQuery(accountDetailOptions(accountId))
-  const accountsQuery = useQuery(accountsListOptions())
-  const spendingCategoriesQuery = useQuery(spendingCategoriesTreeOptions())
-  const incomeCategoriesQuery = useQuery(incomeCategoriesTreeOptions())
   const transactionsQuery = useQuery(transactionsListOptions(accountId))
-
-  const transactionMutation = useMutation({
-    mutationFn: createTransaction,
-    onSuccess: async () => {
-      setTransactionErrorMessage(undefined)
-      await refreshAccountState()
-    },
-  })
-  const updateProfileMutation = useMutation({
-    mutationFn: (values: {
-      name: string
-      type: AccountTypeValue
-      color_key?: string
-    }) => updateAccountProfile(accountId, values),
-    onSuccess: async (account) => {
-      setProfileErrorMessage(undefined)
-      await syncAccount(account)
-    },
-  })
-  const archiveMutation = useMutation({
-    mutationFn: () => archiveAccount(accountId),
-    onSuccess: async (account) => {
-      setArchiveErrorMessage(undefined)
-      await syncAccount(account)
-    },
-  })
-
-  async function syncAccount(account: AccountResponse) {
-    queryClient.setQueryData(accountKeys.detail(accountId), account)
-    queryClient.setQueryData<Array<AccountResponse>>(
-      accountKeys.list(),
-      (accounts) => upsertAccountInList(accounts, account),
-    )
-    await queryClient.invalidateQueries({ queryKey: accountKeys.list() })
-  }
-
-  async function refreshAccountState() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: accountKeys.detail(accountId) }),
-      queryClient.invalidateQueries({ queryKey: accountKeys.list() }),
-      queryClient.invalidateQueries({ queryKey: transactionKeys.list(accountId) }),
-    ])
-  }
-
-  async function handleTransactionSubmit(values: Parameters<typeof createTransaction>[0]) {
-    setTransactionErrorMessage(undefined)
-
-    try {
-      await transactionMutation.mutateAsync(values)
-    } catch (error) {
-      setTransactionErrorMessage(getApiErrorMessage(error))
-    }
-  }
-
-  async function handleProfileUpdate(values: {
-    name: string
-    type: AccountTypeValue
-    color_key?: string
-  }) {
-    setProfileErrorMessage(undefined)
-
-    try {
-      await updateProfileMutation.mutateAsync(values)
-    } catch (error) {
-      setProfileErrorMessage(getApiErrorMessage(error))
-    }
-  }
-
-  async function handleArchiveAccount() {
-    setArchiveErrorMessage(undefined)
-
-    try {
-      await archiveMutation.mutateAsync()
-    } catch (error) {
-      setArchiveErrorMessage(getApiErrorMessage(error))
-    }
-  }
 
   if (accountQuery.isLoading) {
     return (
@@ -166,8 +57,8 @@ export function AccountDetailRoute() {
   }
 
   const account = accountQuery.data
-  const theme = getAccountColorTheme(account?.type ?? "debit_card", account?.color_key)
   const isArchived = account?.archived_at != null
+  const theme = getAccountColorTheme(account?.type ?? "debit_card", account?.color_key)
 
   if (!account) {
     return (
@@ -177,220 +68,341 @@ export function AccountDetailRoute() {
     )
   }
 
-  const accounts = accountsQuery.data ?? []
-  const spendingCategories = spendingCategoriesQuery.data ?? []
-  const incomeCategories = incomeCategoriesQuery.data ?? []
   const transactions = transactionsQuery.data ?? []
+  const recentTransactions = sortRecentTransactions(transactions).slice(0, 5)
+  const snapshot = summarizeAccountActivity(transactions, account.id)
+  const latestActivity = recentTransactions[0]
 
   return (
-    <AccountSplitLayout>
-      <Card className="gap-0 overflow-hidden py-0">
-        <CardHeader
+    <section className="mx-auto w-full max-w-[1080px]">
+      <div
+        className={cn(
+          "relative overflow-hidden rounded-[2.35rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] px-6 py-6 shadow-[0_32px_80px_-42px_rgba(0,0,0,0.92)] sm:px-8 sm:py-8",
+          theme.borderClassName,
+        )}
+      >
+        <div
           className={cn(
-            "relative overflow-hidden rounded-t-xl border-b px-0 pb-0 pt-0",
-            theme.borderClassName,
+            "absolute inset-x-0 top-0 h-[0.6rem] bg-gradient-to-r",
+            theme.previewGlowClassName,
           )}
-        >
-          <div
-            className={cn(
-              "absolute inset-0 bg-gradient-to-r",
-              theme.previewGlowClassName,
-            )}
-          />
-          <div className="relative grid gap-5 px-6 pb-6 pt-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
-            <div
-              className={cn(
-                "flex size-14 shrink-0 items-center justify-center rounded-2xl md:size-16",
-                theme.iconWrapClassName,
-              )}
+        />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/10 to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.05),transparent_38%)]" />
+        <div className="relative">
+          <div className="flex justify-end">
+            <Link
+              aria-label="Back to accounts"
+              className="inline-flex size-12 items-center justify-center rounded-full border border-white/8 bg-background/70 text-muted-foreground transition hover:text-foreground"
+              to="/accounts"
             >
-              <AccountIcon type={account.type} className="size-6 md:size-7" />
-            </div>
-            <div className="min-w-0 self-center">
-              <CardTitle>{account.name}</CardTitle>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span
+              <X className="size-5" />
+            </Link>
+          </div>
+
+          <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
+            <div className="min-w-0">
+              <div className="flex items-start gap-4 sm:gap-5">
+                <div
                   className={cn(
-                    "rounded-full px-3 py-1 text-xs font-semibold",
-                    theme.badgeClassName,
+                    "flex size-20 shrink-0 items-center justify-center rounded-[1.7rem] shadow-[0_18px_40px_-24px_rgba(0,0,0,0.95)] sm:size-24",
+                    theme.iconWrapClassName,
                   )}
                 >
-                  {getAccountTypeLabel(account.type)}
-                </span>
-                <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                  {account.currency}
-                </span>
-                  <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                    {isArchived ? "archived" : "active"}
-                  </span>
+                  <AccountIcon type={account.type} className="size-9 sm:size-10" />
+                </div>
+                <div className="min-w-0 pt-1">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <span
+                      className={cn(
+                        "rounded-full px-3 py-1 text-[0.95rem] font-semibold",
+                        theme.badgeClassName,
+                      )}
+                    >
+                      {getAccountTypeLabel(account.type)}
+                    </span>
+                    <span className="rounded-full border border-amber-500/30 bg-amber-500/8 px-3 py-1 text-[0.95rem] font-semibold text-amber-300">
+                      {account.currency}
+                    </span>
+                    <span className="rounded-full border border-white/8 bg-white/5 px-3 py-1 text-[0.85rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      {isArchived ? "Archived" : "Active"}
+                    </span>
+                  </div>
+                  <h1 className="mt-5 truncate text-[3rem] leading-none font-black tracking-[-0.07em] text-foreground sm:text-[3.35rem]">
+                    {account.name}
+                  </h1>
+                  <p className="mt-4 max-w-3xl text-[1.1rem] leading-8 text-muted-foreground">
+                    {getAccountSummaryDescription(account.type, isArchived)}
+                  </p>
+                  <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[0.95rem] text-muted-foreground">
+                    <span>Opened {formatDate(account.opened_on)}</span>
+                    {account.archived_at ? (
+                      <span>Archived {formatDate(account.archived_at)}</span>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             </div>
-            <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border/60 pt-4 md:col-start-2 md:pt-3">
-              <span>Account ID {formatAccountReference(account.id)}</span>
-              <span aria-hidden="true">·</span>
-              <span>Opened {formatDate(account.opened_on)}</span>
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-lg border bg-muted/40 p-4">
-              <p className="text-sm text-muted-foreground">Current balance</p>
-              <p className="mt-2 text-3xl font-semibold">
+
+            <div className="rounded-[1.7rem] border border-white/8 bg-background/82 px-5 py-4 shadow-[0_24px_40px_-30px_rgba(0,0,0,0.95)]">
+              <p className="text-[0.78rem] font-bold uppercase tracking-[0.32em] text-muted-foreground">
+                Current balance
+              </p>
+              <p className="mt-3 text-[2.5rem] leading-none font-black tracking-[-0.06em] text-foreground">
                 {formatMoney(
                   account.current_balance.amount_minor,
                   account.current_balance.currency,
                 )}
               </p>
             </div>
-            <div className="rounded-lg border bg-muted/20 p-4">
-              <AccountFactList>
-                <AccountFactRow
-                  label="Type"
-                  value={getAccountTypeLabel(account.type)}
+          </div>
+
+          <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1.28fr)_minmax(280px,0.92fr)]">
+            <div className="rounded-[2rem] border border-white/7 bg-background/72 p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[0.82rem] font-bold uppercase tracking-[0.32em] text-muted-foreground">
+                    Flow snapshot
+                  </p>
+                  <p className="mt-3 text-[1.2rem] font-bold text-foreground">
+                    Income vs expense movement
+                  </p>
+                </div>
+                <Sparkles className="mt-0.5 size-5 text-amber-300" />
+              </div>
+              <div className="mt-7 h-4 rounded-full bg-white/5 p-0.5">
+                <div
+                  className={cn(
+                    "h-full rounded-full bg-gradient-to-r",
+                    snapshot.incomeMinor > 0 || snapshot.expenseMinor > 0
+                      ? "from-rose-500 via-rose-400 to-orange-400"
+                      : "from-white/8 via-white/6 to-white/4",
+                  )}
                 />
-                <AccountFactRow label="Currency" value={account.currency} />
-                <AccountFactRow
-                  label="Opened on"
-                  value={formatDate(account.opened_on)}
+              </div>
+              <div className="mt-7 grid gap-4 sm:grid-cols-2">
+                <SnapshotMetricCard
+                  accentClassName="border-emerald-500/25 text-emerald-400"
+                  icon={<TrendingUp className="size-4 stroke-[2.1]" />}
+                  label="Income"
+                  value={formatSignedSnapshotValue(snapshot.incomeMinor, account.currency, "+")}
                 />
-                <AccountFactRow
-                  label="Archived at"
-                  value={account.archived_at ? formatDate(account.archived_at) : "Active"}
+                <SnapshotMetricCard
+                  accentClassName="border-rose-500/25 text-rose-400"
+                  icon={<TrendingDown className="size-4 stroke-[2.1]" />}
+                  label="Expenses"
+                  value={formatSignedSnapshotValue(-snapshot.expenseMinor, account.currency, "-")}
                 />
-              </AccountFactList>
+              </div>
+            </div>
+
+            <div className="grid gap-4">
+              <InfoMetricCard
+                description="Captured entries linked to this account."
+                label="Transaction count"
+                value={`${transactions.length}`}
+              />
+              <InfoMetricCard
+                description={
+                  latestActivity
+                    ? latestActivity.description || getTransactionLabel(latestActivity.type)
+                    : "This account has no recent transactions."
+                }
+                icon={<Clock3 className="size-4 stroke-[2]" />}
+                label="Latest activity"
+                value={latestActivity ? formatDate(latestActivity.occurred_on) : "No activity yet"}
+              />
             </div>
           </div>
 
-          <div>
-            <Link
-              className="text-sm font-medium text-primary hover:underline"
-              to="/accounts"
-            >
-              Back to accounts
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-
-      <AccountSectionStack>
-        <AccountSectionCard
-          description="Edit the account name, type, and appearance used across the app."
-          title="Account profile"
-        >
-          <AccountProfileForm
-            account={account}
-            errorMessage={profileErrorMessage}
-            isPending={updateProfileMutation.isPending}
-            onSubmit={handleProfileUpdate}
+          <div
+            className="mt-8 border-t border-white/7 pt-8"
           />
-        </AccountSectionCard>
-
-        <AccountSectionCard
-          description={
-            isArchived
-              ? "Archived accounts keep their final balance and cannot post new transactions."
-              : "Record expense, income, transfers, or manual adjustments directly into the ledger."
-          }
-          title={isArchived ? "Ledger is locked" : "Record transaction"}
-        >
-          {isArchived ? (
-            <div className="rounded-[1.6rem] border border-border/70 bg-muted/15 p-5">
-              <p className="text-sm text-muted-foreground">
-                This account is archived and cannot accept new transactions.
-              </p>
+          <section>
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-[2.1rem] leading-none font-black tracking-[-0.05em] text-foreground">
+                    Recent activity
+                  </h2>
+                  <span className="inline-flex min-w-10 items-center justify-center rounded-full border border-white/8 bg-white/4 px-3 py-2 text-[1rem] font-medium text-muted-foreground">
+                    {recentTransactions.length}
+                  </span>
+                </div>
+                <p className="mt-4 text-[1.02rem] text-muted-foreground">
+                  Latest transactions tied to this account, updated dynamically.
+                </p>
+              </div>
             </div>
-          ) : (
-            <TransactionComposer
-              account={account}
-              accounts={accounts}
-              incomeCategories={incomeCategories}
-              errorMessage={transactionErrorMessage}
-              isPending={transactionMutation.isPending}
-              onSubmit={handleTransactionSubmit}
-              spendingCategories={spendingCategories}
-            />
-          )}
-        </AccountSectionCard>
 
-        <AccountSectionCard
-          description="Recent ledger activity for this account."
-          title="Recent activity"
-        >
-          {transactionsQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading transactions...</p>
-          ) : transactions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No transactions yet for this account.
-            </p>
-          ) : (
-            <div className="grid gap-3">
-              {transactions.map((transaction) => {
-                const accountAmount = getAccountAmount(transaction, account.id)
-                return (
-                  <div
-                    className="rounded-[1.4rem] border border-border/70 bg-background/40 px-4 py-3"
-                    key={transaction.id}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="font-medium">
-                          {transaction.description || getTransactionLabel(transaction.type)}
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {formatDate(transaction.occurred_on)} · {transaction.type}
+            <div className="mt-7 grid gap-4">
+              {transactionsQuery.isLoading ? (
+                <p className="text-sm text-muted-foreground">Loading transactions...</p>
+              ) : recentTransactions.length === 0 ? (
+                <div className="rounded-[1.8rem] border border-dashed border-white/8 bg-white/[0.03] px-6 py-10 text-center">
+                  <p className="text-base font-medium">No transactions found for this account.</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Recent activity will appear here once this account has ledger entries.
+                  </p>
+                </div>
+              ) : (
+                recentTransactions.map((transaction, index) => {
+                  const accountAmount = getAccountAmount(transaction, account.id)
+
+                  return (
+                    <div
+                      className="rounded-[1.7rem] border border-white/7 bg-[linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.01))] px-5 py-5 shadow-[0_20px_36px_-32px_rgba(0,0,0,0.95)]"
+                      key={transaction.id}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex min-w-0 items-start gap-4">
+                          <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-white/8 bg-background/70 text-xs font-semibold text-muted-foreground">
+                            {index + 1}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-[1.3rem] leading-none font-black tracking-[-0.03em] text-foreground">
+                              {transaction.description || getTransactionLabel(transaction.type)}
+                            </p>
+                            <p className="mt-3 text-[0.98rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                              {formatDate(transaction.occurred_on)} ·{" "}
+                              {getTransactionLabel(transaction.type)}
+                            </p>
+                          </div>
+                        </div>
+                        <p
+                          className={cn(
+                            "shrink-0 text-[1.05rem] font-black",
+                            accountAmount < 0 ? "text-rose-400" : "text-emerald-400",
+                          )}
+                        >
+                          {formatMoney(accountAmount, account.currency)}
                         </p>
                       </div>
-                      <p className="text-sm font-semibold">
-                        {formatMoney(accountAmount, account.currency)}
-                      </p>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })
+              )}
             </div>
-          )}
-        </AccountSectionCard>
-
-        <AccountSectionCard
-          description={
-            isArchived ? "This account is already archived." : "This keeps history but blocks future transactions."
-          }
-          footer={
-            !isArchived ? (
-              <button
-                className="inline-flex rounded-full border border-destructive/40 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10"
-                disabled={archiveMutation.isPending}
-                onClick={() => void handleArchiveAccount()}
-                type="button"
-              >
-                {archiveMutation.isPending ? "Archiving..." : "Archive account"}
-              </button>
-            ) : undefined
-          }
-          title="Archive account"
-        >
-          {archiveErrorMessage ? (
-            <p className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {archiveErrorMessage}
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              {isArchived
-                ? "Archived accounts stay visible with their final balance."
-                : "After archiving, new ledger entries will no longer be allowed for this account."}
-            </p>
-          )}
-        </AccountSectionCard>
-      </AccountSectionStack>
-    </AccountSplitLayout>
+          </section>
+        </div>
+      </div>
+    </section>
   )
+}
+
+function SnapshotMetricCard({
+  label,
+  value,
+  icon,
+  accentClassName,
+}: {
+  label: string
+  value: string
+  icon: ReactNode
+  accentClassName?: string
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-[1.6rem] border bg-[linear-gradient(180deg,rgba(255,255,255,0.015),rgba(255,255,255,0.008))] px-5 py-5",
+        accentClassName,
+      )}
+    >
+      <p className="inline-flex items-center gap-2 text-[0.82rem] font-bold uppercase tracking-[0.3em]">
+        {icon}
+        {label}
+      </p>
+      <p className="mt-5 text-[2.05rem] leading-none font-black tracking-[-0.05em] text-foreground">
+        {value}
+      </p>
+    </div>
+  )
+}
+
+function InfoMetricCard({
+  label,
+  value,
+  description,
+  icon,
+}: {
+  label: string
+  value: string
+  description: string
+  icon?: ReactNode
+}) {
+  return (
+    <div className="rounded-[1.9rem] border border-white/7 bg-background/72 px-5 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <p className="inline-flex items-center gap-2 text-[0.82rem] font-bold uppercase tracking-[0.32em] text-amber-300">
+        {icon}
+        {label}
+      </p>
+      <p className="mt-5 text-[2.7rem] leading-none font-black tracking-[-0.06em] text-foreground">
+        {value}
+      </p>
+      <p className="mt-4 text-[1rem] text-muted-foreground">{description}</p>
+    </div>
+  )
+}
+
+function summarizeAccountActivity(
+  transactions: Array<TransactionResponse>,
+  accountId: string,
+): ActivitySnapshot {
+  return transactions.reduce<ActivitySnapshot>(
+    (summary, transaction) => {
+      const amountMinor = getAccountAmount(transaction, accountId)
+
+      if (amountMinor > 0) {
+        summary.incomeMinor += amountMinor
+      }
+
+      if (amountMinor < 0) {
+        summary.expenseMinor += Math.abs(amountMinor)
+      }
+
+      return summary
+    },
+    { incomeMinor: 0, expenseMinor: 0 },
+  )
+}
+
+function sortRecentTransactions(transactions: Array<TransactionResponse>) {
+  return [...transactions].sort((left, right) => {
+    const occurredOrder = right.occurred_on.localeCompare(left.occurred_on)
+
+    if (occurredOrder !== 0) {
+      return occurredOrder
+    }
+
+    return right.created_on.localeCompare(left.created_on)
+  })
 }
 
 function getAccountAmount(transaction: TransactionResponse, accountId: string) {
   return (
     transaction.postings.find((posting) => posting.account_id === accountId)?.amount_minor ?? 0
   )
+}
+
+function getAccountSummaryDescription(type: AccountTypeValue, isArchived: boolean) {
+  if (isArchived) {
+    return "Archived overview of current balance, cash flow, and recent account activity."
+  }
+
+  return "Dynamic overview of current balance, cash flow, and recent account activity."
+}
+
+function formatSignedSnapshotValue(
+  amountMinor: number,
+  currency: string,
+  zeroSign: "+" | "-",
+) {
+  if (amountMinor === 0) {
+    return `${zeroSign}${formatMoney(0, currency)}`
+  }
+
+  const sign = amountMinor > 0 ? "+" : "-"
+  return `${sign}${formatMoney(Math.abs(amountMinor), currency)}`
 }
 
 function getTransactionLabel(type: TransactionResponse["type"]) {
