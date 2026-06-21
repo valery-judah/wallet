@@ -17,13 +17,12 @@ From the repo root:
 
 ```bash
 make verify
-uv --directory backend run poe serve
-uv --directory backend run poe export-openapi
-make frontend-install
+make run-backend
+make gen-openapi
 make frontend-generate-client
 make frontend-type
 make frontend-test
-make frontend-dev
+make run-frontend
 ```
 
 This writes the generated TypeScript client into `src/client/` and keeps both
@@ -35,7 +34,7 @@ the backend verification suite.
 Optional full-stack Compose mode:
 
 ```bash
-make dev-up
+make run-stack
 ```
 
 That starts both the backend and the frontend in containers. The host-`uv`
@@ -70,7 +69,7 @@ Useful commands:
 make frontend-build
 make frontend-type
 make frontend-test
-make frontend-dev
+make run-frontend
 ```
 
 ## API Base URL

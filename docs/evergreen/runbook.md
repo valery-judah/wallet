@@ -179,11 +179,6 @@ make gen-openapi
 - `make verify` is the automated read-only verification suite for backend checks plus frontend TypeScript validation.
 - The smoke commands are manual HTTP checks for operator-style backend validation.
 
-## Compatibility Aliases
+## Low-Level Frontend Docker Targets
 
-Older target names still work during the transition, but docs and help now lead with the workflow-first names.
-
-- Setup aliases: `init`, `sync`, `lock`
-- Backend aliases: `backend-dev`, `smoke`, `smoke-managed`
-- Frontend and stack aliases: `frontend-dev`, `dev-up`, `dev-down`, `dev-logs`
-- Direct frontend Docker targets such as `frontend-install` and `frontend-generate-client` remain available for low-level use
+Direct frontend Docker targets such as `frontend-install`, `frontend-generate-client`, and `frontend-bun` remain available for low-level use.

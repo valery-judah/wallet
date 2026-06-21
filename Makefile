@@ -10,7 +10,6 @@ PREFERRED_WORKFLOWS := setup run-backend run-stack stop-stack logs-stack gen-cli
 SETUP_TARGETS := setup setup-sync setup-lock install install-git-hooks
 BACKEND_CHECK_TARGETS := gen-openapi fmt lint type test verify check check-smoke check-smoke-managed clean
 FRONTEND_DOCKER_TARGETS := run-frontend frontend-install frontend-generate-client frontend-type frontend-build frontend-test frontend-bun run-stack stop-stack logs-stack
-COMPAT_ALIAS_TARGETS := init sync lock backend-dev smoke smoke-managed frontend-dev dev-up dev-down dev-logs
 
 .PHONY: help
 help: ## Show this help message
@@ -29,7 +28,6 @@ help: ## Show this help message
 	print_section "Setup" "$(SETUP_TARGETS)"; \
 	print_section "Backend Checks" "$(BACKEND_CHECK_TARGETS)"; \
 	print_section "Frontend / Docker" "$(FRONTEND_DOCKER_TARGETS)"; \
-	print_section "Compatibility Aliases" "$(COMPAT_ALIAS_TARGETS)"; \
 	echo "Direct backend tasks remain available via Poe:"; \
 	echo "  uv --directory backend run poe --help"; \
 	echo "  uv --directory backend run poe <task>"
@@ -54,24 +52,15 @@ install-git-hooks: ## Configure git to use repo-managed hooks
 setup-sync: ensure-uv ## Sync dependencies into the local .venv
 	$(UV) sync --package wallet --group dev
 
-.PHONY: sync
-sync: setup-sync ## Compatibility alias for setup-sync
-
 .PHONY: setup-lock
 setup-lock: ensure-uv ## Generate or refresh uv.lock
 	$(UV) lock
-
-.PHONY: lock
-lock: setup-lock ## Compatibility alias for setup-lock
 
 .PHONY: install
 install: setup-sync install-git-hooks ## Install the backend package in editable mode via uv sync
 
 .PHONY: setup
 setup: install ## Bootstrap local dev environment
-
-.PHONY: init
-init: setup ## Compatibility alias for setup
 
 .PHONY: add-rich
 add-rich: ensure-uv ## Add `rich` dependency via uv (updates pyproject + uv.lock)
@@ -98,9 +87,6 @@ type: ensure-uv ## Run static type checks
 run-backend: install ## Run the backend locally with reload
 	$(POE) serve
 
-.PHONY: backend-dev
-backend-dev: run-backend ## Compatibility alias for run-backend
-
 # --- Testing ---
 
 .PHONY: test
@@ -111,15 +97,9 @@ test: install ## Run unit tests
 check-smoke: install ## Run manual API smoke scenarios against an existing backend
 	$(POE) smoke
 
-.PHONY: smoke
-smoke: check-smoke ## Compatibility alias for check-smoke
-
 .PHONY: check-smoke-managed
 check-smoke-managed: install ## Run manual API smoke scenarios with a managed backend
 	$(POE) smoke-managed
-
-.PHONY: smoke-managed
-smoke-managed: check-smoke-managed ## Compatibility alias for check-smoke-managed
 
 .PHONY: clean
 clean: ensure-uv ## Remove caches and generated local artifacts
@@ -146,34 +126,31 @@ gen-client: gen-openapi frontend-install ## Export OpenAPI and regenerate the fr
 # --- Frontend (Bun in Docker) ---
 
 .PHONY: frontend-install
-frontend-install: ## Compatibility alias for the frontend dependency install step
+frontend-install: ## Install frontend dependencies in Docker
 	$(FRONTEND_COMPOSE) run --rm bun install
 
 .PHONY: frontend-generate-client
-frontend-generate-client: ## Compatibility alias for frontend client generation only
+frontend-generate-client: ## Regenerate the frontend API client in Docker
 	$(FRONTEND_COMPOSE) run --rm bun run generate-client
 
 .PHONY: frontend-type
-frontend-type: frontend-install ## Compatibility alias for frontend type checks
+frontend-type: frontend-install ## Run frontend type checks in Docker
 	$(FRONTEND_COMPOSE) run --rm bun run typecheck
 
 .PHONY: frontend-build
-frontend-build: ## Compatibility alias for the frontend production build
+frontend-build: ## Build the frontend production bundle in Docker
 	$(FRONTEND_COMPOSE) run --rm bun run build
 
 .PHONY: frontend-test
-frontend-test: ## Compatibility alias for frontend UI tests
+frontend-test: ## Run frontend UI tests in Docker
 	$(FRONTEND_COMPOSE) run --rm bun run test
 
 .PHONY: run-frontend
 run-frontend: frontend-install ## Run the frontend dev server in Docker on http://localhost:5173
 	$(FRONTEND_COMPOSE) up frontend
 
-.PHONY: frontend-dev
-frontend-dev: run-frontend ## Compatibility alias for run-frontend
-
 .PHONY: frontend-bun
-frontend-bun: ## Compatibility alias for arbitrary Bun commands in Docker
+frontend-bun: ## Run an arbitrary Bun command in Docker
 	@test -n "$(CMD)" || (echo "Usage: make frontend-bun CMD='<bun args>'" && exit 2)
 	$(FRONTEND_COMPOSE) run --rm bun $(CMD)
 
@@ -183,19 +160,10 @@ frontend-bun: ## Compatibility alias for arbitrary Bun commands in Docker
 run-stack: frontend-install ## Run the optional seeded local Docker Compose stack on http://localhost:8000 and http://localhost:5173
 	$(DEV_COMPOSE) up --build
 
-.PHONY: dev-up
-dev-up: run-stack ## Compatibility alias for run-stack
-
 .PHONY: stop-stack
 stop-stack: ## Stop the optional local Docker Compose stack
 	$(DEV_COMPOSE) down
 
-.PHONY: dev-down
-dev-down: stop-stack ## Compatibility alias for stop-stack
-
 .PHONY: logs-stack
 logs-stack: ## Tail logs for the optional local Docker Compose stack
 	$(DEV_COMPOSE) logs -f
-
-.PHONY: dev-logs
-dev-logs: logs-stack ## Compatibility alias for logs-stack

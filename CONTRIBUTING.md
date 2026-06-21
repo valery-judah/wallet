@@ -2,7 +2,7 @@
 
 ## Development setup
 ```bash
-make init
+make setup
 ```
 
 ## Quality checks
