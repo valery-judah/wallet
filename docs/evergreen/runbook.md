@@ -1,91 +1,191 @@
 # Runbook
 
-Canonical command surface for local development, verification, and operator-style checks.
+Canonical workflows for local development, verification, code generation, and
+operator-style checks.
 
-## Tooling
+## Prerequisites
 
-- Python: 3.11+
-- Package and task runner: `uv`
-- Backend task runner: Poe via `uv run poe`
-- Frontend and optional full-stack workflows: Docker with Compose support
+- Python 3.11+
+- [`uv`](https://docs.astral.sh/uv/)
+- Docker with Compose support for frontend and optional full-stack workflows
+
+Before using a Docker workflow, confirm that the CLI can reach the active engine:
+
+```bash
+docker context show
+docker info
+docker compose version
+```
 
 ## Command Entry Points
 
-- From the repo root, use `make` for the preferred workflow-oriented command surface.
-- Use `uv --directory backend run poe <task>` only when you want the direct backend task layer.
-- From inside `backend/`, use `uv run poe <task>`.
-- Inspect the current command surface with `make help` and `uv --directory backend run poe --help`.
+From the repository root, use `make` for the preferred workflow surface:
 
-## Quickstart
+```bash
+make help
+```
+
+Use Poe when direct backend task access is useful:
+
+```bash
+# From the repository root
+uv --directory backend run poe --help
+uv --directory backend run poe <task>
+
+# From backend/
+uv run poe <task>
+```
+
+## First-Time Setup
 
 ```bash
 make setup
 make verify
+```
+
+`make setup` syncs the backend development environment and configures Git to use
+the hooks in `.githooks/`.
+
+## Choose A Local Development Mode
+
+| Mode | Use when | Backend | Frontend | Initial data |
+| --- | --- | --- | --- | --- |
+| Backend only | Working on API or domain code | Host with `uv` | Not started | Empty |
+| Split local stack | Normal full-stack development | Host with `uv` | Docker | Empty |
+| Seeded Docker stack | Exploring, demoing, or checking integration | Docker | Docker | Sample data |
+
+### Backend Only
+
+Use this mode when changing backend behavior, API routes, domain logic, or tests
+without needing the UI:
+
+```bash
 make run-backend
-make gen-client
+```
+
+The command starts FastAPI with reload and runs until interrupted with `Ctrl+C`.
+
+- API: `http://localhost:8000`
+- OpenAPI: `http://localhost:8000/api/v1/openapi.json`
+- Interactive docs: `http://localhost:8000/docs`
+- Sample data: disabled by default
+
+To run the HTTP smoke scenarios against this backend, keep it running and use
+another terminal:
+
+```bash
+make check-smoke
+```
+
+### Split Local Stack
+
+This is the recommended mode for normal full-stack development. The backend runs
+on the host for direct reload and debugging, while Bun and the frontend run in
+Docker.
+
+Terminal 1:
+
+```bash
+make run-backend
+```
+
+Terminal 2:
+
+```bash
 make run-frontend
 ```
 
-Optional full-stack Docker flow:
+- Backend: `http://localhost:8000`
+- Frontend: `http://localhost:5173`
+- Frontend loopback twin: `http://127.0.0.1:5173`
+- Sample data: disabled by default
+
+If the API schema changes, regenerate the frontend client:
 
 ```bash
-make run-stack
-```
-
-`make run-stack` starts the local Docker stack with sample backend data enabled by default.
-
-## Preferred Workflows
-
-```bash
-make setup
-make run-backend
-make run-stack
-make stop-stack
-make logs-stack
 make gen-client
-make verify
-make check-smoke
-make clean
 ```
 
-- `make run-backend`: run the backend locally with reload on the host
-- `make run-frontend`: run the frontend dev server in Docker
-- `make run-stack`: run backend and frontend together in Docker with sample data seeded by default
-- `make gen-client`: export OpenAPI, ensure frontend dependencies, and regenerate the frontend API client
-- `make verify`: run the backend verification suite plus frontend TypeScript validation
-
-## Setup And Dependency Management
+To keep the host-backend workflow but start with sample data:
 
 ```bash
-make setup
-make setup-sync
-make setup-lock
-make install
-make add-rich
-uv add --package wallet <package>
-uv add --package wallet --dev <package>
+WALLET_SEED_SAMPLE_DATA=true make run-backend
 ```
 
-- `make setup`: bootstrap the local development environment
-- `make setup-sync`: sync the lockfile into the local `.venv`
-- `make setup-lock`: generate or refresh `uv.lock`
-- `make install`: sync dependencies and install repo-managed git hooks
-- `make add-rich`: optional smoke-check command that adds a small runtime dependency
+### Seeded Docker Stack
 
-## Backend Workflows
-
-Preferred root commands:
+Use this mode when you want the complete application with predictable sample
+data and minimal manual setup:
 
 ```bash
-make run-backend
-make gen-openapi
-make check-smoke
-make check-smoke-managed
-make verify
-make clean
+make run-stack
 ```
 
-Low-level backend checks remain available at the root:
+It builds and starts:
+
+- Docker backend: `http://localhost:8000`
+- Docker frontend: `http://localhost:5173`
+- Sample data: enabled
+
+The command runs in the foreground and displays logs from both services. It is
+well suited to product exploration, demos, manual integration checks, and Docker
+build validation. The split stack is usually more convenient for backend
+debugging.
+
+Stop the foreground process with `Ctrl+C`, then remove the stack resources:
+
+```bash
+make stop-stack
+```
+
+To follow Compose logs from another terminal:
+
+```bash
+make logs-stack
+```
+
+`make logs-stack` is also long-running.
+
+### Default Recommendation
+
+| Intent | Command |
+| --- | --- |
+| Backend-only change | `make run-backend` |
+| Normal application development | `make run-backend` and `make run-frontend` |
+| Demo or integration exploration | `make run-stack` |
+| Pre-commit confidence | `make verify` |
+| Real HTTP sanity check | `make check-smoke-managed` |
+
+Verification, generation, and managed smoke commands perform work and exit; they
+do not leave a development stack running.
+
+## Verification
+
+Run the standard code verification suite:
+
+```bash
+make verify
+```
+
+It runs:
+
+- backend formatting checks and lint
+- strict backend type checking
+- backend tests
+- frontend TypeScript checking
+
+The checks do not intentionally rewrite tracked source files. The Make workflow
+may still sync local dependencies, configure the repository Git hooks path, and
+run `bun install` in the frontend Docker environment.
+
+Frontend tests and the production build are separate checks:
+
+```bash
+make frontend-test
+make frontend-build
+```
+
+Low-level backend checks are also available individually:
 
 ```bash
 make fmt
@@ -95,90 +195,119 @@ make test
 make check
 ```
 
-Direct backend Poe tasks from the repo root:
+`make fmt` modifies backend source when formatting or auto-fixes are required.
+`make check` is an alias for `make verify`.
+
+## Smoke Testing
+
+Run smoke scenarios against an existing backend:
 
 ```bash
-uv --directory backend run poe fmt
-uv --directory backend run poe fmt-check
-uv --directory backend run poe lint
-uv --directory backend run poe type
-uv --directory backend run poe test
-uv --directory backend run poe serve
-uv --directory backend run poe smoke
-uv --directory backend run poe smoke-managed
-uv --directory backend run poe export-openapi
-uv --directory backend run poe clean
-uv --directory backend run poe verify
-uv --directory backend run poe check
-```
-
-- `make run-backend` is the preferred root-level command for local backend startup.
-- `uv --directory backend run poe serve` remains the direct underlying backend task.
-
-Equivalent backend tasks from inside `backend/`:
-
-```bash
-cd backend
-uv run poe fmt
-uv run poe fmt-check
-uv run poe lint
-uv run poe type
-uv run poe test
-uv run poe serve
-uv run poe smoke
-uv run poe smoke-managed
-uv run poe export-openapi
-uv run poe clean
-uv run poe verify
-uv run poe check
-```
-
-## Frontend Workflows
-
-The generated UI client lives in `frontend/`.
-
-```bash
-make gen-client
-make run-frontend
-make frontend-type
-make frontend-build
-make frontend-test
-make frontend-bun CMD="run <script>"
-```
-
-- `make gen-client` is the preferred client refresh workflow.
-- `make run-frontend` starts the frontend dev server on `http://localhost:5173`.
-- Frontend dev server: `http://localhost:5173`
-- Loopback twin with default CORS settings: `http://127.0.0.1:5173`
-
-## Full-Stack Docker Workflows
-
-```bash
-make run-stack
-make stop-stack
-make logs-stack
-```
-
-- `make run-stack` runs the optional local stack on `http://localhost:8000` and `http://localhost:5173`.
-- `make run-backend` keeps the backend empty by default unless `WALLET_SEED_SAMPLE_DATA=true` is set explicitly.
-- The canonical backend developer flow remains host `uv` plus the frontend Bun container commands.
-
-## API Operations
-
-```bash
-make run-backend
+# Expects the backend at http://127.0.0.1:8000
 make check-smoke
+```
+
+Or let the smoke harness manage a temporary backend:
+
+```bash
+# Starts a temporary backend at http://127.0.0.1:8010
 make check-smoke-managed
+```
+
+The smoke harness exercises real HTTP requests and is intended for manual,
+operator-style validation. It is separate from the automated test suite.
+
+## API And Client Generation
+
+Export only the backend OpenAPI document:
+
+```bash
 make gen-openapi
 ```
 
-- App factory entrypoint: `wallet.api.app:create_app`
+Export OpenAPI, ensure frontend dependencies, and regenerate the frontend API
+client:
+
+```bash
+make gen-client
+```
+
+Generated artifacts live at:
+
+- `frontend/openapi.json`
+- `frontend/src/client/`
+
+These commands can update tracked generated files. Review the result with
+`git diff`.
+
+## Dependency Management
+
+```bash
+# Sync uv.lock into the local backend environment
+make setup-sync
+
+# Generate or refresh uv.lock
+make setup-lock
+
+# Sync dependencies and configure repository-managed Git hooks
+make install
+
+# Add a backend runtime dependency
+uv add --package wallet <package>
+
+# Add a backend development dependency
+uv add --package wallet --dev <package>
+```
+
+`make setup-lock` and both `uv add` commands can update tracked dependency files.
+
+## API Operations
+
+- App factory: `wallet.api.app:create_app`
 - Singleton ASGI app: `wallet.api.main:app`
-- OpenAPI JSON: `/api/v1/openapi.json`
-- Interactive docs: `/docs`
-- `make verify` is the automated read-only verification suite for backend checks plus frontend TypeScript validation.
-- The smoke commands are manual HTTP checks for operator-style backend validation.
+- OpenAPI JSON: `http://localhost:8000/api/v1/openapi.json`
+- Interactive docs: `http://localhost:8000/docs`
 
-## Low-Level Frontend Docker Targets
+## Command Behavior Reference
 
-Direct frontend Docker targets such as `frontend-install`, `frontend-generate-client`, and `frontend-bun` remain available for low-level use.
+| Command | Existing service required | Long-running | Can modify tracked files |
+| --- | --- | --- | --- |
+| `make setup` | No | No | No |
+| `make verify` | No | No | Not intentionally |
+| `make run-backend` | No | Yes | No |
+| `make run-frontend` | No | Yes | No |
+| `make run-stack` | No | Yes | No |
+| `make logs-stack` | Running stack | Yes | No |
+| `make stop-stack` | No | No | No |
+| `make check-smoke` | Backend on port 8000 | No | No |
+| `make check-smoke-managed` | No | No | No |
+| `make gen-openapi` | No | No | Yes |
+| `make gen-client` | No | No | Yes |
+| `make frontend-type` | No | No | No |
+| `make frontend-test` | No | No | No |
+| `make frontend-build` | No | No | No |
+| `make setup-lock` | No | No | Yes |
+| `make clean` | No | No | Deletes local artifacts |
+
+## Low-Level Commands
+
+Direct backend tasks are listed by:
+
+```bash
+uv --directory backend run poe --help
+```
+
+Low-level frontend Docker targets include:
+
+```bash
+make frontend-install
+make frontend-generate-client
+make frontend-bun CMD="run <script>"
+```
+
+Remove backend and frontend caches, build output, and other generated local
+artifacts with:
+
+```bash
+make clean
+```
