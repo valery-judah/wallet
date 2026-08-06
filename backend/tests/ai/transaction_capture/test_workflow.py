@@ -3,6 +3,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import date
+from threading import Event
 
 import pytest
 
@@ -38,6 +39,7 @@ from wallet.ai.transaction_capture.processing import (
 from wallet.ai.transaction_capture.semantic import SemanticInterpretation, SemanticIssue
 from wallet.ai.transaction_capture.workflow import (
     CaptureOutcome,
+    CaptureResult,
     CaptureSessionNotFoundError,
     CaptureWorkflow,
 )
@@ -89,6 +91,33 @@ class StubProcessor:
                 grounded_interpretation=GroundedInterpretation(patch=patch),
                 candidate_reduction=reduction,
             ),
+        )
+
+
+@dataclass
+class BlockingProcessor:
+    delegate: StubProcessor
+    blocked_content: str
+    entered: Event = field(default_factory=Event)
+    release: Event = field(default_factory=Event)
+
+    def process(
+        self,
+        contribution: UserContribution,
+        *,
+        candidate: TransactionCandidate,
+        pending_interaction: PendingInteraction | None,
+        on_date: date,
+    ) -> ContributionProcessingResult:
+        if contribution.content == self.blocked_content:
+            self.entered.set()
+            if not self.release.wait(timeout=2):
+                raise TimeoutError("test did not release blocked capture processing")
+        return self.delegate.process(
+            contribution,
+            candidate=candidate,
+            pending_interaction=pending_interaction,
+            on_date=on_date,
         )
 
 
@@ -759,6 +788,139 @@ def test_processing_failures_roll_back_existing_and_unreturned_new_sessions() ->
     with pytest.raises(RuntimeError, match="model unavailable"):
         preview.receive(UserContribution("Broken edit"), capture_id=ready.session.id)
     assert preview.get(ready.session.id).session == ready.session
+
+
+def test_new_capture_is_not_published_until_initial_processing_succeeds() -> None:
+    processor = BlockingProcessor(
+        delegate=StubProcessor(
+            {"Start": interpretation_patch(patch=CandidatePatch(type=TransactionType.EXPENSE))}
+        ),
+        blocked_content="Start",
+    )
+    workflow = CaptureWorkflow(
+        processor=processor,
+        validator=StubValidator(),
+        wallet=StubWallet(),
+        today=lambda: TODAY,
+        generate_capture_id=lambda: "capture_1",
+    )
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        receive_future = executor.submit(workflow.receive, UserContribution("Start"))
+        assert processor.entered.wait(timeout=2)
+        try:
+            with pytest.raises(CaptureSessionNotFoundError, match="capture_1"):
+                workflow.get("capture_1")
+        finally:
+            processor.release.set()
+        created = receive_future.result(timeout=2)
+
+    assert workflow.get("capture_1").session == created.session
+
+
+def test_read_waits_for_an_in_flight_update_and_observes_the_committed_session() -> None:
+    processor = BlockingProcessor(
+        delegate=StubProcessor(
+            {
+                "Start": interpretation_patch(patch=CandidatePatch(type=TransactionType.EXPENSE)),
+                "$40": interpretation_patch(patch=CandidatePatch(amount_minor=4000)),
+            }
+        ),
+        blocked_content="$40",
+    )
+    workflow = CaptureWorkflow(
+        processor=processor,
+        validator=StubValidator(),
+        wallet=StubWallet(),
+        today=lambda: TODAY,
+        generate_capture_id=lambda: "capture_1",
+    )
+    started = workflow.receive(UserContribution("Start"))
+    getter_started = Event()
+
+    def read_capture() -> CaptureResult:
+        getter_started.set()
+        return workflow.get(started.session.id)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        update_future = executor.submit(
+            workflow.receive,
+            UserContribution("$40"),
+            capture_id=started.session.id,
+        )
+        assert processor.entered.wait(timeout=2)
+        read_future = executor.submit(read_capture)
+        assert getter_started.wait(timeout=2)
+        try:
+            assert not read_future.done()
+        finally:
+            processor.release.set()
+        updated = update_future.result(timeout=2)
+        observed = read_future.result(timeout=2)
+
+    assert observed.session == updated.session
+    assert observed.session.candidate.amount_minor == 4000
+
+
+def test_slow_processing_for_one_capture_does_not_block_another_capture() -> None:
+    processor = BlockingProcessor(
+        delegate=StubProcessor(
+            {
+                "Start one": interpretation_patch(
+                    patch=CandidatePatch(type=TransactionType.EXPENSE)
+                ),
+                "Start two": interpretation_patch(
+                    patch=CandidatePatch(type=TransactionType.EXPENSE)
+                ),
+                "Block one": interpretation_patch(patch=CandidatePatch(amount_minor=1000)),
+                "Advance two": interpretation_patch(patch=CandidatePatch(amount_minor=2000)),
+            }
+        ),
+        blocked_content="Block one",
+    )
+    capture_ids = iter(("capture_1", "capture_2"))
+    workflow = CaptureWorkflow(
+        processor=processor,
+        validator=StubValidator(),
+        wallet=StubWallet(),
+        today=lambda: TODAY,
+        generate_capture_id=lambda: next(capture_ids),
+    )
+    first = workflow.receive(UserContribution("Start one"))
+    second = workflow.receive(UserContribution("Start two"))
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first_future = executor.submit(
+            workflow.receive,
+            UserContribution("Block one"),
+            capture_id=first.session.id,
+        )
+        assert processor.entered.wait(timeout=2)
+        second_future = executor.submit(
+            workflow.receive,
+            UserContribution("Advance two"),
+            capture_id=second.session.id,
+        )
+        try:
+            advanced_second = second_future.result(timeout=1)
+        finally:
+            processor.release.set()
+        advanced_first = first_future.result(timeout=2)
+
+    assert advanced_first.session.candidate.amount_minor == 1000
+    assert advanced_second.session.candidate.amount_minor == 2000
+
+
+def test_duplicate_generated_capture_id_does_not_replace_the_published_session() -> None:
+    workflow, _, _, _ = _workflow(
+        {"Start": interpretation_patch(patch=CandidatePatch(type=TransactionType.EXPENSE))}
+    )
+    first = workflow.receive(UserContribution("Start"))
+
+    with pytest.raises(ValueError, match="capture session already exists: capture_1"):
+        workflow.receive(UserContribution("Start"))
+
+    assert workflow.get(first.session.id).session == first.session
 
 
 def test_concurrent_confirmation_creates_exactly_one_transaction() -> None:

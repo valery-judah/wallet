@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import dataclass
+from _thread import LockType
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass, field
 from datetime import date
 from enum import StrEnum
-from threading import RLock
+from threading import Lock
 
 from wallet.ai.transaction_capture.domain import (
     CandidateField,
@@ -60,6 +62,36 @@ class _ReadyForExecution:
 _CandidateAssessment = _InteractionRequired | _ReadyForExecution
 
 
+@dataclass(slots=True)
+class _CaptureSessionEntry:
+    session: CaptureSession
+    lock: LockType = field(default_factory=Lock, repr=False)
+
+
+class _CaptureSessionRegistry:
+    """Own process-local capture sessions and their synchronization boundaries."""
+
+    def __init__(self) -> None:
+        self._entries: dict[str, _CaptureSessionEntry] = {}
+        self._lock = Lock()
+
+    def publish(self, session: CaptureSession) -> None:
+        entry = _CaptureSessionEntry(session=session)
+        with self._lock:
+            if session.id in self._entries:
+                raise ValueError(f"capture session already exists: {session.id}")
+            self._entries[session.id] = entry
+
+    @contextmanager
+    def access(self, capture_id: str) -> Iterator[_CaptureSessionEntry]:
+        with self._lock:
+            entry = self._entries.get(capture_id)
+        if entry is None:
+            raise CaptureSessionNotFoundError(capture_id)
+        with entry.lock:
+            yield entry
+
+
 class CaptureWorkflow:
     """Coordinate transaction-capture lifecycles through the ``receive`` command.
 
@@ -75,14 +107,12 @@ class CaptureWorkflow:
         today: DateProvider,
         generate_capture_id: CaptureIdGenerator,
     ) -> None:
-        self._sessions: dict[str, CaptureSession] = {}
+        self._registry = _CaptureSessionRegistry()
         self._processor = processor
         self._validator = validator
         self._wallet = wallet
         self._today = today
         self._generate_capture_id = generate_capture_id
-        self._registry_lock = RLock()
-        self._session_locks: dict[str, RLock] = {}
 
     def receive(
         self,
@@ -94,43 +124,37 @@ class CaptureWorkflow:
 
         on_date = self._today()
         if capture_id is None:
-            session, session_lock = self._start(on_date=on_date)
-            try:
-                with session_lock:
-                    return self._handle_contribution(session, contribution, on_date=on_date)
-            except Exception:
-                self._discard(session.id)
-                raise
+            session = CaptureSession.start(
+                id=self._generate_capture_id(),
+                occurred_on=on_date,
+            )
+            result = self._handle_contribution(session, contribution, on_date=on_date)
+            self._registry.publish(result.session)
+            return result
 
-        session_lock = self._lock_for(capture_id)
-        with session_lock:
-            session = self._load(capture_id)
+        with self._registry.access(capture_id) as entry:
+            session = entry.session
             if session.status in {CaptureStatus.COMPLETED, CaptureStatus.CANCELLED}:
                 raise InvalidCaptureTransitionError(
                     f"cannot add contribution while status is {session.status.value}"
                 )
-            original_session = session
             if session.status is CaptureStatus.AWAITING_CONFIRMATION:
                 session = session.resume()
-            try:
-                return self._handle_contribution(session, contribution, on_date=on_date)
-            except Exception:
-                self._store(original_session)
-                raise
+            result = self._handle_contribution(session, contribution, on_date=on_date)
+            entry.session = result.session
+            return result
 
     def get(self, capture_id: str) -> CaptureResult:
         """Return the current process-local capture state."""
 
-        session_lock = self._lock_for(capture_id)
-        with session_lock:
-            return self._result(self._load(capture_id), processing_trace=None)
+        with self._registry.access(capture_id) as entry:
+            return self._result(entry.session, processing_trace=None)
 
     def confirm(self, capture_id: str) -> CaptureResult:
         """Revalidate and execute a capture that is awaiting confirmation."""
 
-        session_lock = self._lock_for(capture_id)
-        with session_lock:
-            session = self._load(capture_id)
+        with self._registry.access(capture_id) as entry:
+            session = entry.session
             if session.status is CaptureStatus.COMPLETED:
                 return self._result(session, processing_trace=None)
             if session.status is not CaptureStatus.AWAITING_CONFIRMATION:
@@ -141,26 +165,27 @@ class CaptureWorkflow:
             assessment = self._assess(session.candidate)
             match assessment:
                 case _InteractionRequired():
-                    session = self._store(session.resume())
-                    return self._require_interaction(
-                        session,
+                    result = self._require_interaction(
+                        session.resume(),
                         assessment,
                         processing_trace=None,
                     )
                 case _ReadyForExecution():
-                    return self._execute(session, processing_trace=None)
+                    result = self._execute(session, processing_trace=None)
+            entry.session = result.session
+            return result
 
     def cancel(self, capture_id: str) -> CaptureResult:
         """Cancel an active or awaiting-confirmation capture."""
 
-        session_lock = self._lock_for(capture_id)
-        with session_lock:
-            session = self._load(capture_id)
+        with self._registry.access(capture_id) as entry:
+            session = entry.session
             if session.status is CaptureStatus.COMPLETED:
                 raise InvalidCaptureTransitionError(
                     "cannot cancel capture while status is completed"
                 )
-            session = self._store(session.cancel())
+            session = session.cancel()
+            entry.session = session
             return self._result(session, processing_trace=None)
 
     def _handle_contribution(
@@ -177,41 +202,8 @@ class CaptureWorkflow:
             on_date=on_date,
         )
         if processing.candidate != session.candidate:
-            session = self._store(session.update_candidate(processing.candidate))
+            session = session.update_candidate(processing.candidate)
         return self._progress(session, processing_trace=processing.trace)
-
-    def _start(self, *, on_date: date) -> tuple[CaptureSession, RLock]:
-        session = CaptureSession.start(
-            id=self._generate_capture_id(),
-            occurred_on=on_date,
-        )
-        session_lock = RLock()
-        with self._registry_lock:
-            self._sessions[session.id] = session
-            self._session_locks[session.id] = session_lock
-        return session, session_lock
-
-    def _lock_for(self, capture_id: str) -> RLock:
-        with self._registry_lock:
-            session_lock = self._session_locks.get(capture_id)
-        if session_lock is None:
-            raise CaptureSessionNotFoundError(capture_id)
-        return session_lock
-
-    def _discard(self, capture_id: str) -> None:
-        with self._registry_lock:
-            self._sessions.pop(capture_id, None)
-            self._session_locks.pop(capture_id, None)
-
-    def _load(self, capture_id: str) -> CaptureSession:
-        session = self._sessions.get(capture_id)
-        if session is None:
-            raise CaptureSessionNotFoundError(capture_id)
-        return session
-
-    def _store(self, session: CaptureSession) -> CaptureSession:
-        self._sessions[session.id] = session
-        return session
 
     def _progress(
         self,
@@ -235,7 +227,7 @@ class CaptureWorkflow:
                     processing_trace=processing_trace,
                 )
             case _ReadyForExecution():
-                session = self._store(session.await_confirmation())
+                session = session.await_confirmation()
                 return self._result(session, processing_trace=processing_trace)
 
     def _processing_requirement(
@@ -337,7 +329,7 @@ class CaptureWorkflow:
             session = session.update_candidate(
                 session.candidate.apply(_clear_field(requirement.clear_field))
             )
-        session = self._store(session.request(requirement.interaction))
+        session = session.request(requirement.interaction)
         return CaptureResult(
             outcome=CaptureOutcome.AWAITING_INTERACTION,
             session=session,
@@ -351,7 +343,7 @@ class CaptureWorkflow:
         processing_trace: ContributionProcessingTrace | None,
     ) -> CaptureResult:
         transaction_id = self._wallet.execute(session.candidate)
-        session = self._store(session.complete(transaction_id=transaction_id))
+        session = session.complete(transaction_id=transaction_id)
         return self._result(session, processing_trace=processing_trace)
 
     def _result(
