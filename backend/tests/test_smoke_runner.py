@@ -99,10 +99,14 @@ def test_managed_backend_serves_health_and_stops() -> None:
     port = _reserve_local_port()
     base_url = f"http://127.0.0.1:{port}"
 
-    with managed_backend(base_url) as backend:
+    with managed_backend(
+        base_url,
+        environment={"WALLET_ENVIRONMENT": "test"},
+    ) as backend:
         response = HttpClient(backend.base_url).request("GET", "/api/v1/health")
 
         assert response.status_code == 200
+        assert response.body["environment"] == "test"
         assert backend.process.poll() is None
 
     assert backend.process.poll() is not None

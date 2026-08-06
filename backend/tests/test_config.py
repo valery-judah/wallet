@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from wallet.config import Settings, get_settings
 
 
@@ -12,6 +14,9 @@ def test_settings_defaults() -> None:
     assert settings.api_v1_prefix == "/api/v1"
     assert settings.frontend_host == "http://localhost:5173"
     assert settings.seed_sample_data is False
+    assert settings.ollama_base_url == "http://127.0.0.1:11434"
+    assert settings.ollama_model == "qwen3.5:9b"
+    assert settings.ollama_timeout_seconds == 30.0
     assert settings.all_cors_origins == [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
@@ -25,6 +30,9 @@ def test_get_settings_respects_environment_overrides(monkeypatch) -> None:
     monkeypatch.setenv("WALLET_API_V1_PREFIX", "/api/custom/")
     monkeypatch.setenv("WALLET_FRONTEND_HOST", "http://localhost:4173/")
     monkeypatch.setenv("WALLET_SEED_SAMPLE_DATA", "true")
+    monkeypatch.setenv("WALLET_OLLAMA_BASE_URL", "http://localhost:22468/")
+    monkeypatch.setenv("WALLET_OLLAMA_MODEL", "qwen3.5:4b")
+    monkeypatch.setenv("WALLET_OLLAMA_TIMEOUT_SECONDS", "45")
     monkeypatch.setenv(
         "WALLET_BACKEND_CORS_ORIGINS",
         "http://localhost:3000/,https://wallet.example.com",
@@ -39,6 +47,9 @@ def test_get_settings_respects_environment_overrides(monkeypatch) -> None:
     assert settings.api_v1_prefix == "/api/custom"
     assert settings.frontend_host == "http://localhost:4173/"
     assert settings.seed_sample_data is True
+    assert settings.ollama_base_url == "http://localhost:22468"
+    assert settings.ollama_model == "qwen3.5:4b"
+    assert settings.ollama_timeout_seconds == 45.0
     assert settings.all_cors_origins == [
         "http://localhost:4173",
         "http://127.0.0.1:4173",
@@ -80,3 +91,17 @@ def test_settings_deduplicate_explicit_loopback_origin() -> None:
         "http://localhost:4173",
         "https://wallet.example.com",
     ]
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {"ollama_base_url": "localhost:11434"},
+        {"ollama_base_url": "http://localhost:11434/api"},
+        {"ollama_model": "  "},
+        {"ollama_timeout_seconds": 0},
+    ],
+)
+def test_settings_reject_invalid_ollama_configuration(values: dict[str, object]) -> None:
+    with pytest.raises(ValueError):
+        Settings(**values)

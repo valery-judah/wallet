@@ -125,6 +125,36 @@ Reserved future concepts:
 - Import pipelines
 - Pending and void transaction workflows
 
+## Conversational Transaction Capture
+
+The MVP exposes a synchronous HTTP workflow for progressively capturing one
+transaction from natural-language contributions. Capture sessions and wallet
+data are process-local: they survive requests handled by the same backend
+process but not restarts or multiple workers.
+
+The public resource is `/api/v1/transaction-captures`:
+
+- create a capture with an initial contribution;
+- read the current capture state;
+- add follow-up contributions or corrections;
+- explicitly confirm a complete candidate;
+- cancel an active capture.
+
+Capture supports expenses, income, transfers, and balance adjustments. It
+defaults the transaction date to today, asks deterministic questions for missing
+or unusable fields, and returns structured disambiguation options when a wallet
+label is ambiguous.
+
+A complete and valid candidate enters `awaiting_confirmation`. No ledger
+transaction or posting is created in that state. The confirm action revalidates
+wallet references and creates exactly one posted transaction. Repeated
+confirmation of an already completed capture returns the same transaction.
+Cancellation is terminal and never creates a transaction.
+
+Confirmation and cancellation are explicit HTTP actions. Natural-language
+answers such as `yes` or `cancel` do not perform terminal actions. Direct manual
+transaction creation through `/api/v1/transactions` remains immediate.
+
 ## Out of Scope
 
 The MVP does not yet include:
@@ -136,3 +166,6 @@ The MVP does not yet include:
 - Bank connections or sync
 - Multi-currency FX transactions
 - Budget rules based on transaction classification
+- Durable or multi-worker capture sessions
+- Asynchronous or streaming capture responses
+- Conversational capture UI and external messaging-channel adapters

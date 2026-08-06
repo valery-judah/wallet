@@ -1,0 +1,1 @@
+"""AI-assisted Wallet features."""

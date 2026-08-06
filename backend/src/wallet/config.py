@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 from urllib.parse import urlsplit
 
-from pydantic import AnyUrl, BeforeValidator, computed_field, field_validator
+from pydantic import AnyUrl, BeforeValidator, Field, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     frontend_host: str = "http://localhost:5173"
     backend_cors_origins: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = []
     seed_sample_data: bool = False
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_model: str = "qwen3.5:9b"
+    ollama_timeout_seconds: float = Field(default=30.0, gt=0)
 
     @field_validator("api_v1_prefix")
     @classmethod
@@ -65,6 +68,25 @@ class Settings(BaseSettings):
         normalized = value.rstrip("/") or "/"
         if not normalized.startswith("/"):
             raise ValueError("api_v1_prefix must start with '/'")
+        return normalized
+
+    @field_validator("ollama_base_url")
+    @classmethod
+    def _validate_ollama_base_url(cls, value: str) -> str:
+        normalized = value.strip().rstrip("/")
+        parsed = urlsplit(normalized)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("ollama_base_url must be an HTTP URL")
+        if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+            raise ValueError("ollama_base_url must not include a path, query, or fragment")
+        return normalized
+
+    @field_validator("ollama_model")
+    @classmethod
+    def _validate_ollama_model(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("ollama_model must not be blank")
         return normalized
 
     @computed_field  # type: ignore[prop-decorator]

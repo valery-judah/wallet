@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from wallet.api.deps import build_container
+from wallet.api.deps import build_app_container
 from wallet.application.accounts import AccountService, OpenAccount
 from wallet.bootstrap.sample_data import seed_sample_data
 from wallet.bootstrap.spending_categories import (
@@ -78,7 +78,7 @@ def test_seed_default_income_categories_is_noop_for_non_empty_repository() -> No
 
 
 def test_build_container_seeds_categories_during_container_creation() -> None:
-    container = build_container(
+    container = build_app_container(
         Settings(
             app_name="Wallet Test API",
             environment="test",
@@ -143,7 +143,7 @@ def test_seed_sample_data_is_noop_when_user_accounts_already_exist() -> None:
 
 
 def test_build_container_seeds_categories_before_sample_data() -> None:
-    container = build_container(
+    container = build_app_container(
         Settings(
             app_name="Wallet Test API",
             environment="test",

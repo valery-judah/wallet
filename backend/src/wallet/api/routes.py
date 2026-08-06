@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query, status
 
+from wallet.ai.transaction_capture.domain import UserContribution
 from wallet.application.accounts import ArchiveAccount, OpenAccount, UpdateAccountProfile
 from wallet.application.income_categories import (
     CreateIncomeCategory,
@@ -21,6 +22,8 @@ from wallet.domain.transactions import TransactionNotFoundError
 
 from .deps import (
     AccountServiceDep,
+    CapturePresenterDep,
+    CaptureWorkflowDep,
     IncomeCategoryServiceDep,
     SettingsDep,
     SpendingCategoryServiceDep,
@@ -28,6 +31,8 @@ from .deps import (
 )
 from .schemas import (
     AccountResponse,
+    CaptureContributionRequest,
+    CaptureResponse,
     CreateAccountRequest,
     CreateIncomeCategoryRequest,
     CreateSpendingCategoryRequest,
@@ -53,6 +58,10 @@ income_categories_router = APIRouter(
     tags=["income-categories"],
 )
 transactions_router = APIRouter(prefix="/transactions", tags=["transactions"])
+transaction_captures_router = APIRouter(
+    prefix="/transaction-captures",
+    tags=["transaction-captures"],
+)
 
 
 @system_router.get("/health", response_model=HealthResponse)
@@ -237,6 +246,73 @@ def update_income_category(
     return IncomeCategoryResponse.from_tree_node(_to_income_tree_node(category))
 
 
+@transaction_captures_router.post(
+    "",
+    response_model=CaptureResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_transaction_capture(
+    payload: CaptureContributionRequest,
+    workflow: CaptureWorkflowDep,
+    presenter: CapturePresenterDep,
+) -> CaptureResponse:
+    result = workflow.receive(UserContribution(payload.content))
+    return presenter.present(result)
+
+
+@transaction_captures_router.get(
+    "/{capture_id}",
+    response_model=CaptureResponse,
+)
+def get_transaction_capture(
+    capture_id: str,
+    workflow: CaptureWorkflowDep,
+    presenter: CapturePresenterDep,
+) -> CaptureResponse:
+    return presenter.present(workflow.get(capture_id))
+
+
+@transaction_captures_router.post(
+    "/{capture_id}/contributions",
+    response_model=CaptureResponse,
+)
+def add_transaction_capture_contribution(
+    capture_id: str,
+    payload: CaptureContributionRequest,
+    workflow: CaptureWorkflowDep,
+    presenter: CapturePresenterDep,
+) -> CaptureResponse:
+    result = workflow.receive(
+        UserContribution(payload.content),
+        capture_id=capture_id,
+    )
+    return presenter.present(result)
+
+
+@transaction_captures_router.post(
+    "/{capture_id}/confirm",
+    response_model=CaptureResponse,
+)
+def confirm_transaction_capture(
+    capture_id: str,
+    workflow: CaptureWorkflowDep,
+    presenter: CapturePresenterDep,
+) -> CaptureResponse:
+    return presenter.present(workflow.confirm(capture_id))
+
+
+@transaction_captures_router.post(
+    "/{capture_id}/cancel",
+    response_model=CaptureResponse,
+)
+def cancel_transaction_capture(
+    capture_id: str,
+    workflow: CaptureWorkflowDep,
+    presenter: CapturePresenterDep,
+) -> CaptureResponse:
+    return presenter.present(workflow.cancel(capture_id))
+
+
 @transactions_router.post(
     "",
     response_model=TransactionResponse,
@@ -294,6 +370,7 @@ api_router.include_router(system_router)
 api_router.include_router(accounts_router)
 api_router.include_router(spending_categories_router)
 api_router.include_router(income_categories_router)
+api_router.include_router(transaction_captures_router)
 api_router.include_router(transactions_router)
 
 

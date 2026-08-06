@@ -36,6 +36,10 @@ cmd = "python -m scripts.devex.smoke.run"
 help = "Run the manual API smoke scenarios with a managed backend process"
 cmd = "python -m scripts.devex.smoke.run --managed"
 
+[tasks.capture-smoke]
+help = "Run transaction-capture API smoke scenarios against local Ollama"
+cmd = "python -m scripts.devex.transaction_capture_smoke"
+
 [tasks.export-openapi]
 help = "Export the OpenAPI schema for frontend client generation"
 cmd = "python scripts/devex/export_openapi.py"

@@ -5,6 +5,12 @@ from typing import Annotated, cast
 
 from fastapi import Depends, Request
 
+from wallet.ai.transaction_capture.composition import (
+    build_capture_workflow,
+    build_default_contribution_processor_factory,
+)
+from wallet.ai.transaction_capture.ports import ContributionProcessorFactory
+from wallet.ai.transaction_capture.workflow import CaptureWorkflow
 from wallet.application.accounts import AccountService
 from wallet.application.income_categories import IncomeCategoryService
 from wallet.application.spending_categories import SpendingCategoryService
@@ -22,17 +28,36 @@ from wallet.ports.income_categories import IncomeCategoryRepository
 from wallet.ports.spending_categories import SpendingCategoryRepository
 from wallet.ports.transactions import TransactionRepository
 
+from .capture_presenter import CapturePresenter
+
 
 @dataclass(frozen=True, slots=True)
 class AppContainer:
+    """Process-local dependency graph shared by the API and in-process tools."""
+
     settings: Settings
     accounts: InMemoryAccountRepository
     income_categories: InMemoryIncomeCategoryRepository
     spending_categories: InMemorySpendingCategoryRepository
     transactions: InMemoryTransactionRepository
+    account_service: AccountService
+    transaction_service: TransactionService
+    capture_workflow: CaptureWorkflow
 
 
-def build_container(settings: Settings | None = None) -> AppContainer:
+def build_app_container(
+    settings: Settings | None = None,
+    *,
+    capture_processor_factory: ContributionProcessorFactory | None = None,
+) -> AppContainer:
+    """Assemble and initialize the process-local application dependency graph.
+
+    Construction creates fresh in-memory repositories and always seeds the default
+    spending and income categories. When ``settings.seed_sample_data`` is enabled,
+    it also seeds the sample accounts and historical transactions before wiring the
+    shared application services and workflows. It starts no server and makes no
+    Ollama request.
+    """
     resolved_settings = settings or get_settings()
     accounts = InMemoryAccountRepository()
     income_categories = InMemoryIncomeCategoryRepository()
@@ -46,12 +71,32 @@ def build_container(settings: Settings | None = None) -> AppContainer:
             income_categories,
             transactions,
         )
+    account_service = AccountService(accounts=accounts, transactions=transactions)
+    transaction_service = TransactionService(
+        accounts=accounts,
+        spending_categories=spending_categories,
+        income_categories=income_categories,
+        transactions=transactions,
+    )
+    resolved_capture_processor_factory = (
+        capture_processor_factory or build_default_contribution_processor_factory(resolved_settings)
+    )
+    capture_workflow = build_capture_workflow(
+        accounts=accounts,
+        spending_categories=spending_categories,
+        income_categories=income_categories,
+        transactions=transaction_service,
+        processor_factory=resolved_capture_processor_factory,
+    )
     return AppContainer(
         settings=resolved_settings,
         accounts=accounts,
         income_categories=income_categories,
         spending_categories=spending_categories,
         transactions=transactions,
+        account_service=account_service,
+        transaction_service=transaction_service,
+        capture_workflow=capture_workflow,
     )
 
 
@@ -105,11 +150,8 @@ TransactionRepositoryDep = Annotated[
 ]
 
 
-def get_account_service(
-    accounts: AccountRepositoryDep,
-    transactions: TransactionRepositoryDep,
-) -> AccountService:
-    return AccountService(accounts=accounts, transactions=transactions)
+def get_account_service(container: ContainerDep) -> AccountService:
+    return container.account_service
 
 
 AccountServiceDep = Annotated[AccountService, Depends(get_account_service)]
@@ -139,18 +181,27 @@ IncomeCategoryServiceDep = Annotated[
 ]
 
 
-def get_transaction_service(
-    accounts: AccountRepositoryDep,
-    spending_categories: SpendingCategoryRepositoryDep,
-    income_categories: IncomeCategoryRepositoryDep,
-    transactions: TransactionRepositoryDep,
-) -> TransactionService:
-    return TransactionService(
-        accounts=accounts,
-        spending_categories=spending_categories,
-        income_categories=income_categories,
-        transactions=transactions,
-    )
+def get_transaction_service(container: ContainerDep) -> TransactionService:
+    return container.transaction_service
 
 
 TransactionServiceDep = Annotated[TransactionService, Depends(get_transaction_service)]
+
+
+def get_capture_workflow(container: ContainerDep) -> CaptureWorkflow:
+    return container.capture_workflow
+
+
+CaptureWorkflowDep = Annotated[CaptureWorkflow, Depends(get_capture_workflow)]
+
+
+def get_capture_presenter(container: ContainerDep) -> CapturePresenter:
+    return CapturePresenter(
+        accounts=container.accounts,
+        spending_categories=container.spending_categories,
+        income_categories=container.income_categories,
+        transactions=container.transaction_service,
+    )
+
+
+CapturePresenterDep = Annotated[CapturePresenter, Depends(get_capture_presenter)]

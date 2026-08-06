@@ -8,6 +8,9 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
+from wallet.ai.llm import StructuredChatError
+from wallet.ai.transaction_capture.domain import InvalidCaptureTransitionError
+from wallet.ai.transaction_capture.workflow import CaptureSessionNotFoundError
 from wallet.application.accounts import CreateAccountRejectedError, UpdateAccountRejectedError
 from wallet.application.income_categories import (
     CreateIncomeCategoryRejectedError,
@@ -25,7 +28,7 @@ from wallet.domain.money import CurrencyMismatchError
 from wallet.domain.spending_categories import SpendingCategoryNotFoundError
 from wallet.domain.transactions import TransactionNotFoundError
 
-from .deps import build_container
+from .deps import build_app_container
 from .routes import api_router
 
 
@@ -39,7 +42,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-        application.state.container = build_container(resolved_settings)
+        application.state.container = build_app_container(resolved_settings)
         yield
 
     app = FastAPI(
@@ -195,6 +198,37 @@ def _register_exception_handlers(app: FastAPI) -> None:
         return _error_response(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(exc),
+        )
+
+    @app.exception_handler(CaptureSessionNotFoundError)
+    async def handle_capture_session_not_found(
+        request: Request,
+        exc: CaptureSessionNotFoundError,
+    ) -> JSONResponse:
+        capture_id = exc.args[0] if exc.args else "unknown"
+        return _error_response(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"capture session not found: {capture_id}",
+        )
+
+    @app.exception_handler(InvalidCaptureTransitionError)
+    async def handle_invalid_capture_transition(
+        request: Request,
+        exc: InvalidCaptureTransitionError,
+    ) -> JSONResponse:
+        return _error_response(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        )
+
+    @app.exception_handler(StructuredChatError)
+    async def handle_structured_chat_error(
+        request: Request,
+        exc: StructuredChatError,
+    ) -> JSONResponse:
+        return _error_response(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Transaction capture is temporarily unavailable.",
         )
 
 

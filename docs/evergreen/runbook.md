@@ -217,6 +217,97 @@ make check-smoke-managed
 The smoke harness exercises real HTTP requests and is intended for manual,
 operator-style validation. It is separate from the automated test suite.
 
+### Transaction Capture With Ollama
+
+The transaction-capture smoke workflow exercises the public HTTP API with seeded
+in-memory wallet data and a locally running Ollama model. By default it starts a
+temporary backend at `http://127.0.0.1:8011`, runs all scenarios against that one
+process, and stops it afterward:
+
+```bash
+ollama list
+make check-capture-smoke
+```
+
+Each scenario creates and advances a capture through `/api/v1/transaction-captures`,
+reads the capture back, and verifies that the transaction list remains unchanged
+until explicit confirmation. After confirmation it verifies the returned and
+persisted transaction, balanced postings, and account balance changes through the
+accounts and transactions APIs. Smoke output contains only the public candidate,
+interaction, message, and completion state; model traces remain internal.
+
+To target an already-running seeded, single-process backend instead:
+
+```bash
+uv --directory backend run poe capture-smoke \
+  --existing-backend \
+  --api-base-url http://127.0.0.1:8000
+```
+
+The default model is `qwen3.5:9b`. Install it before the first run when needed:
+
+```bash
+ollama pull qwen3.5:9b
+```
+
+### Transaction Capture HTTP API
+
+Run a seeded backend while Ollama is available:
+
+```bash
+WALLET_SEED_SAMPLE_DATA=true make run-backend
+```
+
+Start a capture with a synchronous JSON contribution:
+
+```bash
+curl --request POST http://127.0.0.1:8000/api/v1/transaction-captures \
+  --header 'content-type: application/json' \
+  --data '{"content":"Spent 40 dollars from USD cash on Groceries today"}'
+```
+
+The response contains a process-local capture ID. A complete candidate has
+`status: "awaiting_confirmation"` and has not changed the ledger. Use that ID to
+read, revise, confirm, or cancel the capture:
+
+```bash
+curl http://127.0.0.1:8000/api/v1/transaction-captures/<capture_id>
+
+curl --request POST \
+  http://127.0.0.1:8000/api/v1/transaction-captures/<capture_id>/contributions \
+  --header 'content-type: application/json' \
+  --data '{"content":"Make it 35"}'
+
+curl --request POST \
+  http://127.0.0.1:8000/api/v1/transaction-captures/<capture_id>/confirm
+
+curl --request POST \
+  http://127.0.0.1:8000/api/v1/transaction-captures/<capture_id>/cancel
+```
+
+Confirmation revalidates referenced accounts and categories, creates one posted
+transaction, and is idempotent after completion. Capture IDs become unavailable
+when the backend restarts and are not shared between backend workers. Model or
+structured-response failures return HTTP `502` without exposing model details.
+
+Configuration uses `WALLET_OLLAMA_BASE_URL`, `WALLET_OLLAMA_MODEL`, and
+`WALLET_OLLAMA_TIMEOUT_SECONDS`. Direct scenario and connection overrides are
+available through Poe:
+
+```bash
+uv --directory backend run poe capture-smoke \
+  --scenario progressive_expense \
+  --ollama-base-url http://127.0.0.1:11434 \
+  --ollama-timeout 30 \
+  --request-timeout 60 \
+  --model qwen3.5:9b
+```
+
+Ollama failures are observed through the product API as safe HTTP `502` responses;
+the smoke command does not call Ollama directly for a separate preflight.
+
+This is a manual model-dependent check and is not part of `make verify`.
+
 ## API And Client Generation
 
 Export only the backend OpenAPI document:
@@ -281,6 +372,7 @@ uv add --package wallet --dev <package>
 | `make stop-stack` | No | No | No |
 | `make check-smoke` | Backend on port 8000 | No | No |
 | `make check-smoke-managed` | No | No | No |
+| `make check-capture-smoke` | Ollama on port 11434 | No | No |
 | `make gen-openapi` | No | No | Yes |
 | `make gen-client` | No | No | Yes |
 | `make frontend-type` | No | No | No |

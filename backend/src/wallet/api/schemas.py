@@ -5,6 +5,13 @@ from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from wallet.ai.transaction_capture.domain import (
+    CandidateField,
+    CaptureStatus,
+    PendingInteraction,
+    PendingInteractionKind,
+    TransactionCandidate,
+)
 from wallet.application.accounts import AccountSnapshot
 from wallet.domain.accounts import AccountType
 from wallet.domain.money import Money
@@ -15,6 +22,7 @@ if TYPE_CHECKING:
     from wallet.application.spending_categories import SpendingCategoryTreeNode
 
 NonBlankStr = Annotated[str, StringConstraints(min_length=1)]
+CaptureContent = Annotated[str, StringConstraints(min_length=1, max_length=4_000)]
 
 
 class ApiModel(BaseModel):
@@ -178,6 +186,64 @@ class CreateTransactionRequest(ApiModel):
     notes: str | None = None
 
 
+class CaptureContributionRequest(ApiModel):
+    content: CaptureContent
+
+
+class CaptureCandidateResponse(ApiModel):
+    type: TransactionType | None = None
+    amount_minor: int | None = None
+    occurred_on: date | None = None
+    account_id: str | None = None
+    spending_category_id: str | None = None
+    income_category_id: str | None = None
+    source_account_id: str | None = None
+    destination_account_id: str | None = None
+    balance_change_minor: int | None = None
+    description: str | None = None
+    merchant_name: str | None = None
+    notes: str | None = None
+
+    @classmethod
+    def from_domain(cls, candidate: TransactionCandidate) -> CaptureCandidateResponse:
+        return cls(
+            type=candidate.type,
+            amount_minor=candidate.amount_minor,
+            occurred_on=candidate.occurred_on,
+            account_id=candidate.account_id,
+            spending_category_id=candidate.spending_category_id,
+            income_category_id=candidate.income_category_id,
+            source_account_id=candidate.source_account_id,
+            destination_account_id=candidate.destination_account_id,
+            balance_change_minor=candidate.balance_change_minor,
+            description=candidate.description,
+            merchant_name=candidate.merchant_name,
+            notes=candidate.notes,
+        )
+
+
+class CaptureInteractionOptionResponse(ApiModel):
+    value: str
+    label: str
+
+
+class CaptureInteractionResponse(ApiModel):
+    kind: PendingInteractionKind
+    field: CandidateField | None = None
+    options: list[CaptureInteractionOptionResponse] = Field(default_factory=list)
+
+    @classmethod
+    def from_domain(cls, interaction: PendingInteraction) -> CaptureInteractionResponse:
+        return cls(
+            kind=interaction.kind,
+            field=interaction.field,
+            options=[
+                CaptureInteractionOptionResponse(value=option.value, label=option.label)
+                for option in interaction.options
+            ],
+        )
+
+
 class PostingResponse(ApiModel):
     id: str
     account_id: str | None = None
@@ -226,6 +292,15 @@ class TransactionResponse(ApiModel):
             created_on=transaction.created_on,
             updated_on=transaction.updated_on,
         )
+
+
+class CaptureResponse(ApiModel):
+    id: str
+    status: CaptureStatus
+    candidate: CaptureCandidateResponse
+    interaction: CaptureInteractionResponse | None = None
+    message: NonBlankStr
+    transaction: TransactionResponse | None = None
 
 
 SpendingCategoryResponse.model_rebuild()

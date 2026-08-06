@@ -46,6 +46,121 @@ export type AccountResponse = {
 export type AccountType = 'cash' | 'debit_card' | 'credit_card' | 'bank_account' | 'wallet' | 'system';
 
 /**
+ * CandidateField
+ */
+export type CandidateField = 'type' | 'amount_minor' | 'occurred_on' | 'account_id' | 'spending_category_id' | 'income_category_id' | 'source_account_id' | 'destination_account_id' | 'balance_change_minor' | 'description' | 'merchant_name' | 'notes';
+
+/**
+ * CaptureCandidateResponse
+ */
+export type CaptureCandidateResponse = {
+    type?: TransactionType | null;
+    /**
+     * Amount Minor
+     */
+    amount_minor?: number | null;
+    /**
+     * Occurred On
+     */
+    occurred_on?: string | null;
+    /**
+     * Account Id
+     */
+    account_id?: string | null;
+    /**
+     * Spending Category Id
+     */
+    spending_category_id?: string | null;
+    /**
+     * Income Category Id
+     */
+    income_category_id?: string | null;
+    /**
+     * Source Account Id
+     */
+    source_account_id?: string | null;
+    /**
+     * Destination Account Id
+     */
+    destination_account_id?: string | null;
+    /**
+     * Balance Change Minor
+     */
+    balance_change_minor?: number | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Merchant Name
+     */
+    merchant_name?: string | null;
+    /**
+     * Notes
+     */
+    notes?: string | null;
+};
+
+/**
+ * CaptureContributionRequest
+ */
+export type CaptureContributionRequest = {
+    /**
+     * Content
+     */
+    content: string;
+};
+
+/**
+ * CaptureInteractionOptionResponse
+ */
+export type CaptureInteractionOptionResponse = {
+    /**
+     * Value
+     */
+    value: string;
+    /**
+     * Label
+     */
+    label: string;
+};
+
+/**
+ * CaptureInteractionResponse
+ */
+export type CaptureInteractionResponse = {
+    kind: PendingInteractionKind;
+    field?: CandidateField | null;
+    /**
+     * Options
+     */
+    options?: Array<CaptureInteractionOptionResponse>;
+};
+
+/**
+ * CaptureResponse
+ */
+export type CaptureResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    status: CaptureStatus;
+    candidate: CaptureCandidateResponse;
+    interaction?: CaptureInteractionResponse | null;
+    /**
+     * Message
+     */
+    message: string;
+    transaction?: TransactionResponse | null;
+};
+
+/**
+ * CaptureStatus
+ */
+export type CaptureStatus = 'active' | 'awaiting_confirmation' | 'completed' | 'cancelled';
+
+/**
  * CreateAccountRequest
  */
 export type CreateAccountRequest = {
@@ -252,6 +367,11 @@ export type MoneyResponse = {
      */
     currency: string;
 };
+
+/**
+ * PendingInteractionKind
+ */
+export type PendingInteractionKind = 'request_value' | 'correct' | 'disambiguate' | 'clarify';
 
 /**
  * PostingResponse
@@ -757,6 +877,151 @@ export type IncomeCategoriesUpdateIncomeCategoryResponses = {
 };
 
 export type IncomeCategoriesUpdateIncomeCategoryResponse = IncomeCategoriesUpdateIncomeCategoryResponses[keyof IncomeCategoriesUpdateIncomeCategoryResponses];
+
+export type TransactionCapturesCreateTransactionCaptureData = {
+    body: CaptureContributionRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/transaction-captures';
+};
+
+export type TransactionCapturesCreateTransactionCaptureErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TransactionCapturesCreateTransactionCaptureError = TransactionCapturesCreateTransactionCaptureErrors[keyof TransactionCapturesCreateTransactionCaptureErrors];
+
+export type TransactionCapturesCreateTransactionCaptureResponses = {
+    /**
+     * Successful Response
+     */
+    201: CaptureResponse;
+};
+
+export type TransactionCapturesCreateTransactionCaptureResponse = TransactionCapturesCreateTransactionCaptureResponses[keyof TransactionCapturesCreateTransactionCaptureResponses];
+
+export type TransactionCapturesGetTransactionCaptureData = {
+    body?: never;
+    path: {
+        /**
+         * Capture Id
+         */
+        capture_id: string;
+    };
+    query?: never;
+    url: '/api/v1/transaction-captures/{capture_id}';
+};
+
+export type TransactionCapturesGetTransactionCaptureErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TransactionCapturesGetTransactionCaptureError = TransactionCapturesGetTransactionCaptureErrors[keyof TransactionCapturesGetTransactionCaptureErrors];
+
+export type TransactionCapturesGetTransactionCaptureResponses = {
+    /**
+     * Successful Response
+     */
+    200: CaptureResponse;
+};
+
+export type TransactionCapturesGetTransactionCaptureResponse = TransactionCapturesGetTransactionCaptureResponses[keyof TransactionCapturesGetTransactionCaptureResponses];
+
+export type TransactionCapturesAddTransactionCaptureContributionData = {
+    body: CaptureContributionRequest;
+    path: {
+        /**
+         * Capture Id
+         */
+        capture_id: string;
+    };
+    query?: never;
+    url: '/api/v1/transaction-captures/{capture_id}/contributions';
+};
+
+export type TransactionCapturesAddTransactionCaptureContributionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TransactionCapturesAddTransactionCaptureContributionError = TransactionCapturesAddTransactionCaptureContributionErrors[keyof TransactionCapturesAddTransactionCaptureContributionErrors];
+
+export type TransactionCapturesAddTransactionCaptureContributionResponses = {
+    /**
+     * Successful Response
+     */
+    200: CaptureResponse;
+};
+
+export type TransactionCapturesAddTransactionCaptureContributionResponse = TransactionCapturesAddTransactionCaptureContributionResponses[keyof TransactionCapturesAddTransactionCaptureContributionResponses];
+
+export type TransactionCapturesConfirmTransactionCaptureData = {
+    body?: never;
+    path: {
+        /**
+         * Capture Id
+         */
+        capture_id: string;
+    };
+    query?: never;
+    url: '/api/v1/transaction-captures/{capture_id}/confirm';
+};
+
+export type TransactionCapturesConfirmTransactionCaptureErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TransactionCapturesConfirmTransactionCaptureError = TransactionCapturesConfirmTransactionCaptureErrors[keyof TransactionCapturesConfirmTransactionCaptureErrors];
+
+export type TransactionCapturesConfirmTransactionCaptureResponses = {
+    /**
+     * Successful Response
+     */
+    200: CaptureResponse;
+};
+
+export type TransactionCapturesConfirmTransactionCaptureResponse = TransactionCapturesConfirmTransactionCaptureResponses[keyof TransactionCapturesConfirmTransactionCaptureResponses];
+
+export type TransactionCapturesCancelTransactionCaptureData = {
+    body?: never;
+    path: {
+        /**
+         * Capture Id
+         */
+        capture_id: string;
+    };
+    query?: never;
+    url: '/api/v1/transaction-captures/{capture_id}/cancel';
+};
+
+export type TransactionCapturesCancelTransactionCaptureErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TransactionCapturesCancelTransactionCaptureError = TransactionCapturesCancelTransactionCaptureErrors[keyof TransactionCapturesCancelTransactionCaptureErrors];
+
+export type TransactionCapturesCancelTransactionCaptureResponses = {
+    /**
+     * Successful Response
+     */
+    200: CaptureResponse;
+};
+
+export type TransactionCapturesCancelTransactionCaptureResponse = TransactionCapturesCancelTransactionCaptureResponses[keyof TransactionCapturesCancelTransactionCaptureResponses];
 
 export type TransactionsListTransactionsData = {
     body?: never;

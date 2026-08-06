@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from wallet.api.deps import build_container, get_account_service
+from wallet.api.deps import build_app_container, get_account_service
 from wallet.config import Settings
 
 
 def main() -> None:
-    container = build_container(
+    container = build_app_container(
         Settings(
             environment="local",
             seed_sample_data=True,

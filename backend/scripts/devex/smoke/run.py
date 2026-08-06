@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import os
 import subprocess
 import sys
 import time
-from collections.abc import Callable, Iterable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -158,7 +159,11 @@ def run_scenarios(
 
 
 @contextmanager
-def managed_backend(base_url: str) -> Iterator[ManagedBackend]:
+def managed_backend(
+    base_url: str,
+    *,
+    environment: Mapping[str, str] | None = None,
+) -> Iterator[ManagedBackend]:
     parsed_url = urlparse(base_url)
     if parsed_url.scheme not in {"http", "https"} or parsed_url.hostname is None:
         raise RuntimeError(f"managed mode requires a full HTTP base URL: {base_url}")
@@ -166,6 +171,10 @@ def managed_backend(base_url: str) -> Iterator[ManagedBackend]:
         raise RuntimeError(f"managed mode requires an explicit port in base URL: {base_url}")
     if parsed_url.path not in {"", "/"}:
         raise RuntimeError("managed mode base URL must not include a path")
+
+    process_environment = os.environ.copy()
+    if environment is not None:
+        process_environment.update(environment)
 
     process = subprocess.Popen(
         [
@@ -183,6 +192,7 @@ def managed_backend(base_url: str) -> Iterator[ManagedBackend]:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        env=process_environment,
     )
     backend = ManagedBackend(base_url=base_url.rstrip("/"), process=process)
 

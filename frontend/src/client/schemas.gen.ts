@@ -70,6 +70,258 @@ export const AccountTypeSchema = {
     title: 'AccountType'
 } as const;
 
+export const CandidateFieldSchema = {
+    type: 'string',
+    enum: ['type', 'amount_minor', 'occurred_on', 'account_id', 'spending_category_id', 'income_category_id', 'source_account_id', 'destination_account_id', 'balance_change_minor', 'description', 'merchant_name', 'notes'],
+    title: 'CandidateField'
+} as const;
+
+export const CaptureCandidateResponseSchema = {
+    properties: {
+        type: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/TransactionType'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        amount_minor: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Amount Minor'
+        },
+        occurred_on: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occurred On'
+        },
+        account_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Account Id'
+        },
+        spending_category_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Spending Category Id'
+        },
+        income_category_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Income Category Id'
+        },
+        source_account_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Source Account Id'
+        },
+        destination_account_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Destination Account Id'
+        },
+        balance_change_minor: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Balance Change Minor'
+        },
+        description: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Description'
+        },
+        merchant_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Merchant Name'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        }
+    },
+    type: 'object',
+    title: 'CaptureCandidateResponse'
+} as const;
+
+export const CaptureContributionRequestSchema = {
+    properties: {
+        content: {
+            type: 'string',
+            maxLength: 4000,
+            minLength: 1,
+            title: 'Content'
+        }
+    },
+    type: 'object',
+    required: ['content'],
+    title: 'CaptureContributionRequest'
+} as const;
+
+export const CaptureInteractionOptionResponseSchema = {
+    properties: {
+        value: {
+            type: 'string',
+            title: 'Value'
+        },
+        label: {
+            type: 'string',
+            title: 'Label'
+        }
+    },
+    type: 'object',
+    required: ['value', 'label'],
+    title: 'CaptureInteractionOptionResponse'
+} as const;
+
+export const CaptureInteractionResponseSchema = {
+    properties: {
+        kind: {
+            '$ref': '#/components/schemas/PendingInteractionKind'
+        },
+        field: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/CandidateField'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        options: {
+            items: {
+                '$ref': '#/components/schemas/CaptureInteractionOptionResponse'
+            },
+            type: 'array',
+            title: 'Options'
+        }
+    },
+    type: 'object',
+    required: ['kind'],
+    title: 'CaptureInteractionResponse'
+} as const;
+
+export const CaptureResponseSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            title: 'Id'
+        },
+        status: {
+            '$ref': '#/components/schemas/CaptureStatus'
+        },
+        candidate: {
+            '$ref': '#/components/schemas/CaptureCandidateResponse'
+        },
+        interaction: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/CaptureInteractionResponse'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        message: {
+            type: 'string',
+            minLength: 1,
+            title: 'Message'
+        },
+        transaction: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/TransactionResponse'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        }
+    },
+    type: 'object',
+    required: ['id', 'status', 'candidate', 'message'],
+    title: 'CaptureResponse'
+} as const;
+
+export const CaptureStatusSchema = {
+    type: 'string',
+    enum: ['active', 'awaiting_confirmation', 'completed', 'cancelled'],
+    title: 'CaptureStatus'
+} as const;
+
 export const CreateAccountRequestSchema = {
     properties: {
         name: {
@@ -446,6 +698,12 @@ export const MoneyResponseSchema = {
     type: 'object',
     required: ['amount_minor', 'currency'],
     title: 'MoneyResponse'
+} as const;
+
+export const PendingInteractionKindSchema = {
+    type: 'string',
+    enum: ['request_value', 'correct', 'disambiguate', 'clarify'],
+    title: 'PendingInteractionKind'
 } as const;
 
 export const PostingResponseSchema = {
