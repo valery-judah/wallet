@@ -3,7 +3,7 @@
 This guide defines the repository convention for modeling domain decisions as
 explicit types and refactoring conditional code toward exhaustive,
 compiler-checked routing. The approach is used by control-layer submissions and
-instructions, capability inputs and results, and idle capability selection.
+instructions, capability inputs and results, and idle route decisions.
 
 The goal is not to replace every conditional with structural pattern matching.
 The goal is to make closed domain alternatives visible in the type system, make
@@ -412,7 +412,7 @@ layer:
 | `TurnInstruction` | Continue, start, cancel, restart, help, clarify, unsupported | Legality validation and execution |
 | `CapabilityInput` | Message and capability action | Capability input handling |
 | `CapabilityResult` | Active and completed | Control-engine lifecycle application |
-| `RouteDecision` | Continue, start, clarify, unsupported, compound control | Message routing and lifecycle resolution |
+| `RouteDecision` | Start, clarify, unsupported, compound control | Idle message routing and resolver mapping |
 
 The concrete class is the discriminator for each payload-bearing alternative.
 Adding a variant should make strict mypy identify every exhaustive consumer that
@@ -426,9 +426,7 @@ as focused refactors rather than one repository-wide syntax conversion.
 | Area | Current shape | Potential model | Priority |
 | --- | --- | --- | --- |
 | Candidate assessment | Existing private union with implicit remaining branch | Exhaustive matches with `assert_never()` | High, low effort |
-| Grounding claim and outcome | Existing unions with partial type routing | Named aliases and exhaustive matches | High, low effort |
 | Pending interaction | Kind enum plus field/options invariants | Request, correct, disambiguate, and clarify variants | Medium, broader impact |
-| Semantic reference value | State enum plus optional label | Unset, available, and unavailable variants | Medium-to-low |
 | Transaction capture state | Phase enum plus phase-dependent invariants | Active and awaiting-confirmation state variants | Defer until state-machine complexity grows |
 
 Candidate-field operations and transaction-type routing also use closed enums.

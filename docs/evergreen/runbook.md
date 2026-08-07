@@ -230,8 +230,9 @@ ollama list
 make check-router-smoke
 ```
 
-It checks idle ownership, recent-capability references, ambiguity, and false and compound controls,
-active conflicts, and explicit requests for separate work without executing capabilities.
+It checks idle ownership, recent-capability references, ambiguity, unsupported false controls,
+and compound controls without executing capabilities. Active-task ownership is deterministic and
+belongs to the focused resolver and cross-workflow tests, not this idle-router corpus.
 
 `make fmt` modifies backend source when formatting or auto-fixes are required.
 `make check` is an alias for `make verify`.
@@ -329,11 +330,13 @@ curl --request POST \
   }'
 ```
 
-The model receives only the message, current draft and interaction, current date, and safe catalog
-labels with per-call opaque keys; it does not receive internal entity or request IDs. The response
-contains an opaque `active_task` with a `transaction_capture` view. A complete candidate has
-`phase: "awaiting_confirmation"` and has not changed the ledger. Copy the returned
-conversation ID for continuation and copy the offered task guard for confirmation:
+After idle routing selects transaction capture, the transaction interpreter receives only the
+validated contribution, current draft and interaction, current date, and safe catalog labels with
+per-call opaque keys; it does not receive internal entity or request IDs. The separate router call
+receives capability routing profiles and bounded recent-capability identity, but no draft or Wallet
+catalog. The response contains an opaque `active_task` with a `transaction_capture` view. A
+complete candidate has `phase: "awaiting_confirmation"` and has not changed the ledger. Copy the
+returned conversation ID for continuation and copy the offered task guard for confirmation:
 
 ```bash
 curl http://127.0.0.1:8000/api/v1/conversations/<conversation_id>

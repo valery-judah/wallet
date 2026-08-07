@@ -16,7 +16,7 @@ private method calls while leaving the public conversation or ledger result unve
 
 ## Test topology
 
-The test pyramid has five deliberate layers:
+The test pyramid has six deliberate layers:
 
 | Layer | What it proves | Primary command |
 | --- | --- | --- |
@@ -117,11 +117,11 @@ Assertions against only a `200` response are insufficient.
 | ID | Situation | Expected system result | Automated evidence |
 | --- | --- | --- | --- |
 | RS-01 | Any typed input | Bypasses exact recognition and message routing | resolver table tests |
-| RS-02 | Exact cancel/stop/never mind | Cancel branch only | resolver table and API tests |
-| RS-03 | Exact restart/start over | Restart branch only | resolver table and API tests |
+| RS-02 | Exact cancel/stop/never mind | Unguarded cancel of the task current when the serialized turn executes | resolver table and API tests |
+| RS-03 | Exact restart/start over | Unguarded restart of the task current when the serialized turn executes | resolver table and API tests |
 | RS-04 | Exact help/what can you do | Help branch only | resolver table tests |
 | RS-05 | Idle model-classified compound control | Clarify; no control or capability partially executes | router/resolver/API tests |
-| RS-06 | False control while idle | Router classifies the complete original message | router corpus |
+| RS-06 | False control while idle | Router classifies the complete validated message after boundary trimming | router corpus |
 | RS-07 | Any non-control message while current | Continues the current capability without message routing | resolver/controller/API tests |
 | RS-08 | New task while idle | Starts exactly one registered capability | resolver and API workflow tests |
 | RS-09 | Apparent new-task request while current | Continues the current capability; no automatic switch | cross-workflow API tests |
@@ -208,7 +208,7 @@ of scope and must not be inferred from this matrix.
 | ST-05 | Read-only execution | Transaction list byte-for-byte unchanged | deterministic seeded API |
 | ST-06 | Replay after external ledger change | Replay returns old snapshot; new turn returns fresh state | deterministic API |
 | ST-07 | State/capture ambiguity | Router clarifies while idle; a later clear message selects state | deterministic API |
-| ST-08 | State request during capture | Preserves capture and asks the user to finish or cancel it | cross-workflow API test |
+| ST-08 | State request during capture | Preserves capture and delivers the message to transaction interpretation; no routing or wallet-state execution | cross-workflow API test |
 | ST-09 | State after confirmed capture | Reports the newly derived balance in the same conversation | cross-workflow API test |
 
 ## Privacy and presentation checks
@@ -277,11 +277,13 @@ model-facing behavior change passes the real-model smoke suite.
 Every new capability must add:
 
 1. a deterministic data profile;
-2. routing profiles plus start, continuation, ambiguity, unsupported, and active-conflict cases;
+2. routing profiles plus idle start, ambiguity, unsupported, compound-control, and
+   recent-reference cases;
 3. active/completed lifecycle cases as applicable;
 4. action guard and replay cases for every offered action;
 5. authoritative read/write oracles against Wallet services;
-6. cross-workflow isolation cases with every existing foreground capability;
+6. active-bypass and cross-workflow isolation cases with every existing foreground
+   capability;
 7. safe public projection and failure cases;
 8. real-router coverage for representative ownership boundaries, plus a real-service scenario
    when capability execution itself depends on a model or external service.

@@ -8,6 +8,7 @@
 - `conventions/commit-message-conventions.md`: preferred commit message format and types
 - `product/spec.md`: canonical Wallet MVP specification
 - `product/concepts.md`: canonical naming, account model, and UX vocabulary
+- `product/assistant-help-page.md`: proposed in-app Wallet Assistant help page and user guidance
 - `product/archive/`: earlier product exploration and supporting notes
 
 Workstream documents record design history. Product and evergreen documents describe the

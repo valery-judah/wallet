@@ -1,3 +1,11 @@
+# Transaction Capture Test Analysis
+
+Status: historical snapshot
+Superseded by: [Control Layer and Capability System Test Design](../evergreen/control-layer-testing.md)
+
+This assessment describes the pre-control-layer extraction, semantic, and grounding pipeline.
+Test counts, source paths, smoke coverage, and identified gaps below refer to that earlier state.
+
 ## Assessment
 
 The suite is strong as a deterministic software test suite, but it is not yet an AI evaluation suite.
@@ -16,15 +24,25 @@ There are 104 collected tests under `backend/tests/ai/transaction_capture/`; all
 | Real-model behavior | Weak | Six manual smoke scenarios with clean English inputs |
 | Evaluation dataset | Missing | No coverage metadata, balancing, aggregate metrics, or regression corpus |
 
-The distinction is visible in [test_extraction.py](/Users/val/projects/ps/wallet/backend/tests/ai/transaction_capture/test_extraction.py:41) and [test_semantic.py](/Users/val/projects/ps/wallet/backend/tests/ai/transaction_capture/test_semantic.py:60): the tests prescribe what the fake model returns. By contrast, the actual model smoke surface contains only six scenarios in [scenarios.py](/Users/val/projects/ps/wallet/backend/scripts/devex/transaction_capture_smoke/scenarios.py:55).
+At the time, this distinction was visible in the now-removed
+`backend/tests/ai/transaction_capture/test_extraction.py` and
+`backend/tests/ai/transaction_capture/test_semantic.py`: those tests prescribed what the fake
+model returned. The then-current model smoke surface contained only six scenarios in
+`backend/scripts/devex/transaction_capture_smoke/scenarios.py`.
 
 ## Highest-priority gaps
 
-1. **Currency can be silently discarded.** Monetary grounding extracts only the numeric value in [grounding.py](/Users/val/projects/ps/wallet/backend/src/wallet/ai/transaction_capture/grounding.py:202), while execution uses the selected account’s currency. “Spent $40 from Daily checking” could therefore become an ARS 40 expense instead of requiring clarification. This is an execution-boundary safety issue.
+1. **Currency can be silently discarded.** The removed monetary-grounding implementation in
+   `backend/src/wallet/ai/transaction_capture/grounding.py` extracted only the numeric value,
+   while execution used the selected account's currency. “Spent $40 from Daily checking” could
+   therefore become an ARS 40 expense instead of requiring clarification. This was an
+   execution-boundary safety issue.
 
 2. **Common monetary language is unsupported.** `2,500`, `1.000`, `forty-five`, and similar forms are not accepted by the deterministic normalizer. The smoke input deliberately uses `2500 pesos`, although the historical use case uses `$2,500`.
 
-3. **Date coverage is very narrow.** Only `today`, `yesterday`, `tomorrow`, and ISO dates are normalized in [grounding.py](/Users/val/projects/ps/wallet/backend/src/wallet/ai/transaction_capture/grounding.py:213). Inputs such as “last Friday,” “on the 3rd,” or “two days ago” should be explicitly classified as supported or clarification-required.
+3. **Date coverage is very narrow.** The removed grounding implementation normalized only
+   `today`, `yesterday`, `tomorrow`, and ISO dates. Inputs such as “last Friday,” “on the 3rd,” or
+   “two days ago” needed an explicit supported or clarification-required policy.
 
 4. **Real-model multi-turn coverage is almost entirely expense-centric.** There is no progressive income, transfer correction, negative adjustment, type change, metadata correction, or unrelated-answer scenario.
 

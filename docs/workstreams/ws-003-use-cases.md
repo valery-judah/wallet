@@ -1,5 +1,12 @@
 # Transaction Capture Workflow — Use Cases
 
+Status: historical snapshot
+Superseded by: [Wallet MVP Spec](../product/spec.md) and
+[Control Layer and Capability System Test Design](../evergreen/control-layer-testing.md)
+
+These use cases preserve the earlier capture-session requirements and vocabulary. They should be
+read as design history, not as the current HTTP, control, or interpretation contract.
+
 ## 1. Purpose
 
 These use cases define the observable behavior of the transaction-capture workflow.

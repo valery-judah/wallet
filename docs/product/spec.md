@@ -132,7 +132,8 @@ The MVP exposes one process-local conversation control layer. A caller submits e
 supplying the returned ID continues it. `GET /api/v1/conversations/{conversation_id}` reads the
 current projection. There is no public empty-conversation or workflow-start operation.
 
-A conversation has zero or one opaque active task. The internal closed registry contains:
+A conversation has zero or one opaque active task. Capability implementations form an open
+extension point; the current runtime registry contains:
 
 - `transactions.capture`, which progressively collects and records one expense, income,
   transfer, or balance adjustment;
@@ -140,14 +141,19 @@ A conversation has zero or one opaque active task. The internal closed registry 
   totals kept separate by currency.
 
 While a conversation is idle, an authoritative LLM message router assigns each ordinary
-natural-language message to one registered capability. It receives the complete message, the
-most recently executed capability identity, and control-level routing profiles, but no raw
-transcript, capability-private state, or Wallet catalogs. This bounded routing memory supports
-reference-only follow-ups such as `one more time` without authorizing replay of prior domain
-effects. While a task is active, every non-control message goes directly to its capability; the
-router is not called and capability switching is unavailable. Typed inputs provide guarded
-confirmation and lifecycle controls. Exact whole-message `help`, `cancel`, and `restart`
-controls remain deterministic and bypass both routing and capability message handling.
+natural-language message to one registered capability. It receives the complete validated
+message, the most recent committed capability-associated identity, and control-level routing
+profiles, but no raw transcript, capability-private state, or Wallet catalogs. This bounded
+routing memory supports reference-only follow-ups such as `one more time` without authorizing
+replay of prior messages, state, or domain effects. The identity is preserved through outcomes
+that are not capability-associated, including cancellation.
+
+While a task is active, every non-control message goes directly to its capability; the router is
+not called and capability switching is unavailable. Typed task actions and typed cancel/restart
+controls carry task and conversation-version guards; typed Help is unguarded. Exact whole-message
+`help`, `cancel`, and `restart` controls remain deterministic and bypass both routing and
+capability message handling. Textual controls are unguarded and act on the task current when the
+serialized turn is processed.
 
 Transaction capture sends every natural-language contribution through one schema-constrained
 interpreter. The model sees the current reviewable draft, pending interaction, current date, and
@@ -179,8 +185,8 @@ The UI discards an expired restored conversation and starts fresh after a backen
 Every ordinary idle message requires the configured Ollama service for routing. A message routed
 to transaction capture then requires one interpretation call, and each later non-control capture
 message requires one interpretation call without re-routing. Current-wallet-state execution remains
-deterministic after routing. Exact controls and typed task actions require neither routing nor
-interpretation.
+deterministic after routing. Exact controls, typed controls, and typed task actions require neither
+routing nor interpretation.
 Direct manual transaction creation through `/api/v1/transactions` remains immediate.
 
 ## Out of Scope

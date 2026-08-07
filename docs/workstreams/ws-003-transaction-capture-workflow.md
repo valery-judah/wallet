@@ -1,5 +1,11 @@
 # Transaction Capture Workflow
 
+Status: historical snapshot
+Superseded by: [Transaction Interpretation Contract](../evergreen/transaction-interpretation-contract.md)
+
+This document records the earlier capture-session design. Names, endpoints, processing stages,
+and implementation details below are not current operational guidance.
+
 The transaction-capture workflow progressively fills the fields required to
 record one transaction.
 

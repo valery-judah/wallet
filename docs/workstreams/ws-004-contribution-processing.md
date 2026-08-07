@@ -1,3 +1,11 @@
+# Contribution Processing Research
+
+Status: historical research snapshot
+Current contract: [Transaction Interpretation Contract](../evergreen/transaction-interpretation-contract.md)
+
+This research predates the unified model-driven interpreter. Its extraction, grounding, and
+dialogue-state alternatives explain the design space but do not describe the current pipeline.
+
 Your problem fits **task-oriented language understanding**: convert conversational text into a typed, grounded, executable transaction candidate while maintaining state across turns.
 
 The closest established fields are:

@@ -1,7 +1,7 @@
 # Transaction Interpretation Contract
 
 Status: implemented MVP contract
-Date: 2026-08-06
+Last reviewed: 2026-08-07
 Scope: natural-language contributions handled by `transactions.capture`
 
 ## Purpose
@@ -19,13 +19,14 @@ idempotency, and persistence.
 
 For an idle conversation, the message router first selects `transactions.capture`; the capture
 capability then makes one interpretation call. While capture is active, every non-control message
-goes directly to the capability and makes one interpretation call. Exact controls and typed task
-actions bypass interpretation.
+goes directly to the capability and makes one interpretation call. Exact textual controls, typed
+controls, and typed task actions bypass interpretation.
 
 The application performs these steps:
 
 1. Build a safe, per-call reference catalog with opaque keys.
-2. Ask the model to interpret the complete original contribution against the current draft.
+2. Ask the model to interpret the complete validated contribution, after surrounding whitespace
+   trimming, against the current draft.
 3. Validate and map the structured response back to registered Wallet references.
 4. Apply valid partial updates and explicit clears to the draft.
 5. Deterministically identify missing, ambiguous, unresolved, or invalid fields.
@@ -38,7 +39,8 @@ No natural-language contribution can execute a transaction.
 
 The interpreter provides:
 
-- the complete original message as untrusted user content;
+- the complete validated contribution, after surrounding whitespace trimming, as untrusted user
+  content;
 - the current date;
 - the current transaction candidate, using values and safe reference labels;
 - the current pending interaction;
@@ -116,9 +118,9 @@ The interpreter retries once after malformed JSON, an invented or wrong-family k
 operations, an invalid field combination, or other context-inconsistent structured output. The
 retry contains compact validation feedback. Transport failures are not retried.
 
-If validation still fails, the turn returns the existing safe `502`. The request receipt,
-conversation, task candidate, and ledger remain uncommitted, so the caller may retry the identical
-request ID.
+If validation still fails, the turn returns the existing safe `502`. No successful replay
+snapshot or request fingerprint is stored, and the conversation, task candidate, and ledger
+remain uncommitted, so the caller may retry the identical request ID.
 
 ## Privacy and observability
 
@@ -136,3 +138,15 @@ smoke tests cover complete and progressive transaction types, typo-tolerant cata
 ambiguity, unknown references, currency conflicts, corrections, clears, and short active replies.
 All tests must prove that preview is ledger-neutral and only guarded confirmation can persist one
 balanced, idempotent transaction.
+
+## Implementation anchors
+
+- [`interpretation.py`](../../backend/src/wallet/ai/transaction_capture/interpretation.py): model
+  input, opaque keys, schema, application validation, and retry;
+- [`processing.py`](../../backend/src/wallet/ai/transaction_capture/processing.py): partial draft
+  application, unavailable references, ambiguity, unresolved fields, and currency conflicts;
+- [`capability.py`](../../backend/src/wallet/ai/transaction_capture/capability.py): active-message
+  handling, corrective interactions, preview, and guarded confirmation;
+- [`test_interpretation.py`](../../backend/tests/ai/transaction_capture/test_interpretation.py) and
+  [`test_processing.py`](../../backend/tests/ai/transaction_capture/test_processing.py): executable
+  interpretation boundary.
