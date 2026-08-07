@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 
 import pytest
@@ -42,6 +43,45 @@ def test_health_endpoint_returns_status_payload(client: TestClient) -> None:
     }
 
 
+def test_request_logging_uses_route_template_without_request_payload(
+    client: TestClient,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    private_name = "Private account marker 7f34b6"
+    caplog.set_level(logging.INFO, logger="wallet.api.app")
+
+    response = client.post(
+        "/api/v1/accounts",
+        json={"name": private_name, "type": "cash", "currency": "USD"},
+    )
+
+    assert response.status_code == 201
+    completed = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "http.request.completed"
+    )
+    assert completed.event_data == {
+        "method": "POST",
+        "route": "/api/v1/accounts",
+        "status_code": 201,
+        "duration_ms": completed.event_data["duration_ms"],
+    }
+    assert len(response.headers["X-Trace-ID"]) == 32
+    assert private_name not in caplog.text
+
+
+def test_request_trace_ids_are_server_generated_and_unique(client: TestClient) -> None:
+    supplied = "f" * 32
+
+    first = client.get("/api/v1/health", headers={"X-Trace-ID": supplied})
+    second = client.get("/api/v1/health")
+
+    assert first.headers["X-Trace-ID"] != supplied
+    assert first.headers["X-Trace-ID"] != second.headers["X-Trace-ID"]
+    assert len(first.headers["X-Trace-ID"]) == 32
+
+
 def test_cors_preflight_allows_configured_frontend_origin(client: TestClient) -> None:
     response = client.options(
         "/api/v1/accounts",
@@ -54,6 +94,12 @@ def test_cors_preflight_allows_configured_frontend_origin(client: TestClient) ->
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
     assert "access-control-allow-credentials" not in response.headers
+
+    simple_response = client.get(
+        "/api/v1/health",
+        headers={"Origin": "http://localhost:5173"},
+    )
+    assert simple_response.headers["access-control-expose-headers"] == "X-Trace-ID"
 
 
 def test_cors_preflight_allows_loopback_twin_origin(client: TestClient) -> None:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import date
 from uuid import uuid4
@@ -9,6 +10,7 @@ from wallet.domain.accounts import Account, AccountNotFoundError, AccountType
 from wallet.domain.money import Money
 from wallet.domain.transactions import Posting, Transaction, TransactionStatus, TransactionType
 from wallet.infrastructure.memory import InMemoryAccountRepository, InMemoryTransactionRepository
+from wallet.observability import domain_success_events_enabled, error_details, log_event
 from wallet.ports.accounts import AccountRepository
 from wallet.ports.system import (
     AccountIdGenerator,
@@ -17,6 +19,8 @@ from wallet.ports.system import (
     TransactionIdGenerator,
 )
 from wallet.ports.transactions import TransactionRepository
+
+logger = logging.getLogger(__name__)
 
 
 class CreateAccountRejectedError(ValueError):
@@ -139,9 +143,10 @@ class AccountService:
     def open_account(self, command: OpenAccount) -> AccountSnapshot:
         opened_on = command.opened_on or self._today()
         created_on = opened_on
+        account_id = self._generate_account_id()
         try:
             account = Account.open(
-                id=self._generate_account_id(),
+                id=account_id,
                 name=command.name,
                 type=command.type,
                 currency=command.currency,
@@ -150,8 +155,22 @@ class AccountService:
                 created_on=created_on,
             )
         except ValueError as exc:
+            log_event(
+                logger,
+                logging.WARNING,
+                "account.open.rejected",
+                data={"account_id": account_id, "account_type": command.type},
+                error=error_details(exc, code="create_account_rejected", retryable=False),
+            )
             raise CreateAccountRejectedError(str(exc)) from exc
         self.accounts.add(account)
+        if domain_success_events_enabled():
+            log_event(
+                logger,
+                logging.INFO,
+                "account.opened",
+                data={"account_id": account.id, "account_type": account.type},
+            )
         if command.opening_balance_minor != 0:
             self._record_opening_balance(
                 account=account,
@@ -170,8 +189,22 @@ class AccountService:
                 updated_on=self._today(),
             )
         except ValueError as exc:
+            log_event(
+                logger,
+                logging.WARNING,
+                "account.profile.update.rejected",
+                data={"account_id": command.account_id},
+                error=error_details(exc, code="update_account_rejected", retryable=False),
+            )
             raise UpdateAccountRejectedError(str(exc)) from exc
         self.accounts.save(account)
+        if domain_success_events_enabled():
+            log_event(
+                logger,
+                logging.INFO,
+                "account.profile.updated",
+                data={"account_id": account.id, "account_type": account.type},
+            )
         return self._snapshot(account)
 
     def get_account(self, account_id: str) -> AccountSnapshot | None:
@@ -189,6 +222,13 @@ class AccountService:
         account = self._require_user_account(command.account_id)
         account.archive(archived_on=command.archived_on or self._today())
         self.accounts.save(account)
+        if domain_success_events_enabled():
+            log_event(
+                logger,
+                logging.INFO,
+                "account.archived",
+                data={"account_id": account.id, "account_type": account.type},
+            )
         return self._snapshot(account)
 
     def _snapshot(self, account: Account) -> AccountSnapshot:
@@ -241,6 +281,18 @@ class AccountService:
             updated_on=occurred_on,
         )
         self.transactions.add(transaction)
+        if domain_success_events_enabled():
+            log_event(
+                logger,
+                logging.INFO,
+                "account.opening_balance.recorded",
+                data={
+                    "account_id": account.id,
+                    "transaction_id": transaction.id,
+                    "transaction_type": transaction.type,
+                    "posting_count": len(transaction.postings),
+                },
+            )
 
     def _ensure_system_account(self, currency: str, *, occurred_on: date) -> Account:
         system_account_id = _system_account_id(currency)

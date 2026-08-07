@@ -7,7 +7,10 @@ from itertools import count
 import pytest
 
 from wallet.ai.transaction_capture.domain import CandidateField, TransactionCandidate
-from wallet.ai.transaction_capture.ports import CaptureReference
+from wallet.ai.transaction_capture.ports import (
+    CaptureAccountReference,
+    CaptureCategoryReference,
+)
 from wallet.ai.transaction_capture.wallet_adapter import WalletCaptureAdapter
 from wallet.application.transactions import TransactionService
 from wallet.domain.accounts import Account, AccountType
@@ -88,12 +91,9 @@ def test_adapter_creates_type_specific_wallet_transaction(
     candidate: TransactionCandidate,
     expected_postings: tuple[tuple[str | None, str | None, int, str], ...],
 ) -> None:
-    adapter, transactions, _ = _adapter()
+    adapter, _, _ = _adapter()
 
-    transaction_id = adapter.execute(candidate)
-
-    transaction = transactions.get(transaction_id)
-    assert transaction is not None
+    transaction = adapter.execute(candidate, operation_id="capture:test")
     assert transaction.type is candidate.type
     assert transaction.occurred_on == candidate.occurred_on
     assert transaction.description == candidate.description
@@ -166,6 +166,17 @@ def test_adapter_creates_type_specific_wallet_transaction(
             ),
             CandidateField.DESTINATION_ACCOUNT_ID,
         ),
+        (
+            TransactionCandidate(
+                type=TransactionType.EXPENSE,
+                amount_minor=100,
+                occurred_on=TODAY,
+                account_id="checking",
+                spending_category_id="groceries",
+                currency_code="USD",
+            ),
+            CandidateField.ACCOUNT_ID,
+        ),
     ],
     ids=(
         "archived-account",
@@ -173,6 +184,7 @@ def test_adapter_creates_type_specific_wallet_transaction(
         "wrong-income-category",
         "missing-source",
         "cross-currency-destination",
+        "explicit-currency-mismatch",
     ),
 )
 def test_adapter_reports_first_contextually_invalid_field(
@@ -205,14 +217,14 @@ def test_adapter_exposes_only_unambiguous_selectable_reference_labels() -> None:
 
     catalog = _wallet_adapter(accounts, spending, income).capture_references()
 
-    assert catalog.accounts == (CaptureReference("checking", "Daily checking"),)
+    assert catalog.accounts == (CaptureAccountReference("checking", "Daily checking", "ARS"),)
     assert catalog.spending_categories == (
-        CaptureReference("food", "Food"),
-        CaptureReference("groceries", "Food > Groceries"),
+        CaptureCategoryReference("food", "Food"),
+        CaptureCategoryReference("groceries", "Food > Groceries"),
     )
     assert catalog.income_categories == (
-        CaptureReference("salary", "Salary"),
-        CaptureReference("payroll", "Salary > Payroll"),
+        CaptureCategoryReference("salary", "Salary"),
+        CaptureCategoryReference("payroll", "Salary > Payroll"),
     )
 
 

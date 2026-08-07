@@ -59,6 +59,7 @@ export const AccountResponseSchema = {
             title: 'Updated On'
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['id', 'name', 'type', 'currency', 'current_balance', 'opened_on', 'created_on', 'updated_on'],
     title: 'AccountResponse'
@@ -70,240 +71,97 @@ export const AccountTypeSchema = {
     title: 'AccountType'
 } as const;
 
-export const CandidateFieldSchema = {
-    type: 'string',
-    enum: ['type', 'amount_minor', 'occurred_on', 'account_id', 'spending_category_id', 'income_category_id', 'source_account_id', 'destination_account_id', 'balance_change_minor', 'description', 'merchant_name', 'notes'],
-    title: 'CandidateField'
-} as const;
-
-export const CaptureCandidateResponseSchema = {
-    properties: {
-        type: {
-            anyOf: [
-                {
-                    '$ref': '#/components/schemas/TransactionType'
-                },
-                {
-                    type: 'null'
-                }
-            ]
-        },
-        amount_minor: {
-            anyOf: [
-                {
-                    type: 'integer'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Amount Minor'
-        },
-        occurred_on: {
-            anyOf: [
-                {
-                    type: 'string',
-                    format: 'date'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Occurred On'
-        },
-        account_id: {
-            anyOf: [
-                {
-                    type: 'string'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Account Id'
-        },
-        spending_category_id: {
-            anyOf: [
-                {
-                    type: 'string'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Spending Category Id'
-        },
-        income_category_id: {
-            anyOf: [
-                {
-                    type: 'string'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Income Category Id'
-        },
-        source_account_id: {
-            anyOf: [
-                {
-                    type: 'string'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Source Account Id'
-        },
-        destination_account_id: {
-            anyOf: [
-                {
-                    type: 'string'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Destination Account Id'
-        },
-        balance_change_minor: {
-            anyOf: [
-                {
-                    type: 'integer'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Balance Change Minor'
-        },
-        description: {
-            anyOf: [
-                {
-                    type: 'string'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Description'
-        },
-        merchant_name: {
-            anyOf: [
-                {
-                    type: 'string'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Merchant Name'
-        },
-        notes: {
-            anyOf: [
-                {
-                    type: 'string'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Notes'
-        }
-    },
-    type: 'object',
-    title: 'CaptureCandidateResponse'
-} as const;
-
-export const CaptureContributionRequestSchema = {
-    properties: {
-        content: {
-            type: 'string',
-            maxLength: 4000,
-            minLength: 1,
-            title: 'Content'
-        }
-    },
-    type: 'object',
-    required: ['content'],
-    title: 'CaptureContributionRequest'
-} as const;
-
-export const CaptureInteractionOptionResponseSchema = {
-    properties: {
-        value: {
-            type: 'string',
-            title: 'Value'
-        },
-        label: {
-            type: 'string',
-            title: 'Label'
-        }
-    },
-    type: 'object',
-    required: ['value', 'label'],
-    title: 'CaptureInteractionOptionResponse'
-} as const;
-
-export const CaptureInteractionResponseSchema = {
-    properties: {
-        kind: {
-            '$ref': '#/components/schemas/PendingInteractionKind'
-        },
-        field: {
-            anyOf: [
-                {
-                    '$ref': '#/components/schemas/CandidateField'
-                },
-                {
-                    type: 'null'
-                }
-            ]
-        },
-        options: {
-            items: {
-                '$ref': '#/components/schemas/CaptureInteractionOptionResponse'
-            },
-            type: 'array',
-            title: 'Options'
-        }
-    },
-    type: 'object',
-    required: ['kind'],
-    title: 'CaptureInteractionResponse'
-} as const;
-
-export const CaptureResponseSchema = {
+export const ActiveTaskResponseSchema = {
     properties: {
         id: {
             type: 'string',
             title: 'Id'
         },
-        status: {
-            '$ref': '#/components/schemas/CaptureStatus'
+        version: {
+            type: 'integer',
+            title: 'Version'
         },
-        candidate: {
-            '$ref': '#/components/schemas/CaptureCandidateResponse'
+        view: {
+            '$ref': '#/components/schemas/TaskViewResponse'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['id', 'version', 'view'],
+    title: 'ActiveTaskResponse'
+} as const;
+
+export const ControlActionSchema = {
+    type: 'string',
+    enum: ['help', 'cancel', 'restart'],
+    title: 'ControlAction'
+} as const;
+
+export const ControlActionTurnInputSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            const: 'control_action',
+            title: 'Kind'
         },
-        interaction: {
+        action: {
+            '$ref': '#/components/schemas/ControlAction'
+        },
+        expected_task_id: {
             anyOf: [
                 {
-                    '$ref': '#/components/schemas/CaptureInteractionResponse'
+                    type: 'string',
+                    pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Expected Task Id'
+        },
+        expected_conversation_version: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Expected Conversation Version'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['kind', 'action'],
+    title: 'ControlActionTurnInput'
+} as const;
+
+export const ConversationResponseSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            title: 'Id'
+        },
+        version: {
+            type: 'integer',
+            title: 'Version'
+        },
+        active_task: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ActiveTaskResponse'
                 },
                 {
                     type: 'null'
                 }
             ]
         },
-        message: {
-            type: 'string',
-            minLength: 1,
-            title: 'Message'
-        },
-        transaction: {
+        last_outcome: {
             anyOf: [
                 {
-                    '$ref': '#/components/schemas/TransactionResponse'
+                    '$ref': '#/components/schemas/TurnOutcomeResponse'
                 },
                 {
                     type: 'null'
@@ -311,15 +169,10 @@ export const CaptureResponseSchema = {
             ]
         }
     },
+    additionalProperties: false,
     type: 'object',
-    required: ['id', 'status', 'candidate', 'message'],
-    title: 'CaptureResponse'
-} as const;
-
-export const CaptureStatusSchema = {
-    type: 'string',
-    enum: ['active', 'awaiting_confirmation', 'completed', 'cancelled'],
-    title: 'CaptureStatus'
+    required: ['id', 'version', 'active_task', 'last_outcome'],
+    title: 'ConversationResponse'
 } as const;
 
 export const CreateAccountRequestSchema = {
@@ -368,6 +221,7 @@ export const CreateAccountRequestSchema = {
             title: 'Color Key'
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['name'],
     title: 'CreateAccountRequest'
@@ -419,6 +273,7 @@ export const CreateIncomeCategoryRequestSchema = {
             default: 0
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['name'],
     title: 'CreateIncomeCategoryRequest'
@@ -470,6 +325,7 @@ export const CreateSpendingCategoryRequestSchema = {
             default: 0
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['name'],
     title: 'CreateSpendingCategoryRequest'
@@ -520,6 +376,7 @@ export const CreateTransactionPostingRequestSchema = {
             title: 'Memo'
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['amount_minor', 'currency'],
     title: 'CreateTransactionPostingRequest'
@@ -584,6 +441,7 @@ export const CreateTransactionRequestSchema = {
             title: 'Notes'
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['type', 'postings'],
     title: 'CreateTransactionRequest'
@@ -618,6 +476,7 @@ export const HealthResponseSchema = {
             title: 'Environment'
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['status', 'app_name', 'environment'],
     title: 'HealthResponse'
@@ -678,9 +537,30 @@ export const IncomeCategoryResponseSchema = {
             title: 'Children'
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['id', 'name', 'parent_id', 'sort_order'],
     title: 'IncomeCategoryResponse'
+} as const;
+
+export const MessageTurnInputSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            const: 'message',
+            title: 'Kind'
+        },
+        content: {
+            type: 'string',
+            maxLength: 4000,
+            minLength: 1,
+            title: 'Content'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['kind', 'content'],
+    title: 'MessageTurnInput'
 } as const;
 
 export const MoneyResponseSchema = {
@@ -695,15 +575,10 @@ export const MoneyResponseSchema = {
             title: 'Currency'
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['amount_minor', 'currency'],
     title: 'MoneyResponse'
-} as const;
-
-export const PendingInteractionKindSchema = {
-    type: 'string',
-    enum: ['request_value', 'correct', 'disambiguate', 'clarify'],
-    title: 'PendingInteractionKind'
 } as const;
 
 export const PostingResponseSchema = {
@@ -755,6 +630,7 @@ export const PostingResponseSchema = {
             title: 'Memo'
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['id', 'amount_minor', 'currency'],
     title: 'PostingResponse'
@@ -815,9 +691,173 @@ export const SpendingCategoryResponseSchema = {
             title: 'Children'
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['id', 'name', 'parent_id', 'sort_order'],
     title: 'SpendingCategoryResponse'
+} as const;
+
+export const SubmitTurnRequestSchema = {
+    properties: {
+        request_id: {
+            type: 'string',
+            pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$',
+            title: 'Request Id'
+        },
+        conversation_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Conversation Id'
+        },
+        input: {
+            oneOf: [
+                {
+                    '$ref': '#/components/schemas/MessageTurnInput'
+                },
+                {
+                    '$ref': '#/components/schemas/ControlActionTurnInput'
+                },
+                {
+                    '$ref': '#/components/schemas/TaskActionTurnInput'
+                }
+            ],
+            title: 'Input',
+            discriminator: {
+                propertyName: 'kind',
+                mapping: {
+                    control_action: '#/components/schemas/ControlActionTurnInput',
+                    message: '#/components/schemas/MessageTurnInput',
+                    task_action: '#/components/schemas/TaskActionTurnInput'
+                }
+            }
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['request_id', 'input'],
+    title: 'SubmitTurnRequest'
+} as const;
+
+export const SubmitTurnResponseSchema = {
+    properties: {
+        request_id: {
+            type: 'string',
+            title: 'Request Id'
+        },
+        conversation: {
+            '$ref': '#/components/schemas/ConversationResponse'
+        },
+        outcome: {
+            '$ref': '#/components/schemas/TurnOutcomeResponse'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['request_id', 'conversation', 'outcome'],
+    title: 'SubmitTurnResponse'
+} as const;
+
+export const TaskActionOfferResponseSchema = {
+    properties: {
+        action: {
+            type: 'string',
+            title: 'Action'
+        },
+        label: {
+            type: 'string',
+            title: 'Label'
+        },
+        payload: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Payload'
+        },
+        expected_task_id: {
+            type: 'string',
+            title: 'Expected Task Id'
+        },
+        expected_conversation_version: {
+            type: 'integer',
+            title: 'Expected Conversation Version'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['action', 'label', 'expected_task_id', 'expected_conversation_version'],
+    title: 'TaskActionOfferResponse'
+} as const;
+
+export const TaskActionTurnInputSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            const: 'task_action',
+            title: 'Kind'
+        },
+        expected_task_id: {
+            type: 'string',
+            pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$',
+            title: 'Expected Task Id'
+        },
+        expected_conversation_version: {
+            type: 'integer',
+            minimum: 1,
+            title: 'Expected Conversation Version'
+        },
+        action: {
+            type: 'string',
+            pattern: '^[a-z][a-z0-9_]{0,63}$',
+            title: 'Action'
+        },
+        payload: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Payload'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['kind', 'expected_task_id', 'expected_conversation_version', 'action'],
+    title: 'TaskActionTurnInput'
+} as const;
+
+export const TaskViewResponseSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            title: 'Kind'
+        },
+        data: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Data'
+        },
+        available_actions: {
+            items: {
+                '$ref': '#/components/schemas/TaskActionOfferResponse'
+            },
+            type: 'array',
+            title: 'Available Actions'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['kind', 'data', 'available_actions'],
+    title: 'TaskViewResponse'
 } as const;
 
 export const TransactionResponseSchema = {
@@ -900,6 +940,7 @@ export const TransactionResponseSchema = {
             title: 'Updated On'
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['id', 'occurred_on', 'status', 'type', 'postings', 'created_on', 'updated_on'],
     title: 'TransactionResponse'
@@ -915,6 +956,45 @@ export const TransactionTypeSchema = {
     type: 'string',
     enum: ['expense', 'income', 'transfer', 'adjustment'],
     title: 'TransactionType'
+} as const;
+
+export const TurnOutcomeResponseSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            title: 'Kind'
+        },
+        message: {
+            type: 'string',
+            title: 'Message'
+        },
+        view: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/TaskViewResponse'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        result: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Result'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['kind', 'message'],
+    title: 'TurnOutcomeResponse'
 } as const;
 
 export const UpdateAccountProfileRequestSchema = {
@@ -939,6 +1019,7 @@ export const UpdateAccountProfileRequestSchema = {
             title: 'Color Key'
         }
     },
+    additionalProperties: false,
     type: 'object',
     required: ['name', 'type'],
     title: 'UpdateAccountProfileRequest'
@@ -1003,6 +1084,7 @@ export const UpdateIncomeCategoryRequestSchema = {
             title: 'Sort Order'
         }
     },
+    additionalProperties: false,
     type: 'object',
     title: 'UpdateIncomeCategoryRequest'
 } as const;
@@ -1066,6 +1148,7 @@ export const UpdateSpendingCategoryRequestSchema = {
             title: 'Sort Order'
         }
     },
+    additionalProperties: false,
     type: 'object',
     title: 'UpdateSpendingCategoryRequest'
 } as const;

@@ -4,10 +4,14 @@ from collections.abc import Iterable, Sequence
 from typing import Protocol, TypeVar
 
 from wallet.ai.transaction_capture.domain import CandidateField, TransactionCandidate
-from wallet.ai.transaction_capture.ports import CaptureReference, CaptureReferenceCatalog
+from wallet.ai.transaction_capture.ports import (
+    CaptureAccountReference,
+    CaptureCategoryReference,
+    CaptureReferenceCatalog,
+)
 from wallet.application.transactions import CreatePosting, CreateTransaction, TransactionService
 from wallet.domain.accounts import Account
-from wallet.domain.transactions import TransactionType
+from wallet.domain.transactions import Transaction, TransactionType
 from wallet.ports.accounts import AccountRepository
 from wallet.ports.income_categories import IncomeCategoryRepository
 from wallet.ports.spending_categories import SpendingCategoryRepository
@@ -40,8 +44,8 @@ class WalletCaptureAdapter:
     def capture_references(self) -> CaptureReferenceCatalog:
         """Return unambiguous references that the capture workflow may select."""
 
-        accounts = _unique_references(
-            (account.name, account.id)
+        accounts = _unique_account_references(
+            (account.name, account.id, account.currency)
             for account in self._accounts.list()
             if not account.is_system and account.archived_at is None
         )
@@ -54,7 +58,10 @@ class WalletCaptureAdapter:
     def invalid_field(self, candidate: TransactionCandidate) -> CandidateField | None:
         match candidate.type:
             case TransactionType.EXPENSE:
-                if self._available_account(candidate.account_id) is None:
+                account = self._available_account(candidate.account_id)
+                if account is None or _currency_conflicts(
+                    candidate.currency_code, account.currency
+                ):
                     return CandidateField.ACCOUNT_ID
                 if (
                     candidate.spending_category_id is None
@@ -62,7 +69,10 @@ class WalletCaptureAdapter:
                 ):
                     return CandidateField.SPENDING_CATEGORY_ID
             case TransactionType.INCOME:
-                if self._available_account(candidate.account_id) is None:
+                account = self._available_account(candidate.account_id)
+                if account is None or _currency_conflicts(
+                    candidate.currency_code, account.currency
+                ):
                     return CandidateField.ACCOUNT_ID
                 if (
                     candidate.income_category_id is None
@@ -73,13 +83,20 @@ class WalletCaptureAdapter:
                 source = self._available_account(candidate.source_account_id)
                 if source is None:
                     return CandidateField.SOURCE_ACCOUNT_ID
+                if _currency_conflicts(candidate.currency_code, source.currency):
+                    return CandidateField.SOURCE_ACCOUNT_ID
                 destination = self._available_account(candidate.destination_account_id)
                 if destination is None:
                     return CandidateField.DESTINATION_ACCOUNT_ID
-                if source.currency != destination.currency:
+                if source.currency != destination.currency or _currency_conflicts(
+                    candidate.currency_code, destination.currency
+                ):
                     return CandidateField.DESTINATION_ACCOUNT_ID
             case TransactionType.ADJUSTMENT:
-                if self._available_account(candidate.account_id) is None:
+                account = self._available_account(candidate.account_id)
+                if account is None or _currency_conflicts(
+                    candidate.currency_code, account.currency
+                ):
                     return CandidateField.ACCOUNT_ID
             case None:
                 return CandidateField.TYPE
@@ -88,7 +105,12 @@ class WalletCaptureAdapter:
             return CandidateField.OCCURRED_ON
         return None
 
-    def execute(self, candidate: TransactionCandidate) -> str:
+    def execute(
+        self,
+        candidate: TransactionCandidate,
+        *,
+        operation_id: str,
+    ) -> Transaction:
         occurred_on = _require(candidate.occurred_on, field_name="occurred_on")
         postings: tuple[CreatePosting, ...]
         match candidate.type:
@@ -162,7 +184,7 @@ class WalletCaptureAdapter:
             case None:
                 raise ValueError("transaction candidate type is required")
 
-        transaction = self._transactions.create_transaction(
+        return self._transactions.create_transaction(
             CreateTransaction(
                 type=_require(candidate.type, field_name="type"),
                 postings=postings,
@@ -170,9 +192,9 @@ class WalletCaptureAdapter:
                 description=candidate.description,
                 merchant_name=candidate.merchant_name,
                 notes=candidate.notes,
-            )
+            ),
+            operation_id=operation_id,
         )
-        return transaction.id
 
     def _available_account(self, account_id: str | None) -> Account | None:
         if account_id is None:
@@ -197,7 +219,7 @@ def _require(value: _T | None, *, field_name: str) -> _T:
 
 def _category_references(
     categories: Sequence[_Category],
-) -> tuple[CaptureReference, ...]:
+) -> tuple[CaptureCategoryReference, ...]:
     categories_by_id = {category.id: category for category in categories}
     return _unique_references(
         (
@@ -228,10 +250,10 @@ def _category_path(
 
 def _unique_references(
     entries: Iterable[tuple[str, str]],
-) -> tuple[CaptureReference, ...]:
-    grouped: dict[str, list[CaptureReference]] = {}
+) -> tuple[CaptureCategoryReference, ...]:
+    grouped: dict[str, list[CaptureCategoryReference]] = {}
     for label, entity_id in entries:
-        reference = CaptureReference(id=entity_id, label=label)
+        reference = CaptureCategoryReference(id=entity_id, label=label)
         grouped.setdefault(_normalize_label(label), []).append(reference)
     unique = [matches[0] for matches in grouped.values() if len(matches) == 1]
     return tuple(
@@ -240,6 +262,26 @@ def _unique_references(
             key=lambda reference: (_normalize_label(reference.label), reference.id),
         )
     )
+
+
+def _unique_account_references(
+    entries: Iterable[tuple[str, str, str]],
+) -> tuple[CaptureAccountReference, ...]:
+    grouped: dict[str, list[CaptureAccountReference]] = {}
+    for label, entity_id, currency in entries:
+        reference = CaptureAccountReference(id=entity_id, label=label, currency=currency)
+        grouped.setdefault(_normalize_label(label), []).append(reference)
+    unique = [matches[0] for matches in grouped.values() if len(matches) == 1]
+    return tuple(
+        sorted(
+            unique,
+            key=lambda reference: (_normalize_label(reference.label), reference.id),
+        )
+    )
+
+
+def _currency_conflicts(expected: str | None, actual: str) -> bool:
+    return expected is not None and expected != actual
 
 
 def _normalize_label(value: str) -> str:

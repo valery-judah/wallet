@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
-from wallet.ai.transaction_capture.domain import (
-    CandidateField,
-    CaptureStatus,
-    PendingInteraction,
-    PendingInteractionKind,
-    TransactionCandidate,
+from wallet.ai.capabilities.contract import CapabilityView
+from wallet.ai.control.domain import (
+    ControlAction,
+    ControlActionSubmission,
+    ConversationView,
+    MessageSubmission,
+    PublicCapabilityView,
+    TaskActionSubmission,
+    TurnOutcome,
+    TurnRequest,
+    TurnResponse,
 )
 from wallet.application.accounts import AccountSnapshot
 from wallet.domain.accounts import AccountType
@@ -22,11 +27,11 @@ if TYPE_CHECKING:
     from wallet.application.spending_categories import SpendingCategoryTreeNode
 
 NonBlankStr = Annotated[str, StringConstraints(min_length=1)]
-CaptureContent = Annotated[str, StringConstraints(min_length=1, max_length=4_000)]
+TurnContent = Annotated[str, StringConstraints(min_length=1, max_length=4_000)]
 
 
 class ApiModel(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
 
 class HealthResponse(ApiModel):
@@ -186,64 +191,6 @@ class CreateTransactionRequest(ApiModel):
     notes: str | None = None
 
 
-class CaptureContributionRequest(ApiModel):
-    content: CaptureContent
-
-
-class CaptureCandidateResponse(ApiModel):
-    type: TransactionType | None = None
-    amount_minor: int | None = None
-    occurred_on: date | None = None
-    account_id: str | None = None
-    spending_category_id: str | None = None
-    income_category_id: str | None = None
-    source_account_id: str | None = None
-    destination_account_id: str | None = None
-    balance_change_minor: int | None = None
-    description: str | None = None
-    merchant_name: str | None = None
-    notes: str | None = None
-
-    @classmethod
-    def from_domain(cls, candidate: TransactionCandidate) -> CaptureCandidateResponse:
-        return cls(
-            type=candidate.type,
-            amount_minor=candidate.amount_minor,
-            occurred_on=candidate.occurred_on,
-            account_id=candidate.account_id,
-            spending_category_id=candidate.spending_category_id,
-            income_category_id=candidate.income_category_id,
-            source_account_id=candidate.source_account_id,
-            destination_account_id=candidate.destination_account_id,
-            balance_change_minor=candidate.balance_change_minor,
-            description=candidate.description,
-            merchant_name=candidate.merchant_name,
-            notes=candidate.notes,
-        )
-
-
-class CaptureInteractionOptionResponse(ApiModel):
-    value: str
-    label: str
-
-
-class CaptureInteractionResponse(ApiModel):
-    kind: PendingInteractionKind
-    field: CandidateField | None = None
-    options: list[CaptureInteractionOptionResponse] = Field(default_factory=list)
-
-    @classmethod
-    def from_domain(cls, interaction: PendingInteraction) -> CaptureInteractionResponse:
-        return cls(
-            kind=interaction.kind,
-            field=interaction.field,
-            options=[
-                CaptureInteractionOptionResponse(value=option.value, label=option.label)
-                for option in interaction.options
-            ],
-        )
-
-
 class PostingResponse(ApiModel):
     id: str
     account_id: str | None = None
@@ -294,13 +241,185 @@ class TransactionResponse(ApiModel):
         )
 
 
-class CaptureResponse(ApiModel):
+RequestId = Annotated[
+    str,
+    StringConstraints(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),
+]
+EntityId = Annotated[
+    str,
+    StringConstraints(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),
+]
+TaskActionName = Annotated[
+    str,
+    StringConstraints(pattern=r"^[a-z][a-z0-9_]{0,63}$"),
+]
+
+
+class MessageTurnInput(ApiModel):
+    kind: Literal["message"]
+    content: TurnContent
+
+    def to_domain(self) -> MessageSubmission:
+        return MessageSubmission(self.content)
+
+
+class ControlActionTurnInput(ApiModel):
+    kind: Literal["control_action"]
+    action: ControlAction
+    expected_task_id: EntityId | None = None
+    expected_conversation_version: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def validate_guard(self) -> ControlActionTurnInput:
+        if self.action is ControlAction.HELP:
+            if (
+                "expected_task_id" in self.model_fields_set
+                or "expected_conversation_version" in self.model_fields_set
+            ):
+                raise ValueError("help cannot contain target or version fields")
+        elif self.expected_task_id is None or self.expected_conversation_version is None:
+            raise ValueError("cancel and restart require target and version fields")
+        return self
+
+    def to_domain(self) -> ControlActionSubmission:
+        return ControlActionSubmission(
+            action=self.action,
+            expected_task_id=self.expected_task_id,
+            expected_conversation_version=self.expected_conversation_version,
+        )
+
+
+class TaskActionTurnInput(ApiModel):
+    kind: Literal["task_action"]
+    expected_task_id: EntityId
+    expected_conversation_version: int = Field(ge=1)
+    action: TaskActionName
+    payload: dict[str, object] = Field(default_factory=dict)
+
+    def to_domain(self) -> TaskActionSubmission:
+        return TaskActionSubmission(
+            expected_task_id=self.expected_task_id,
+            expected_conversation_version=self.expected_conversation_version,
+            action=self.action,
+            payload=self.payload,
+        )
+
+
+TurnInput = Annotated[
+    MessageTurnInput | ControlActionTurnInput | TaskActionTurnInput,
+    Field(discriminator="kind"),
+]
+
+
+class SubmitTurnRequest(ApiModel):
+    request_id: RequestId
+    conversation_id: EntityId | None = None
+    input: TurnInput
+
+    def to_domain(self) -> TurnRequest:
+        return TurnRequest(
+            request_id=self.request_id,
+            conversation_id=self.conversation_id,
+            input=self.input.to_domain(),
+        )
+
+
+class TaskActionOfferResponse(ApiModel):
+    action: str
+    label: str
+    payload: dict[str, object] | None = None
+    expected_task_id: str
+    expected_conversation_version: int
+
+
+class TaskViewResponse(ApiModel):
+    kind: str
+    data: dict[str, object]
+    available_actions: list[TaskActionOfferResponse]
+
+    @classmethod
+    def from_domain(cls, view: PublicCapabilityView) -> TaskViewResponse:
+        return cls(
+            kind=view.kind,
+            data=view.data,
+            available_actions=[
+                TaskActionOfferResponse(
+                    action=offer.action,
+                    label=offer.label,
+                    payload=offer.payload,
+                    expected_task_id=offer.expected_task_id,
+                    expected_conversation_version=offer.expected_conversation_version,
+                )
+                for offer in view.available_actions
+            ],
+        )
+
+
+class ActiveTaskResponse(ApiModel):
     id: str
-    status: CaptureStatus
-    candidate: CaptureCandidateResponse
-    interaction: CaptureInteractionResponse | None = None
-    message: NonBlankStr
-    transaction: TransactionResponse | None = None
+    version: int
+    view: TaskViewResponse
+
+
+class TurnOutcomeResponse(ApiModel):
+    kind: str
+    message: str
+    view: TaskViewResponse | None = None
+    result: dict[str, object] | None = None
+
+    @classmethod
+    def from_domain(cls, outcome: TurnOutcome) -> TurnOutcomeResponse:
+        if isinstance(outcome.view, CapabilityView):
+            raise ValueError("public outcome contains an unbound capability view")
+        return cls(
+            kind=outcome.kind,
+            message=outcome.message,
+            view=(None if outcome.view is None else TaskViewResponse.from_domain(outcome.view)),
+            result=outcome.result,
+        )
+
+
+class ConversationResponse(ApiModel):
+    id: str
+    version: int
+    active_task: ActiveTaskResponse | None
+    last_outcome: TurnOutcomeResponse | None
+
+    @classmethod
+    def from_domain(cls, conversation: ConversationView) -> ConversationResponse:
+        current = conversation.active_task
+        return cls(
+            id=conversation.id,
+            version=conversation.version,
+            active_task=(
+                None
+                if current is None
+                else ActiveTaskResponse(
+                    id=current.id,
+                    version=current.version,
+                    view=TaskViewResponse.from_domain(current.view),
+                )
+            ),
+            last_outcome=(
+                None
+                if conversation.last_outcome is None
+                else TurnOutcomeResponse.from_domain(conversation.last_outcome)
+            ),
+        )
+
+
+class SubmitTurnResponse(ApiModel):
+    request_id: str
+    conversation: ConversationResponse
+    outcome: TurnOutcomeResponse
+
+    @classmethod
+    def from_domain(cls, response: TurnResponse) -> SubmitTurnResponse:
+        return cls(
+            request_id=response.request_id,
+            conversation=ConversationResponse.from_domain(response.conversation),
+            outcome=TurnOutcomeResponse.from_domain(response.outcome),
+        )
 
 
 SpendingCategoryResponse.model_rebuild()

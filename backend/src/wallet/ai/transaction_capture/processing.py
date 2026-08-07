@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, fields, replace
 from datetime import date
-from enum import StrEnum
 
 from wallet.ai.llm import StructuredChatModel
 from wallet.ai.transaction_capture.domain import (
@@ -13,61 +11,36 @@ from wallet.ai.transaction_capture.domain import (
     TransactionCandidate,
     UserContribution,
 )
-from wallet.ai.transaction_capture.extraction import (
-    ContributionExtraction,
-    ContributionExtractor,
-    ExtractedMention,
-    LlmContributionExtractor,
-    MentionKind,
-    SourceEvidence,
-)
-from wallet.ai.transaction_capture.grounding import (
-    ContributionGrounder,
-    GroundedInterpretation,
-    GroundingAmbiguity,
-    UnresolvedField,
+from wallet.ai.transaction_capture.interpretation import (
+    ContributionInterpretation,
+    ContributionInterpreter,
+    InterpretationEvidence,
+    LlmContributionInterpreter,
+    ReferenceAmbiguity,
 )
 from wallet.ai.transaction_capture.ports import (
-    CaptureReference,
     CaptureReferenceCatalog,
     CaptureReferenceProvider,
-)
-from wallet.ai.transaction_capture.semantic import (
-    ContributionSemanticInterpreter,
-    FieldHypothesis,
-    InterpretationOrigin,
-    LlmContributionSemanticInterpreter,
-    SemanticCandidateContext,
-    SemanticContext,
-    SemanticInterpretation,
-    SemanticPendingInteraction,
-    SemanticReferenceState,
-    SemanticReferenceValue,
-    SemanticReferenceVocabulary,
 )
 from wallet.domain.transactions import TransactionType
 
 
-class ContributionAnalysisPath(StrEnum):
-    DETERMINISTIC_PENDING = "deterministic_pending"
-    MODEL_PIPELINE = "model_pipeline"
-
-
 @dataclass(frozen=True, slots=True)
-class CandidateReduction:
-    patch: CandidatePatch
-    candidate: TransactionCandidate
-    blocking_ambiguities: tuple[GroundingAmbiguity, ...] = ()
-    blocking_unresolved_fields: tuple[UnresolvedField, ...] = ()
+class CurrencyConflict:
+    field: CandidateField
+    expected_currency: str
+    actual_currency: str
 
 
 @dataclass(frozen=True, slots=True)
 class ContributionProcessingTrace:
-    analysis_path: ContributionAnalysisPath
-    extraction: ContributionExtraction
-    semantic_interpretation: SemanticInterpretation
-    grounded_interpretation: GroundedInterpretation
-    candidate_reduction: CandidateReduction
+    attempt_count: int
+    applied_fields: tuple[CandidateField, ...]
+    ambiguities: tuple[ReferenceAmbiguity, ...] = ()
+    unresolved_fields: tuple[CandidateField, ...] = ()
+    currency_conflicts: tuple[CurrencyConflict, ...] = ()
+    clarification_needed: bool = False
+    evidence: tuple[InterpretationEvidence, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,114 +49,16 @@ class ContributionProcessingResult:
     trace: ContributionProcessingTrace
 
 
-class CandidateReducer:
-    """Apply grounded field operations and clear evidenced unresolved replacements."""
-
-    def reduce(
-        self,
-        candidate: TransactionCandidate,
-        interpretation: GroundedInterpretation,
-    ) -> CandidateReduction:
-        patch = interpretation.patch
-        projected = candidate.apply(patch)
-        blocking_ambiguities = tuple(
-            issue for issue in interpretation.ambiguities if projected.is_relevant(issue.field)
-        )
-        blocking_unresolved = tuple(
-            issue
-            for issue in interpretation.unresolved_fields
-            if projected.is_relevant(issue.field)
-        )
-        for issue in blocking_ambiguities:
-            patch = _clear_patch_field(patch, issue.field)
-        for unresolved_issue in blocking_unresolved:
-            patch = _clear_patch_field(patch, unresolved_issue.field)
-        reduced = candidate.apply(patch)
-        return CandidateReduction(
-            patch=patch,
-            candidate=reduced,
-            blocking_ambiguities=blocking_ambiguities,
-            blocking_unresolved_fields=blocking_unresolved,
-        )
-
-
-class DeterministicPendingAnswerHandler:
-    """Produce extraction and semantics for safe exact pending answers."""
-
-    def try_handle(
-        self,
-        contribution: UserContribution,
-        *,
-        pending_interaction: PendingInteraction | None,
-        references: CaptureReferenceCatalog,
-    ) -> tuple[ContributionExtraction, SemanticInterpretation] | None:
-        pending = pending_interaction
-        if pending is None or pending.field is None:
-            return None
-        field = pending.field
-        semantic_value: TransactionType | None = None
-        kind: MentionKind
-        if field is CandidateField.TYPE:
-            semantic_value = _exact_transaction_type(contribution.content)
-            if semantic_value is None:
-                return None
-            kind = MentionKind.ACTION
-        elif field in {CandidateField.AMOUNT_MINOR, CandidateField.BALANCE_CHANGE_MINOR}:
-            if _EXACT_AMOUNT.fullmatch(contribution.content.strip()) is None:
-                return None
-            kind = MentionKind.MONEY
-        else:
-            field_references = _references_for_field(
-                field,
-                pending_interaction=pending,
-                references=references,
-            )
-            if (
-                field_references is None
-                or len(_matching_references(contribution.content, field_references)) != 1
-            ):
-                return None
-            kind = MentionKind.REFERENCE
-
-        evidence = SourceEvidence(
-            start=0,
-            end=len(contribution.content),
-            text=contribution.content,
-        )
-        extraction = ContributionExtraction(
-            mentions=(ExtractedMention(id="m0", kind=kind, evidence=evidence),)
-        )
-        semantic = SemanticInterpretation(
-            hypotheses=(
-                FieldHypothesis(
-                    field=field,
-                    mention_id="m0",
-                    origin=InterpretationOrigin.CONTEXTUAL,
-                    semantic_value=semantic_value,
-                ),
-            )
-        )
-        return extraction, semantic
-
-
-class PhasedContributionProcessor:
-    """Run extraction, semantics, grounding, and reduction for one contribution."""
+class ModelDrivenContributionProcessor:
+    """Apply one permissive model interpretation behind deterministic validation."""
 
     def __init__(
         self,
         *,
-        pending_answers: DeterministicPendingAnswerHandler,
-        extractor: ContributionExtractor,
-        semantic_interpreter: ContributionSemanticInterpreter,
-        grounder: ContributionGrounder,
-        reducer: CandidateReducer,
+        interpreter: ContributionInterpreter,
         references: CaptureReferenceProvider,
     ) -> None:
-        self._pending_answers = pending_answers
-        self._extractor = extractor
-        self._semantic_interpreter = semantic_interpreter
-        self._grounder = grounder
-        self._reducer = reducer
+        self._interpreter = interpreter
         self._references = references
 
     def process(
@@ -195,224 +70,166 @@ class PhasedContributionProcessor:
         on_date: date,
     ) -> ContributionProcessingResult:
         reference_snapshot = self._references.capture_references()
-        deterministic = self._pending_answers.try_handle(
+        interpretation = self._interpreter.interpret(
             contribution,
+            candidate=candidate,
             pending_interaction=pending_interaction,
             references=reference_snapshot,
+            on_date=on_date,
         )
-        if deterministic is None:
-            analysis_path = ContributionAnalysisPath.MODEL_PIPELINE
-            extraction = self._extractor.extract(contribution)
-            context = _semantic_context(
-                candidate=candidate,
-                pending_interaction=pending_interaction,
-                today=on_date,
-                references=reference_snapshot,
-            )
-            semantic = self._semantic_interpreter.interpret(
-                contribution,
-                extraction=extraction,
-                context=context,
-            )
-        else:
-            analysis_path = ContributionAnalysisPath.DETERMINISTIC_PENDING
-            extraction, semantic = deterministic
-        grounded = self._grounder.ground(
-            semantic,
-            extraction=extraction,
+        return _apply_interpretation(
+            candidate,
+            interpretation=interpretation,
             references=reference_snapshot,
-            today=on_date,
         )
-        reduction = self._reducer.reduce(candidate, grounded)
-        trace = ContributionProcessingTrace(
-            analysis_path=analysis_path,
-            extraction=extraction,
-            semantic_interpretation=semantic,
-            grounded_interpretation=grounded,
-            candidate_reduction=reduction,
-        )
-        return ContributionProcessingResult(candidate=reduction.candidate, trace=trace)
 
 
 @dataclass(frozen=True, slots=True)
-class PhasedContributionProcessorFactory:
-    """Build wallet-bound processors with separate extraction and semantic models."""
-
-    extraction_model: StructuredChatModel
-    semantic_model: StructuredChatModel
+class ModelDrivenContributionProcessorFactory:
+    model: StructuredChatModel
 
     def build(
         self,
         *,
         references: CaptureReferenceProvider,
-    ) -> PhasedContributionProcessor:
-        return PhasedContributionProcessor(
-            pending_answers=DeterministicPendingAnswerHandler(),
-            extractor=LlmContributionExtractor(model=self.extraction_model),
-            semantic_interpreter=LlmContributionSemanticInterpreter(model=self.semantic_model),
-            grounder=ContributionGrounder(),
-            reducer=CandidateReducer(),
+    ) -> ModelDrivenContributionProcessor:
+        return ModelDrivenContributionProcessor(
+            interpreter=LlmContributionInterpreter(model=self.model),
             references=references,
         )
 
 
-def _references_for_field(
-    field: CandidateField,
-    *,
-    pending_interaction: PendingInteraction,
-    references: CaptureReferenceCatalog,
-) -> tuple[CaptureReference, ...] | None:
-    if pending_interaction.options:
-        return tuple(
-            CaptureReference(id=option.value, label=option.label)
-            for option in pending_interaction.options
-        )
-    if field in {
-        CandidateField.ACCOUNT_ID,
-        CandidateField.SOURCE_ACCOUNT_ID,
-        CandidateField.DESTINATION_ACCOUNT_ID,
-    }:
-        return references.accounts
-    if field is CandidateField.SPENDING_CATEGORY_ID:
-        return references.spending_categories
-    if field is CandidateField.INCOME_CATEGORY_ID:
-        return references.income_categories
-    return None
-
-
-def _semantic_context(
-    *,
+def _apply_interpretation(
     candidate: TransactionCandidate,
-    pending_interaction: PendingInteraction | None,
-    today: date,
+    *,
+    interpretation: ContributionInterpretation,
     references: CaptureReferenceCatalog,
-) -> SemanticContext:
-    return SemanticContext(
-        today=today,
-        candidate=SemanticCandidateContext(
-            type=candidate.type,
-            amount_minor=candidate.amount_minor,
-            occurred_on=candidate.occurred_on,
-            account=_semantic_reference(candidate.account_id, references.accounts),
-            spending_category=_semantic_reference(
-                candidate.spending_category_id,
-                references.spending_categories,
-            ),
-            income_category=_semantic_reference(
-                candidate.income_category_id,
-                references.income_categories,
-            ),
-            source_account=_semantic_reference(
-                candidate.source_account_id,
-                references.accounts,
-            ),
-            destination_account=_semantic_reference(
-                candidate.destination_account_id,
-                references.accounts,
-            ),
-            balance_change_minor=candidate.balance_change_minor,
-            description=candidate.description,
-            merchant_name=candidate.merchant_name,
-            notes=candidate.notes,
+) -> ContributionProcessingResult:
+    patch = interpretation.patch
+    projected = candidate.apply(patch)
+    ambiguities = tuple(
+        item for item in interpretation.ambiguities if projected.is_relevant(item.field)
+    )
+    unresolved = tuple(
+        field for field in interpretation.unresolved_fields if projected.is_relevant(field)
+    )
+
+    invalid_references = _invalid_reference_fields(projected, references=references)
+    unresolved = _distinct((*unresolved, *invalid_references))
+    conflicts = _currency_conflicts(projected, references=references)
+
+    for ambiguity in ambiguities:
+        patch = _clear_patch_field(patch, ambiguity.field)
+    for field in unresolved:
+        patch = _clear_patch_field(patch, field)
+    for conflict in conflicts:
+        patch = _clear_patch_field(patch, conflict.field)
+    reduced = candidate.apply(patch)
+
+    return ContributionProcessingResult(
+        candidate=reduced,
+        trace=ContributionProcessingTrace(
+            attempt_count=interpretation.attempt_count,
+            applied_fields=_changed_fields(candidate, reduced),
+            ambiguities=ambiguities,
+            unresolved_fields=unresolved,
+            currency_conflicts=conflicts,
+            clarification_needed=interpretation.clarification_needed,
+            evidence=interpretation.evidence,
         ),
-        pending_interaction=(
+    )
+
+
+def _invalid_reference_fields(
+    candidate: TransactionCandidate,
+    *,
+    references: CaptureReferenceCatalog,
+) -> tuple[CandidateField, ...]:
+    account_ids = {reference.id for reference in references.accounts}
+    spending_ids = {reference.id for reference in references.spending_categories}
+    income_ids = {reference.id for reference in references.income_categories}
+    invalid: list[CandidateField] = []
+    for field, available in (
+        (CandidateField.ACCOUNT_ID, account_ids),
+        (CandidateField.SOURCE_ACCOUNT_ID, account_ids),
+        (CandidateField.DESTINATION_ACCOUNT_ID, account_ids),
+        (CandidateField.SPENDING_CATEGORY_ID, spending_ids),
+        (CandidateField.INCOME_CATEGORY_ID, income_ids),
+    ):
+        value = getattr(candidate, field.value)
+        if candidate.is_relevant(field) and value is not None and value not in available:
+            invalid.append(field)
+    return tuple(invalid)
+
+
+def _currency_conflicts(
+    candidate: TransactionCandidate,
+    *,
+    references: CaptureReferenceCatalog,
+) -> tuple[CurrencyConflict, ...]:
+    accounts = {reference.id: reference for reference in references.accounts}
+    expected = candidate.currency_code
+    conflicts: list[CurrencyConflict] = []
+    for field in _account_fields(candidate.type):
+        account_id = getattr(candidate, field.value)
+        reference = accounts.get(account_id)
+        if reference is None or expected is None or reference.currency == expected:
+            continue
+        conflicts.append(CurrencyConflict(field, expected, reference.currency))
+
+    if candidate.type is TransactionType.TRANSFER:
+        source = (
             None
-            if pending_interaction is None
-            else SemanticPendingInteraction(
-                kind=pending_interaction.kind,
-                field=pending_interaction.field,
-                option_labels=tuple(option.label for option in pending_interaction.options),
+            if candidate.source_account_id is None
+            else accounts.get(candidate.source_account_id)
+        )
+        destination = (
+            None
+            if candidate.destination_account_id is None
+            else accounts.get(candidate.destination_account_id)
+        )
+        if (
+            source is not None
+            and destination is not None
+            and source.currency != destination.currency
+            and all(item.field is not CandidateField.DESTINATION_ACCOUNT_ID for item in conflicts)
+        ):
+            conflicts.append(
+                CurrencyConflict(
+                    CandidateField.DESTINATION_ACCOUNT_ID,
+                    source.currency,
+                    destination.currency,
+                )
             )
-        ),
-        references=SemanticReferenceVocabulary(
-            account_labels=tuple(reference.label for reference in references.accounts),
-            spending_category_labels=tuple(
-                reference.label for reference in references.spending_categories
-            ),
-            income_category_labels=tuple(
-                reference.label for reference in references.income_categories
-            ),
-        ),
-    )
+    return tuple(conflicts)
 
 
-def _semantic_reference(
-    reference_id: str | None,
-    references: tuple[CaptureReference, ...],
-) -> SemanticReferenceValue:
-    if reference_id is None:
-        return SemanticReferenceValue(SemanticReferenceState.UNSET)
-    match = next((reference for reference in references if reference.id == reference_id), None)
-    if match is None:
-        return SemanticReferenceValue(SemanticReferenceState.UNAVAILABLE)
-    return SemanticReferenceValue(SemanticReferenceState.AVAILABLE, label=match.label)
+def _account_fields(transaction_type: TransactionType | None) -> tuple[CandidateField, ...]:
+    if transaction_type in {
+        TransactionType.EXPENSE,
+        TransactionType.INCOME,
+        TransactionType.ADJUSTMENT,
+    }:
+        return (CandidateField.ACCOUNT_ID,)
+    if transaction_type is TransactionType.TRANSFER:
+        return (CandidateField.SOURCE_ACCOUNT_ID, CandidateField.DESTINATION_ACCOUNT_ID)
+    return ()
 
 
-def _matching_references(
-    text: str,
-    references: tuple[CaptureReference, ...],
-) -> tuple[CaptureReference, ...]:
-    answer = _searchable(text)
+def _changed_fields(
+    before: TransactionCandidate,
+    after: TransactionCandidate,
+) -> tuple[CandidateField, ...]:
     return tuple(
-        reference
-        for reference in references
-        if answer
-        in {
-            _searchable(reference.label),
-            _searchable(reference.label.rsplit(" > ", maxsplit=1)[-1]),
-        }
+        CandidateField(field.name)
+        for field in fields(TransactionCandidate)
+        if getattr(before, field.name) != getattr(after, field.name)
     )
-
-
-def _exact_transaction_type(content: str) -> TransactionType | None:
-    answers = {
-        "expense": TransactionType.EXPENSE,
-        "an expense": TransactionType.EXPENSE,
-        "income": TransactionType.INCOME,
-        "an income": TransactionType.INCOME,
-        "transfer": TransactionType.TRANSFER,
-        "a transfer": TransactionType.TRANSFER,
-        "adjustment": TransactionType.ADJUSTMENT,
-        "an adjustment": TransactionType.ADJUSTMENT,
-    }
-    return answers.get(_searchable(content))
-
-
-def _searchable(value: str) -> str:
-    return " ".join(re.sub(r"[^\w]+", " ", value.casefold()).split())
-
-
-_EXACT_AMOUNT = re.compile(
-    r"(?ix)"
-    r"(?:ars|usd|eur|gbp|\$|€|£)?\s*"
-    r"[+-]?\d+(?:[.,]\d{1,2})?"
-    r"\s*(?:ars|usd|eur|gbp|pesos?|dollars?|euros?|pounds?)?"
-)
 
 
 def _clear_patch_field(patch: CandidatePatch, field: CandidateField) -> CandidatePatch:
-    match field:
-        case CandidateField.TYPE:
-            return replace(patch, type=None)
-        case CandidateField.AMOUNT_MINOR:
-            return replace(patch, amount_minor=None)
-        case CandidateField.OCCURRED_ON:
-            return replace(patch, occurred_on=None)
-        case CandidateField.ACCOUNT_ID:
-            return replace(patch, account_id=None)
-        case CandidateField.SPENDING_CATEGORY_ID:
-            return replace(patch, spending_category_id=None)
-        case CandidateField.INCOME_CATEGORY_ID:
-            return replace(patch, income_category_id=None)
-        case CandidateField.SOURCE_ACCOUNT_ID:
-            return replace(patch, source_account_id=None)
-        case CandidateField.DESTINATION_ACCOUNT_ID:
-            return replace(patch, destination_account_id=None)
-        case CandidateField.BALANCE_CHANGE_MINOR:
-            return replace(patch, balance_change_minor=None)
-        case CandidateField.DESCRIPTION:
-            return replace(patch, description=None)
-        case CandidateField.MERCHANT_NAME:
-            return replace(patch, merchant_name=None)
-        case CandidateField.NOTES:
-            return replace(patch, notes=None)
+    return replace(patch, **{field.value: None})
+
+
+def _distinct(values: tuple[CandidateField, ...]) -> tuple[CandidateField, ...]:
+    return tuple(dict.fromkeys(values))

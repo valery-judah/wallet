@@ -46,119 +46,59 @@ export type AccountResponse = {
 export type AccountType = 'cash' | 'debit_card' | 'credit_card' | 'bank_account' | 'wallet' | 'system';
 
 /**
- * CandidateField
+ * ActiveTaskResponse
  */
-export type CandidateField = 'type' | 'amount_minor' | 'occurred_on' | 'account_id' | 'spending_category_id' | 'income_category_id' | 'source_account_id' | 'destination_account_id' | 'balance_change_minor' | 'description' | 'merchant_name' | 'notes';
-
-/**
- * CaptureCandidateResponse
- */
-export type CaptureCandidateResponse = {
-    type?: TransactionType | null;
-    /**
-     * Amount Minor
-     */
-    amount_minor?: number | null;
-    /**
-     * Occurred On
-     */
-    occurred_on?: string | null;
-    /**
-     * Account Id
-     */
-    account_id?: string | null;
-    /**
-     * Spending Category Id
-     */
-    spending_category_id?: string | null;
-    /**
-     * Income Category Id
-     */
-    income_category_id?: string | null;
-    /**
-     * Source Account Id
-     */
-    source_account_id?: string | null;
-    /**
-     * Destination Account Id
-     */
-    destination_account_id?: string | null;
-    /**
-     * Balance Change Minor
-     */
-    balance_change_minor?: number | null;
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Merchant Name
-     */
-    merchant_name?: string | null;
-    /**
-     * Notes
-     */
-    notes?: string | null;
-};
-
-/**
- * CaptureContributionRequest
- */
-export type CaptureContributionRequest = {
-    /**
-     * Content
-     */
-    content: string;
-};
-
-/**
- * CaptureInteractionOptionResponse
- */
-export type CaptureInteractionOptionResponse = {
-    /**
-     * Value
-     */
-    value: string;
-    /**
-     * Label
-     */
-    label: string;
-};
-
-/**
- * CaptureInteractionResponse
- */
-export type CaptureInteractionResponse = {
-    kind: PendingInteractionKind;
-    field?: CandidateField | null;
-    /**
-     * Options
-     */
-    options?: Array<CaptureInteractionOptionResponse>;
-};
-
-/**
- * CaptureResponse
- */
-export type CaptureResponse = {
+export type ActiveTaskResponse = {
     /**
      * Id
      */
     id: string;
-    status: CaptureStatus;
-    candidate: CaptureCandidateResponse;
-    interaction?: CaptureInteractionResponse | null;
     /**
-     * Message
+     * Version
      */
-    message: string;
-    transaction?: TransactionResponse | null;
+    version: number;
+    view: TaskViewResponse;
 };
 
 /**
- * CaptureStatus
+ * ControlAction
  */
-export type CaptureStatus = 'active' | 'awaiting_confirmation' | 'completed' | 'cancelled';
+export type ControlAction = 'help' | 'cancel' | 'restart';
+
+/**
+ * ControlActionTurnInput
+ */
+export type ControlActionTurnInput = {
+    /**
+     * Kind
+     */
+    kind: 'control_action';
+    action: ControlAction;
+    /**
+     * Expected Task Id
+     */
+    expected_task_id?: string | null;
+    /**
+     * Expected Conversation Version
+     */
+    expected_conversation_version?: number | null;
+};
+
+/**
+ * ConversationResponse
+ */
+export type ConversationResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Version
+     */
+    version: number;
+    active_task: ActiveTaskResponse | null;
+    last_outcome: TurnOutcomeResponse | null;
+};
 
 /**
  * CreateAccountRequest
@@ -355,6 +295,20 @@ export type IncomeCategoryResponse = {
 };
 
 /**
+ * MessageTurnInput
+ */
+export type MessageTurnInput = {
+    /**
+     * Kind
+     */
+    kind: 'message';
+    /**
+     * Content
+     */
+    content: string;
+};
+
+/**
  * MoneyResponse
  */
 export type MoneyResponse = {
@@ -367,11 +321,6 @@ export type MoneyResponse = {
      */
     currency: string;
 };
-
-/**
- * PendingInteractionKind
- */
-export type PendingInteractionKind = 'request_value' | 'correct' | 'disambiguate' | 'clarify';
 
 /**
  * PostingResponse
@@ -438,6 +387,118 @@ export type SpendingCategoryResponse = {
 };
 
 /**
+ * SubmitTurnRequest
+ */
+export type SubmitTurnRequest = {
+    /**
+     * Request Id
+     */
+    request_id: string;
+    /**
+     * Conversation Id
+     */
+    conversation_id?: string | null;
+    /**
+     * Input
+     */
+    input: ({
+        kind: 'message';
+    } & MessageTurnInput) | ({
+        kind: 'control_action';
+    } & ControlActionTurnInput) | ({
+        kind: 'task_action';
+    } & TaskActionTurnInput);
+};
+
+/**
+ * SubmitTurnResponse
+ */
+export type SubmitTurnResponse = {
+    /**
+     * Request Id
+     */
+    request_id: string;
+    conversation: ConversationResponse;
+    outcome: TurnOutcomeResponse;
+};
+
+/**
+ * TaskActionOfferResponse
+ */
+export type TaskActionOfferResponse = {
+    /**
+     * Action
+     */
+    action: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Payload
+     */
+    payload?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Expected Task Id
+     */
+    expected_task_id: string;
+    /**
+     * Expected Conversation Version
+     */
+    expected_conversation_version: number;
+};
+
+/**
+ * TaskActionTurnInput
+ */
+export type TaskActionTurnInput = {
+    /**
+     * Kind
+     */
+    kind: 'task_action';
+    /**
+     * Expected Task Id
+     */
+    expected_task_id: string;
+    /**
+     * Expected Conversation Version
+     */
+    expected_conversation_version: number;
+    /**
+     * Action
+     */
+    action: string;
+    /**
+     * Payload
+     */
+    payload?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * TaskViewResponse
+ */
+export type TaskViewResponse = {
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Data
+     */
+    data: {
+        [key: string]: unknown;
+    };
+    /**
+     * Available Actions
+     */
+    available_actions: Array<TaskActionOfferResponse>;
+};
+
+/**
  * TransactionResponse
  */
 export type TransactionResponse = {
@@ -490,6 +551,27 @@ export type TransactionStatus = 'pending' | 'posted' | 'void';
  * TransactionType
  */
 export type TransactionType = 'expense' | 'income' | 'transfer' | 'adjustment';
+
+/**
+ * TurnOutcomeResponse
+ */
+export type TurnOutcomeResponse = {
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Message
+     */
+    message: string;
+    view?: TaskViewResponse | null;
+    /**
+     * Result
+     */
+    result?: {
+        [key: string]: unknown;
+    } | null;
+};
 
 /**
  * UpdateAccountProfileRequest
@@ -878,150 +960,60 @@ export type IncomeCategoriesUpdateIncomeCategoryResponses = {
 
 export type IncomeCategoriesUpdateIncomeCategoryResponse = IncomeCategoriesUpdateIncomeCategoryResponses[keyof IncomeCategoriesUpdateIncomeCategoryResponses];
 
-export type TransactionCapturesCreateTransactionCaptureData = {
-    body: CaptureContributionRequest;
+export type ConversationsGetConversationData = {
+    body?: never;
+    path: {
+        /**
+         * Conversation Id
+         */
+        conversation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/conversations/{conversation_id}';
+};
+
+export type ConversationsGetConversationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ConversationsGetConversationError = ConversationsGetConversationErrors[keyof ConversationsGetConversationErrors];
+
+export type ConversationsGetConversationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConversationResponse;
+};
+
+export type ConversationsGetConversationResponse = ConversationsGetConversationResponses[keyof ConversationsGetConversationResponses];
+
+export type TurnsSubmitConversationTurnData = {
+    body: SubmitTurnRequest;
     path?: never;
     query?: never;
-    url: '/api/v1/transaction-captures';
+    url: '/api/v1/turns';
 };
 
-export type TransactionCapturesCreateTransactionCaptureErrors = {
+export type TurnsSubmitConversationTurnErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type TransactionCapturesCreateTransactionCaptureError = TransactionCapturesCreateTransactionCaptureErrors[keyof TransactionCapturesCreateTransactionCaptureErrors];
+export type TurnsSubmitConversationTurnError = TurnsSubmitConversationTurnErrors[keyof TurnsSubmitConversationTurnErrors];
 
-export type TransactionCapturesCreateTransactionCaptureResponses = {
+export type TurnsSubmitConversationTurnResponses = {
     /**
      * Successful Response
      */
-    201: CaptureResponse;
+    200: SubmitTurnResponse;
 };
 
-export type TransactionCapturesCreateTransactionCaptureResponse = TransactionCapturesCreateTransactionCaptureResponses[keyof TransactionCapturesCreateTransactionCaptureResponses];
-
-export type TransactionCapturesGetTransactionCaptureData = {
-    body?: never;
-    path: {
-        /**
-         * Capture Id
-         */
-        capture_id: string;
-    };
-    query?: never;
-    url: '/api/v1/transaction-captures/{capture_id}';
-};
-
-export type TransactionCapturesGetTransactionCaptureErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type TransactionCapturesGetTransactionCaptureError = TransactionCapturesGetTransactionCaptureErrors[keyof TransactionCapturesGetTransactionCaptureErrors];
-
-export type TransactionCapturesGetTransactionCaptureResponses = {
-    /**
-     * Successful Response
-     */
-    200: CaptureResponse;
-};
-
-export type TransactionCapturesGetTransactionCaptureResponse = TransactionCapturesGetTransactionCaptureResponses[keyof TransactionCapturesGetTransactionCaptureResponses];
-
-export type TransactionCapturesAddTransactionCaptureContributionData = {
-    body: CaptureContributionRequest;
-    path: {
-        /**
-         * Capture Id
-         */
-        capture_id: string;
-    };
-    query?: never;
-    url: '/api/v1/transaction-captures/{capture_id}/contributions';
-};
-
-export type TransactionCapturesAddTransactionCaptureContributionErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type TransactionCapturesAddTransactionCaptureContributionError = TransactionCapturesAddTransactionCaptureContributionErrors[keyof TransactionCapturesAddTransactionCaptureContributionErrors];
-
-export type TransactionCapturesAddTransactionCaptureContributionResponses = {
-    /**
-     * Successful Response
-     */
-    200: CaptureResponse;
-};
-
-export type TransactionCapturesAddTransactionCaptureContributionResponse = TransactionCapturesAddTransactionCaptureContributionResponses[keyof TransactionCapturesAddTransactionCaptureContributionResponses];
-
-export type TransactionCapturesConfirmTransactionCaptureData = {
-    body?: never;
-    path: {
-        /**
-         * Capture Id
-         */
-        capture_id: string;
-    };
-    query?: never;
-    url: '/api/v1/transaction-captures/{capture_id}/confirm';
-};
-
-export type TransactionCapturesConfirmTransactionCaptureErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type TransactionCapturesConfirmTransactionCaptureError = TransactionCapturesConfirmTransactionCaptureErrors[keyof TransactionCapturesConfirmTransactionCaptureErrors];
-
-export type TransactionCapturesConfirmTransactionCaptureResponses = {
-    /**
-     * Successful Response
-     */
-    200: CaptureResponse;
-};
-
-export type TransactionCapturesConfirmTransactionCaptureResponse = TransactionCapturesConfirmTransactionCaptureResponses[keyof TransactionCapturesConfirmTransactionCaptureResponses];
-
-export type TransactionCapturesCancelTransactionCaptureData = {
-    body?: never;
-    path: {
-        /**
-         * Capture Id
-         */
-        capture_id: string;
-    };
-    query?: never;
-    url: '/api/v1/transaction-captures/{capture_id}/cancel';
-};
-
-export type TransactionCapturesCancelTransactionCaptureErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type TransactionCapturesCancelTransactionCaptureError = TransactionCapturesCancelTransactionCaptureErrors[keyof TransactionCapturesCancelTransactionCaptureErrors];
-
-export type TransactionCapturesCancelTransactionCaptureResponses = {
-    /**
-     * Successful Response
-     */
-    200: CaptureResponse;
-};
-
-export type TransactionCapturesCancelTransactionCaptureResponse = TransactionCapturesCancelTransactionCaptureResponses[keyof TransactionCapturesCancelTransactionCaptureResponses];
+export type TurnsSubmitConversationTurnResponse = TurnsSubmitConversationTurnResponses[keyof TurnsSubmitConversationTurnResponses];
 
 export type TransactionsListTransactionsData = {
     body?: never;

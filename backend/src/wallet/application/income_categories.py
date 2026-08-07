@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from uuid import uuid4
 
@@ -10,8 +11,11 @@ from wallet.domain.income_categories import (
     normalize_category_name,
 )
 from wallet.infrastructure.memory import InMemoryIncomeCategoryRepository
+from wallet.observability import domain_success_events_enabled, log_event
 from wallet.ports.income_categories import IncomeCategoryRepository
 from wallet.ports.system import IncomeCategoryIdGenerator
+
+logger = logging.getLogger(__name__)
 
 
 class CreateIncomeCategoryRejectedError(ValueError):
@@ -143,6 +147,17 @@ class IncomeCategoryService:
             sort_order=command.sort_order,
         )
         self.categories.add(category)
+        if domain_success_events_enabled():
+            log_event(
+                logger,
+                logging.INFO,
+                "category.created",
+                data={
+                    "category_id": category.id,
+                    "category_type": "income",
+                    "parent_id": category.parent_id,
+                },
+            )
         return category
 
     def update_income_category(self, command: UpdateIncomeCategory) -> IncomeCategory:
@@ -186,6 +201,17 @@ class IncomeCategoryService:
             sort_order=sort_order,
         )
         self.categories.save(category)
+        if domain_success_events_enabled():
+            log_event(
+                logger,
+                logging.INFO,
+                "category.updated",
+                data={
+                    "category_id": category.id,
+                    "category_type": "income",
+                    "parent_id": category.parent_id,
+                },
+            )
         return category
 
     def list_income_categories(self) -> list[IncomeCategoryTreeNode]:

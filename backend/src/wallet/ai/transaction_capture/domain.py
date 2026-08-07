@@ -9,11 +9,9 @@ from wallet.domain._validation import normalize_nonblank
 from wallet.domain.transactions import TransactionType
 
 
-class CaptureStatus(StrEnum):
+class CapturePhase(StrEnum):
     ACTIVE = "active"
     AWAITING_CONFIRMATION = "awaiting_confirmation"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
 
 
 class CandidateField(StrEnum):
@@ -29,6 +27,7 @@ class CandidateField(StrEnum):
     DESCRIPTION = "description"
     MERCHANT_NAME = "merchant_name"
     NOTES = "notes"
+    CURRENCY_CODE = "currency_code"
 
 
 class PendingInteractionKind(StrEnum):
@@ -36,6 +35,11 @@ class PendingInteractionKind(StrEnum):
     CORRECT = "correct"
     DISAMBIGUATE = "disambiguate"
     CLARIFY = "clarify"
+
+
+class PendingInteractionReason(StrEnum):
+    UNRESOLVED_VALUE = "unresolved_value"
+    CURRENCY_CONFLICT = "currency_conflict"
 
 
 class InvalidCaptureTransitionError(ValueError):
@@ -86,6 +90,7 @@ _RELEVANT_FIELDS: dict[TransactionType, frozenset[str]] = {
             "description",
             "merchant_name",
             "notes",
+            "currency_code",
         }
     ),
     TransactionType.INCOME: frozenset(
@@ -97,6 +102,7 @@ _RELEVANT_FIELDS: dict[TransactionType, frozenset[str]] = {
             "description",
             "merchant_name",
             "notes",
+            "currency_code",
         }
     ),
     TransactionType.TRANSFER: frozenset(
@@ -108,6 +114,7 @@ _RELEVANT_FIELDS: dict[TransactionType, frozenset[str]] = {
             "description",
             "merchant_name",
             "notes",
+            "currency_code",
         }
     ),
     TransactionType.ADJUSTMENT: frozenset(
@@ -118,6 +125,7 @@ _RELEVANT_FIELDS: dict[TransactionType, frozenset[str]] = {
             "description",
             "merchant_name",
             "notes",
+            "currency_code",
         }
     ),
 }
@@ -137,6 +145,7 @@ def candidate_field_is_relevant(
             CandidateField.DESCRIPTION,
             CandidateField.MERCHANT_NAME,
             CandidateField.NOTES,
+            CandidateField.CURRENCY_CODE,
         }
     return field.value in _RELEVANT_FIELDS[transaction_type]
 
@@ -157,6 +166,7 @@ class CandidatePatch:
     description: str | None | _Unset = _UNSET
     merchant_name: str | None | _Unset = _UNSET
     notes: str | None | _Unset = _UNSET
+    currency_code: str | None | _Unset = _UNSET
 
     @property
     def is_empty(self) -> bool:
@@ -175,6 +185,7 @@ class CandidatePatch:
                 self.description,
                 self.merchant_name,
                 self.notes,
+                self.currency_code,
             )
         )
 
@@ -207,6 +218,7 @@ class TransactionCandidate:
     description: str | None = None
     merchant_name: str | None = None
     notes: str | None = None
+    currency_code: str | None = None
 
     def __post_init__(self) -> None:
         if self.type is not None:
@@ -229,6 +241,11 @@ class TransactionCandidate:
                     field_name=field_name.replace("_", " "),
                 ),
             )
+        if self.currency_code is not None:
+            normalized_currency = self.currency_code.strip().upper()
+            if len(normalized_currency) != 3 or not normalized_currency.isalpha():
+                raise ValueError("currency code must contain three letters")
+            object.__setattr__(self, "currency_code", normalized_currency)
 
     @property
     def required_fields(self) -> tuple[CandidateField, ...]:
@@ -336,6 +353,11 @@ class TransactionCandidate:
                 _patched(self.notes, patch.notes),
                 relevant_fields,
             ),
+            currency_code=_keep_if_relevant(
+                "currency_code",
+                _patched(self.currency_code, patch.currency_code),
+                relevant_fields,
+            ),
         )
 
 
@@ -362,11 +384,14 @@ class PendingInteraction:
     kind: PendingInteractionKind
     field: CandidateField | None = None
     options: tuple[InteractionOption, ...] = ()
+    reason: PendingInteractionReason | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "kind", PendingInteractionKind(self.kind))
         if self.field is not None:
             object.__setattr__(self, "field", CandidateField(self.field))
+        if self.reason is not None:
+            object.__setattr__(self, "reason", PendingInteractionReason(self.reason))
         object.__setattr__(self, "options", tuple(self.options))
         if self.kind is PendingInteractionKind.CLARIFY and self.field is not None:
             raise ValueError("general clarification cannot target one field")
@@ -376,46 +401,31 @@ class PendingInteraction:
             raise ValueError("disambiguation requires at least two options")
         if self.kind is not PendingInteractionKind.DISAMBIGUATE and self.options:
             raise ValueError("only disambiguation can include options")
+        if self.reason is not None and self.kind is not PendingInteractionKind.CORRECT:
+            raise ValueError("only corrections can expose an interaction reason")
 
 
 @dataclass(frozen=True, slots=True)
-class CaptureSession:
-    """Immutable in-memory lifecycle state enforcing active/completed invariants."""
+class TransactionCaptureState:
+    """Immutable state for the two live phases of transaction capture."""
 
-    id: str
     candidate: TransactionCandidate
     pending_interaction: PendingInteraction | None
-    status: CaptureStatus
-    transaction_id: str | None = None
+    phase: CapturePhase
 
     def __post_init__(self) -> None:
-        object.__setattr__(
-            self,
-            "id",
-            normalize_nonblank(self.id, field_name="capture session id"),
-        )
-        object.__setattr__(self, "status", CaptureStatus(self.status))
-        object.__setattr__(
-            self,
-            "transaction_id",
-            _normalize_optional_value(
-                self.transaction_id,
-                field_name="transaction id",
-            ),
-        )
+        object.__setattr__(self, "phase", CapturePhase(self.phase))
         self._assert_consistent_state()
 
     @classmethod
-    def start(cls, *, id: str, occurred_on: date) -> CaptureSession:
+    def start(cls, *, occurred_on: date) -> TransactionCaptureState:
         return cls(
-            id=id,
             candidate=TransactionCandidate(occurred_on=occurred_on),
             pending_interaction=None,
-            status=CaptureStatus.ACTIVE,
-            transaction_id=None,
+            phase=CapturePhase.ACTIVE,
         )
 
-    def update_candidate(self, candidate: TransactionCandidate) -> CaptureSession:
+    def update_candidate(self, candidate: TransactionCandidate) -> TransactionCaptureState:
         self._assert_active("update candidate")
         return replace(
             self,
@@ -423,11 +433,11 @@ class CaptureSession:
             pending_interaction=None,
         )
 
-    def request(self, interaction: PendingInteraction) -> CaptureSession:
+    def request(self, interaction: PendingInteraction) -> TransactionCaptureState:
         self._assert_active("request interaction")
         return replace(self, pending_interaction=interaction)
 
-    def await_confirmation(self) -> CaptureSession:
+    def await_confirmation(self) -> TransactionCaptureState:
         self._assert_active("request confirmation")
         if self.pending_interaction is not None:
             raise InvalidCaptureTransitionError("pending interaction must be resolved")
@@ -435,65 +445,28 @@ class CaptureSession:
             raise InvalidCaptureTransitionError("transaction candidate is incomplete")
         if not self.candidate.is_locally_valid:
             raise InvalidCaptureTransitionError("transaction candidate is invalid")
-        return replace(self, status=CaptureStatus.AWAITING_CONFIRMATION)
+        return replace(self, phase=CapturePhase.AWAITING_CONFIRMATION)
 
-    def resume(self) -> CaptureSession:
+    def resume(self) -> TransactionCaptureState:
         self._assert_status(
-            CaptureStatus.AWAITING_CONFIRMATION,
+            CapturePhase.AWAITING_CONFIRMATION,
             action="resume capture",
         )
-        return replace(self, status=CaptureStatus.ACTIVE)
-
-    def cancel(self) -> CaptureSession:
-        if self.status is CaptureStatus.CANCELLED:
-            return self
-        if self.status not in {CaptureStatus.ACTIVE, CaptureStatus.AWAITING_CONFIRMATION}:
-            raise InvalidCaptureTransitionError(
-                f"cannot cancel capture while status is {self.status.value}"
-            )
-        return replace(
-            self,
-            pending_interaction=None,
-            status=CaptureStatus.CANCELLED,
-        )
-
-    def complete(self, *, transaction_id: str) -> CaptureSession:
-        self._assert_status(
-            CaptureStatus.AWAITING_CONFIRMATION,
-            action="complete capture",
-        )
-        if self.pending_interaction is not None:
-            raise InvalidCaptureTransitionError("pending interaction must be resolved")
-        if not self.candidate.is_complete:
-            raise InvalidCaptureTransitionError("transaction candidate is incomplete")
-        if not self.candidate.is_locally_valid:
-            raise InvalidCaptureTransitionError("transaction candidate is invalid")
-        return replace(
-            self,
-            transaction_id=normalize_nonblank(
-                transaction_id,
-                field_name="transaction id",
-            ),
-            status=CaptureStatus.COMPLETED,
-        )
+        return replace(self, phase=CapturePhase.ACTIVE)
 
     def _assert_active(self, action: str) -> None:
-        self._assert_status(CaptureStatus.ACTIVE, action=action)
+        self._assert_status(CapturePhase.ACTIVE, action=action)
 
-    def _assert_status(self, expected: CaptureStatus, *, action: str) -> None:
-        if self.status is not expected:
+    def _assert_status(self, expected: CapturePhase, *, action: str) -> None:
+        if self.phase is not expected:
             raise InvalidCaptureTransitionError(
-                f"cannot {action} while status is {self.status.value}"
+                f"cannot {action} while phase is {self.phase.value}"
             )
 
     def _assert_consistent_state(self) -> None:
-        if self.status is CaptureStatus.COMPLETED and self.transaction_id is None:
-            raise ValueError("completed capture must have a transaction id")
-        if self.status is not CaptureStatus.COMPLETED and self.transaction_id is not None:
-            raise ValueError("only completed capture can have a transaction id")
-        if self.status is not CaptureStatus.ACTIVE and self.pending_interaction is not None:
+        if self.phase is not CapturePhase.ACTIVE and self.pending_interaction is not None:
             raise ValueError("only active capture can have a pending interaction")
-        if self.status is CaptureStatus.AWAITING_CONFIRMATION:
+        if self.phase is CapturePhase.AWAITING_CONFIRMATION:
             if not self.candidate.is_complete:
                 raise ValueError("confirmation requires a complete candidate")
             if not self.candidate.is_locally_valid:

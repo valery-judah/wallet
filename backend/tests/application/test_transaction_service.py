@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import date
 
 import pytest
@@ -77,6 +78,75 @@ def test_create_expense_transaction_updates_derived_balance() -> None:
     assert transaction.id == "transaction_lunch"
     assert updated is not None
     assert updated.current_balance.amount_minor == -1_200
+
+
+def test_create_transaction_operation_id_replays_same_command_and_rejects_change(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    accounts = InMemoryAccountRepository()
+    spending_categories = InMemorySpendingCategoryRepository()
+    income_categories = InMemoryIncomeCategoryRepository()
+    transactions = InMemoryTransactionRepository()
+    account = AccountService(
+        accounts=accounts,
+        transactions=transactions,
+        generate_account_id=lambda: "account_main",
+    ).open_account(OpenAccount(name="Main account", type=AccountType.BANK_ACCOUNT, currency="USD"))
+    category = SpendingCategoryService(categories=spending_categories).create_spending_category(
+        CreateSpendingCategory(category_id="category_food", name="Food")
+    )
+    service = TransactionService(
+        accounts=accounts,
+        spending_categories=spending_categories,
+        income_categories=income_categories,
+        transactions=transactions,
+        generate_transaction_id=lambda: "transaction_once",
+        generate_posting_id=_sequential_ids(["posting_1", "posting_2"]),
+    )
+    command = CreateTransaction(
+        type=TransactionType.EXPENSE,
+        postings=(
+            CreatePosting(account_id=account.account.id, amount_minor=-500, currency="USD"),
+            CreatePosting(category_id=category.id, amount_minor=500, currency="USD"),
+        ),
+    )
+    caplog.set_level(logging.INFO, logger="wallet.application.transactions")
+
+    first = service.create_transaction(command, operation_id="conversation:one:turn:two")
+    replay = service.create_transaction(command, operation_id="conversation:one:turn:two")
+
+    assert replay is first
+    assert transactions.list() == [first]
+    recorded_events = [
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) in {"transaction.recorded", "transaction.replayed"}
+    ]
+    assert [record.event for record in recorded_events] == [
+        "transaction.recorded",
+        "transaction.replayed",
+    ]
+    assert recorded_events[0].event_data["transaction_id"] == "transaction_once"
+    assert recorded_events[1].event_data["operation_id"] == "conversation:one:turn:two"
+    with pytest.raises(CreateTransactionRejectedError, match="already used"):
+        service.create_transaction(
+            CreateTransaction(
+                type=TransactionType.EXPENSE,
+                postings=(
+                    CreatePosting(
+                        account_id=account.account.id,
+                        amount_minor=-600,
+                        currency="USD",
+                    ),
+                    CreatePosting(category_id=category.id, amount_minor=600, currency="USD"),
+                ),
+            ),
+            operation_id="conversation:one:turn:two",
+        )
+    assert any(
+        getattr(record, "event", None) == "transaction.operation_conflict"
+        for record in caplog.records
+    )
 
 
 def test_create_split_expense_transaction_accepts_multiple_spending_categories() -> None:

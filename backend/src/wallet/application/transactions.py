@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import date
+from threading import RLock
 from uuid import uuid4
 
 from wallet.domain._validation import normalize_currency, normalize_nonblank
@@ -21,11 +23,14 @@ from wallet.infrastructure.memory import (
     InMemorySpendingCategoryRepository,
     InMemoryTransactionRepository,
 )
+from wallet.observability import domain_success_events_enabled, error_details, log_event
 from wallet.ports.accounts import AccountRepository
 from wallet.ports.income_categories import IncomeCategoryRepository
 from wallet.ports.spending_categories import SpendingCategoryRepository
 from wallet.ports.system import DateProvider, PostingIdGenerator, TransactionIdGenerator
 from wallet.ports.transactions import TransactionRepository
+
+logger = logging.getLogger(__name__)
 
 
 class CreateTransactionRejectedError(ValueError):
@@ -117,8 +122,111 @@ class TransactionService:
         self._today = today or date.today
         self._generate_transaction_id = generate_transaction_id or _new_transaction_id
         self._generate_posting_id = generate_posting_id or _new_posting_id
+        self._operation_results: dict[str, tuple[CreateTransaction, Transaction]] = {}
+        self._write_lock = RLock()
 
-    def create_transaction(self, command: CreateTransaction) -> Transaction:
+    def create_transaction(
+        self,
+        command: CreateTransaction,
+        *,
+        operation_id: str | None = None,
+    ) -> Transaction:
+        try:
+            return self._create_transaction_with_replay(command, operation_id=operation_id)
+        except (
+            ValueError,
+            AccountNotFoundError,
+            SpendingCategoryNotFoundError,
+            IncomeCategoryNotFoundError,
+        ) as exc:
+            log_event(
+                logger,
+                logging.WARNING,
+                "transaction.rejected",
+                data={
+                    "transaction_type": command.type,
+                    "posting_count": len(command.postings),
+                    "operation_id": operation_id,
+                },
+                error=error_details(
+                    exc,
+                    code="create_transaction_rejected",
+                    retryable=False,
+                ),
+            )
+            raise
+
+    def _create_transaction_with_replay(
+        self,
+        command: CreateTransaction,
+        *,
+        operation_id: str | None,
+    ) -> Transaction:
+        if operation_id is None:
+            transaction = self._create_transaction(command)
+            self._log_recorded(transaction, operation_id=None, replayed=False)
+            return transaction
+        normalized_operation_id = normalize_nonblank(
+            operation_id,
+            field_name="operation id",
+        )
+        with self._write_lock:
+            stored = self._operation_results.get(normalized_operation_id)
+            if stored is not None:
+                stored_command, transaction = stored
+                if stored_command != command:
+                    conflict = CreateTransactionRejectedError(
+                        "operation id was already used for another transaction command"
+                    )
+                    log_event(
+                        logger,
+                        logging.WARNING,
+                        "transaction.operation_conflict",
+                        data={"operation_id": normalized_operation_id},
+                        error=error_details(
+                            conflict,
+                            code="transaction_operation_conflict",
+                            retryable=False,
+                        ),
+                    )
+                    raise conflict
+                self._log_recorded(
+                    transaction,
+                    operation_id=normalized_operation_id,
+                    replayed=True,
+                )
+                return transaction
+            transaction = self._create_transaction(command)
+            self._operation_results[normalized_operation_id] = (command, transaction)
+            self._log_recorded(
+                transaction,
+                operation_id=normalized_operation_id,
+                replayed=False,
+            )
+            return transaction
+
+    @staticmethod
+    def _log_recorded(
+        transaction: Transaction,
+        *,
+        operation_id: str | None,
+        replayed: bool,
+    ) -> None:
+        if not domain_success_events_enabled():
+            return
+        log_event(
+            logger,
+            logging.INFO,
+            "transaction.replayed" if replayed else "transaction.recorded",
+            data={
+                "transaction_id": transaction.id,
+                "transaction_type": transaction.type,
+                "posting_count": len(transaction.postings),
+                "operation_id": operation_id,
+            },
+        )
+
+    def _create_transaction(self, command: CreateTransaction) -> Transaction:
         occurred_on = command.occurred_on or self._today()
         transaction_id = self._generate_transaction_id()
         postings = list(command.postings)

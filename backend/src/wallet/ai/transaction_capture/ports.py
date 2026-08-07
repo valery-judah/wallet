@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING, Protocol
@@ -11,12 +10,10 @@ from wallet.ai.transaction_capture.domain import (
     TransactionCandidate,
     UserContribution,
 )
+from wallet.domain.transactions import Transaction
 
 if TYPE_CHECKING:
     from wallet.ai.transaction_capture.processing import ContributionProcessingResult
-
-
-CaptureIdGenerator = Callable[[], str]
 
 
 class ContributionProcessor(Protocol):
@@ -33,8 +30,17 @@ class ContributionProcessor(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
-class CaptureReference:
-    """Trusted wallet identifier paired with its user-facing selection label."""
+class CaptureAccountReference:
+    """Trusted selectable account metadata safe for interpretation."""
+
+    id: str
+    label: str
+    currency: str
+
+
+@dataclass(frozen=True, slots=True)
+class CaptureCategoryReference:
+    """Trusted category identifier paired with its full user-facing path."""
 
     id: str
     label: str
@@ -44,9 +50,9 @@ class CaptureReference:
 class CaptureReferenceCatalog:
     """Wallet-owned references that may be selected during transaction capture."""
 
-    accounts: tuple[CaptureReference, ...]
-    spending_categories: tuple[CaptureReference, ...]
-    income_categories: tuple[CaptureReference, ...]
+    accounts: tuple[CaptureAccountReference, ...]
+    spending_categories: tuple[CaptureCategoryReference, ...]
+    income_categories: tuple[CaptureCategoryReference, ...]
 
 
 class CaptureReferenceProvider(Protocol):
@@ -72,5 +78,10 @@ class CandidateValidator(Protocol):
 
 
 class WalletTransactionExecutor(Protocol):
-    def execute(self, candidate: TransactionCandidate) -> str:
-        """Create a Wallet transaction and return its identifier."""
+    def execute(
+        self,
+        candidate: TransactionCandidate,
+        *,
+        operation_id: str,
+    ) -> Transaction:
+        """Idempotently create and return a Wallet transaction."""

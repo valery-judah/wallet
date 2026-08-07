@@ -7,13 +7,14 @@ import pytest
 
 from wallet.ai.transaction_capture.domain import (
     CandidateField,
-    CaptureSession,
-    CaptureStatus,
+    CapturePhase,
     InteractionOption,
     InvalidCaptureTransitionError,
     PendingInteraction,
     PendingInteractionKind,
+    PendingInteractionReason,
     TransactionCandidate,
+    TransactionCaptureState,
 )
 from wallet.domain.transactions import TransactionType
 
@@ -30,17 +31,16 @@ def _ready_candidate() -> TransactionCandidate:
     )
 
 
-def _ready_session() -> CaptureSession:
-    return CaptureSession(
-        id="capture_1",
+def _ready_state() -> TransactionCaptureState:
+    return TransactionCaptureState(
         candidate=_ready_candidate(),
         pending_interaction=None,
-        status=CaptureStatus.ACTIVE,
+        phase=CapturePhase.ACTIVE,
     )
 
 
-def test_session_transitions_return_immutable_snapshots() -> None:
-    started = CaptureSession.start(id=" capture_1 ", occurred_on=TODAY)
+def test_state_transitions_return_immutable_snapshots() -> None:
+    started = TransactionCaptureState.start(occurred_on=TODAY)
     interaction = PendingInteraction(
         kind=PendingInteractionKind.REQUEST_VALUE,
         field=CandidateField.AMOUNT_MINOR,
@@ -55,26 +55,24 @@ def test_session_transitions_return_immutable_snapshots() -> None:
         )
     )
 
-    assert started.id == "capture_1"
     assert started.pending_interaction is None
     assert awaiting.pending_interaction == interaction
     assert updated.pending_interaction is None
     assert updated.candidate.amount_minor == 4000
 
     with pytest.raises(FrozenInstanceError):
-        started.status = CaptureStatus.COMPLETED  # type: ignore[misc]
+        started.phase = CapturePhase.AWAITING_CONFIRMATION  # type: ignore[misc]
 
 
 @pytest.mark.parametrize(
-    ("session", "message"),
+    ("state", "message"),
     [
         (
-            CaptureSession.start(id="capture_1", occurred_on=TODAY),
+            TransactionCaptureState.start(occurred_on=TODAY),
             "candidate is incomplete",
         ),
         (
-            CaptureSession(
-                id="capture_1",
+            TransactionCaptureState(
                 candidate=TransactionCandidate(
                     type=TransactionType.ADJUSTMENT,
                     occurred_on=TODAY,
@@ -82,12 +80,12 @@ def test_session_transitions_return_immutable_snapshots() -> None:
                     balance_change_minor=0,
                 ),
                 pending_interaction=None,
-                status=CaptureStatus.ACTIVE,
+                phase=CapturePhase.ACTIVE,
             ),
             "candidate is invalid",
         ),
         (
-            _ready_session().request(
+            _ready_state().request(
                 PendingInteraction(
                     kind=PendingInteractionKind.CORRECT,
                     field=CandidateField.ACCOUNT_ID,
@@ -98,81 +96,35 @@ def test_session_transitions_return_immutable_snapshots() -> None:
     ],
     ids=("incomplete", "locally-invalid", "pending-interaction"),
 )
-def test_session_confirmation_enforces_candidate_invariants(
-    session: CaptureSession,
+def test_state_confirmation_enforces_candidate_invariants(
+    state: TransactionCaptureState,
     message: str,
 ) -> None:
     with pytest.raises(InvalidCaptureTransitionError, match=message):
-        session.await_confirmation()
+        state.await_confirmation()
 
-    assert session.status is CaptureStatus.ACTIVE
-    assert session.transaction_id is None
-
-
-def test_completed_session_is_terminal_and_tracks_wallet_transaction() -> None:
-    active = _ready_session()
-    awaiting_confirmation = active.await_confirmation()
-
-    completed = awaiting_confirmation.complete(transaction_id=" transaction_1 ")
-
-    assert active.status is CaptureStatus.ACTIVE
-    assert awaiting_confirmation.status is CaptureStatus.AWAITING_CONFIRMATION
-    assert completed.status is CaptureStatus.COMPLETED
-    assert completed.transaction_id == "transaction_1"
-
-    interaction = PendingInteraction(
-        kind=PendingInteractionKind.CORRECT,
-        field=CandidateField.ACCOUNT_ID,
-    )
-    with pytest.raises(InvalidCaptureTransitionError, match="status is completed"):
-        completed.update_candidate(completed.candidate)
-    with pytest.raises(InvalidCaptureTransitionError, match="status is completed"):
-        completed.request(interaction)
-    with pytest.raises(InvalidCaptureTransitionError, match="status is completed"):
-        completed.complete(transaction_id="transaction_2")
+    assert state.phase is CapturePhase.ACTIVE
 
 
-def test_confirmation_can_resume_for_edits_or_cancel_without_losing_candidate() -> None:
-    awaiting_confirmation = _ready_session().await_confirmation()
+def test_confirmation_can_resume_for_edits_without_losing_candidate() -> None:
+    awaiting_confirmation = _ready_state().await_confirmation()
 
     resumed = awaiting_confirmation.resume()
-    cancelled = awaiting_confirmation.cancel()
 
-    assert resumed.status is CaptureStatus.ACTIVE
+    assert awaiting_confirmation.phase is CapturePhase.AWAITING_CONFIRMATION
+    assert resumed.phase is CapturePhase.ACTIVE
     assert resumed.candidate == awaiting_confirmation.candidate
-    assert cancelled.status is CaptureStatus.CANCELLED
-    assert cancelled.candidate == awaiting_confirmation.candidate
-    assert cancelled.cancel() is cancelled
 
 
-def test_session_rejects_inconsistent_constructed_state() -> None:
-    with pytest.raises(ValueError, match="completed capture must have a transaction id"):
-        CaptureSession(
-            id="capture_1",
-            candidate=_ready_candidate(),
-            pending_interaction=None,
-            status=CaptureStatus.COMPLETED,
-        )
-
-    with pytest.raises(ValueError, match="only completed capture can have a transaction id"):
-        CaptureSession(
-            id="capture_1",
-            candidate=_ready_candidate(),
-            pending_interaction=None,
-            status=CaptureStatus.ACTIVE,
-            transaction_id="transaction_1",
-        )
-
+def test_state_rejects_interaction_while_awaiting_confirmation() -> None:
     with pytest.raises(ValueError, match="only active capture can have a pending interaction"):
-        CaptureSession(
-            id="capture_1",
+        TransactionCaptureState(
             candidate=_ready_candidate(),
             pending_interaction=PendingInteraction(
                 kind=PendingInteractionKind.REQUEST_VALUE,
                 field=CandidateField.ACCOUNT_ID,
             ),
-            status=CaptureStatus.COMPLETED,
-            transaction_id="transaction_1",
+            phase=CapturePhase.AWAITING_CONFIRMATION,
         )
 
 
@@ -209,3 +161,27 @@ def test_general_clarification_is_the_only_fieldless_interaction() -> None:
         PendingInteraction(PendingInteractionKind.CLARIFY, CandidateField.TYPE)
     with pytest.raises(ValueError, match="requires a candidate field"):
         PendingInteraction(PendingInteractionKind.REQUEST_VALUE)
+
+
+def test_candidate_normalizes_capture_currency_context() -> None:
+    candidate = TransactionCandidate(currency_code=" usd ")
+
+    assert candidate.currency_code == "USD"
+    with pytest.raises(ValueError, match="three letters"):
+        TransactionCandidate(currency_code="dollars")
+
+
+def test_only_corrections_can_carry_internal_interaction_reasons() -> None:
+    correction = PendingInteraction(
+        PendingInteractionKind.CORRECT,
+        CandidateField.ACCOUNT_ID,
+        reason=PendingInteractionReason.CURRENCY_CONFLICT,
+    )
+
+    assert correction.reason is PendingInteractionReason.CURRENCY_CONFLICT
+    with pytest.raises(ValueError, match="only corrections"):
+        PendingInteraction(
+            PendingInteractionKind.REQUEST_VALUE,
+            CandidateField.ACCOUNT_ID,
+            reason=PendingInteractionReason.UNRESOLVED_VALUE,
+        )
