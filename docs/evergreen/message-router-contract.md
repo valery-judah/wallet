@@ -1,6 +1,6 @@
 # Message Router Contract
 
-Status: implemented MVP contract  
+Status: implemented MVP contract
 Date: 2026-08-06
 
 ## Purpose

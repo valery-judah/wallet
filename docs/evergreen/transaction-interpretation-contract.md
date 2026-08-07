@@ -1,7 +1,7 @@
 # Transaction Interpretation Contract
 
-Status: implemented MVP contract  
-Date: 2026-08-06  
+Status: implemented MVP contract
+Date: 2026-08-06
 Scope: natural-language contributions handled by `transactions.capture`
 
 ## Purpose

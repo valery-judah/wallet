@@ -1,7 +1,7 @@
 # Control Layer and Capability System Test Design
 
-Status: implemented MVP test baseline  
-Date: 2026-08-06  
+Status: implemented MVP test baseline
+Date: 2026-08-06
 Scope: conversation control, `transactions.capture`, and `wallet.current_state`
 
 ## Purpose

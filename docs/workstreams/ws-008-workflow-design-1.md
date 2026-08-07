@@ -1,7 +1,7 @@
 # Workflow Design 1: Optimistic Interpretation, Pessimistic Execution
 
-Status: design retrospective  
-Date: 2026-08-06  
+Status: design retrospective
+Date: 2026-08-06
 Example workflow: conversational transaction capture
 
 Related current contracts:
