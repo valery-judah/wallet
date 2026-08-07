@@ -17,6 +17,15 @@ Use these terms consistently in product copy, docs, and domain naming.
 | Expense classification bucket | `Spending category` | A two-level category used to classify expenses |
 | Income classification bucket | `Income category` | A two-level category used to classify income |
 | Missing expense category | `Uncategorized` | UI label for spending with no category assigned |
+| Conversational context | `Conversation` | Server-created continuity holder returned after the first accepted turn |
+| Current unit of work | `Active task` | One opaque running task inside a conversation; absent while the conversation is idle |
+| Internal task implementation | `Capability` | Statically registered handler selected while idle and given every non-control message while active |
+| Semantic ownership decision | `Route decision` | Closed model result proposing which registered capability should start for one idle message |
+| Bounded conversational routing hint | `Routing memory` | Identity of the most recently executed capability; supports explicit references without storing transcript text or domain state |
+| One caller interaction | `Turn` | Globally identified input submitted for a new or existing conversation |
+| Natural-language draft change | `Transaction interpretation` | Structured model proposal that updates a reviewable capture candidate without executing it |
+| Reviewable transaction state | `Transaction draft` | Capture candidate assembled from interpreted contributions and validated before confirmation |
+| Current financial snapshot | `Wallet state` | Read-only active-account balances with totals kept separate by currency |
 
 ## Domain Concepts
 

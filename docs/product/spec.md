@@ -125,35 +125,63 @@ Reserved future concepts:
 - Import pipelines
 - Pending and void transaction workflows
 
-## Conversational Transaction Capture
+## Conversational Control and Capabilities
 
-The MVP exposes a synchronous HTTP workflow for progressively capturing one
-transaction from natural-language contributions. Capture sessions and wallet
-data are process-local: they survive requests handled by the same backend
-process but not restarts or multiple workers.
+The MVP exposes one process-local conversation control layer. A caller submits every input to
+`POST /api/v1/turns`. Omitting `conversation_id` creates and processes a conversation atomically;
+supplying the returned ID continues it. `GET /api/v1/conversations/{conversation_id}` reads the
+current projection. There is no public empty-conversation or workflow-start operation.
 
-The public resource is `/api/v1/transaction-captures`:
+A conversation has zero or one opaque active task. The internal closed registry contains:
 
-- create a capture with an initial contribution;
-- read the current capture state;
-- add follow-up contributions or corrections;
-- explicitly confirm a complete candidate;
-- cancel an active capture.
+- `transactions.capture`, which progressively collects and records one expense, income,
+  transfer, or balance adjustment;
+- `wallet.current_state`, which completes in one turn with active-account balances and
+  totals kept separate by currency.
 
-Capture supports expenses, income, transfers, and balance adjustments. It
-defaults the transaction date to today, asks deterministic questions for missing
-or unusable fields, and returns structured disambiguation options when a wallet
-label is ambiguous.
+While a conversation is idle, an authoritative LLM message router assigns each ordinary
+natural-language message to one registered capability. It receives the complete message, the
+most recently executed capability identity, and control-level routing profiles, but no raw
+transcript, capability-private state, or Wallet catalogs. This bounded routing memory supports
+reference-only follow-ups such as `one more time` without authorizing replay of prior domain
+effects. While a task is active, every non-control message goes directly to its capability; the
+router is not called and capability switching is unavailable. Typed inputs provide guarded
+confirmation and lifecycle controls. Exact whole-message `help`, `cancel`, and `restart`
+controls remain deterministic and bypass both routing and capability message handling.
 
-A complete and valid candidate enters `awaiting_confirmation`. No ledger
-transaction or posting is created in that state. The confirm action revalidates
-wallet references and creates exactly one posted transaction. Repeated
-confirmation of an already completed capture returns the same transaction.
-Cancellation is terminal and never creates a transaction.
+Transaction capture sends every natural-language contribution through one schema-constrained
+interpreter. The model sees the current reviewable draft, pending interaction, current date, and
+safe account/category labels, and may normalize values or select registered references even when
+the user's wording contains typos or aliases. Per-call opaque keys keep internal entity IDs out of
+the prompt. Valid partial changes enter the draft; ambiguous, unresolved, unavailable, and
+currency-conflicting fields produce corrective interactions.
 
-Confirmation and cancellation are explicit HTTP actions. Natural-language
-answers such as `yes` or `cancel` do not perform terminal actions. Direct manual
-transaction creation through `/api/v1/transactions` remains immediate.
+The interpreter never executes transactions. Deterministic code validates selected references,
+account currencies, amounts, transaction-type rules, and transfer compatibility. A complete
+candidate enters `awaiting_confirmation` without changing the ledger. Only a guarded typed
+`confirm` task action performs authoritative revalidation and creates exactly one posted
+transaction. Turn replay and Wallet operation IDs prevent duplicate execution.
+
+Current wallet state is read-only. It derives balances from posted account entries, excludes
+archived accounts, returns its snapshot once in the structured view, and leaves the conversation
+idle after the turn. Ambiguous routing decisions preserve the current lifecycle state and ask
+for clarification.
+
+The web app exposes one lightweight Wallet Assistant at `/assistant`. It supports ordinary
+messages, capability action offers, and the help, cancel, and restart lifecycle controls. The
+browser keeps one transcript and its current conversation in tab-scoped session storage; there is
+no durable conversation list. Friendly capture and wallet-state summaries are projections of the
+public capability views, while optional details expose public outcome and version metadata.
+
+Conversations, global request replay records, and active-task state are process-local. They
+survive requests handled by the same backend process but not restarts or multiple workers.
+The UI discards an expired restored conversation and starts fresh after a backend restart.
+Every ordinary idle message requires the configured Ollama service for routing. A message routed
+to transaction capture then requires one interpretation call, and each later non-control capture
+message requires one interpretation call without re-routing. Current-wallet-state execution remains
+deterministic after routing. Exact controls and typed task actions require neither routing nor
+interpretation.
+Direct manual transaction creation through `/api/v1/transactions` remains immediate.
 
 ## Out of Scope
 
@@ -166,6 +194,6 @@ The MVP does not yet include:
 - Bank connections or sync
 - Multi-currency FX transactions
 - Budget rules based on transaction classification
-- Durable or multi-worker capture sessions
+- Durable or multi-worker conversations
 - Asynchronous or streaming capture responses
-- Conversational capture UI and external messaging-channel adapters
+- External messaging-channel adapters

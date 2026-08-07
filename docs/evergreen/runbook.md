@@ -146,6 +146,25 @@ make logs-stack
 
 `make logs-stack` is also long-running.
 
+### Container Logging
+
+Application processes write logs as event streams to standard output. They do
+not create log files or manage rotation inside their containers. The backend
+emits one JSON object per line, and `make logs-stack` preserves those records
+for local inspection.
+
+The repository's Compose services use Docker's `local` logging driver with a
+maximum of five 10 MB files per container. Docker owns this storage, rotation,
+and default compression, bounding local usage to approximately 50 MB per
+container before compression. Do not mount application log directories or
+read Docker's internal log files directly; use `make logs-stack` or
+`docker compose logs`.
+
+Production container platforms must capture the application standard-output
+stream and define their own retention, forwarding, indexing, and access
+policies. Retention beyond Docker's local rotated window belongs to that
+platform rather than to the wallet application.
+
 ### Default Recommendation
 
 | Intent | Command |
@@ -195,6 +214,25 @@ make test
 make check
 ```
 
+Run the deterministic control-layer and real-capability system suite while iterating:
+
+```bash
+make test-control
+```
+
+Its data profiles, case IDs, expected oracles, and model-smoke boundary are defined in
+[`control-layer-testing.md`](control-layer-testing.md).
+
+Run the focused real-model routing corpus when routing profiles or policy change:
+
+```bash
+ollama list
+make check-router-smoke
+```
+
+It checks idle ownership, recent-capability references, ambiguity, and false and compound controls,
+active conflicts, and explicit requests for separate work without executing capabilities.
+
 `make fmt` modifies backend source when formatting or auto-fixes are required.
 `make check` is an alias for `make verify`.
 
@@ -217,11 +255,11 @@ make check-smoke-managed
 The smoke harness exercises real HTTP requests and is intended for manual,
 operator-style validation. It is separate from the automated test suite.
 
-### Transaction Capture With Ollama
+### Conversation Capture With Ollama
 
-The transaction-capture smoke workflow exercises the public HTTP API with seeded
-in-memory wallet data and a locally running Ollama model. By default it starts a
-temporary backend at `http://127.0.0.1:8011`, runs all scenarios against that one
+The conversation-capture smoke workflow exercises the public conversation API with
+seeded in-memory Wallet data and a locally running Ollama model. By default it starts
+a temporary backend at `http://127.0.0.1:8011`, runs all scenarios against that one
 process, and stops it afterward:
 
 ```bash
@@ -229,12 +267,16 @@ ollama list
 make check-capture-smoke
 ```
 
-Each scenario creates and advances a capture through `/api/v1/transaction-captures`,
-reads the capture back, and verifies that the transaction list remains unchanged
-until explicit confirmation. After confirmation it verifies the returned and
-persisted transaction, balanced postings, and account balance changes through the
-accounts and transactions APIs. Smoke output contains only the public candidate,
-interaction, message, and completion state; model traces remain internal.
+Each scenario submits its first input to `/api/v1/turns`, lets the app create the conversation,
+select the internal capture capability, and interpret the contribution against the seeded safe
+reference catalog. Later active-task messages skip routing and use one interpretation call each.
+The corpus includes typo-tolerant account/category selection, unknown-reference correction,
+shared-leaf disambiguation, and currency-conflict correction.
+It verifies that the transaction list remains unchanged until guarded typed confirmation. After
+confirmation it verifies the
+returned and persisted transaction, balanced postings, and account balance changes through
+the accounts and transactions APIs. Smoke output contains only public task views,
+messages, and completion state; model traces remain internal.
 
 To target an already-running seeded, single-process backend instead:
 
@@ -250,7 +292,7 @@ The default model is `qwen3.5:9b`. Install it before the first run when needed:
 ollama pull qwen3.5:9b
 ```
 
-### Transaction Capture HTTP API
+### Conversation Capture HTTP API
 
 Run a seeded backend while Ollama is available:
 
@@ -258,40 +300,88 @@ Run a seeded backend while Ollama is available:
 WALLET_SEED_SAMPLE_DATA=true make run-backend
 ```
 
-Start a capture with a synchronous JSON contribution:
+Read current active-account balances through the control layer. Omitting `conversation_id`
+creates the conversation and processes this first input atomically. The message router uses
+Ollama once, then wallet-state execution is deterministic and does not change the ledger:
 
 ```bash
-curl --request POST http://127.0.0.1:8000/api/v1/transaction-captures \
+curl --request POST \
+  http://127.0.0.1:8000/api/v1/turns \
   --header 'content-type: application/json' \
-  --data '{"content":"Spent 40 dollars from USD cash on Groceries today"}'
+  --data '{
+    "request_id":"state-request-1",
+    "input":{"kind":"message","content":"Show my current balances"}
+  }'
 ```
 
-The response contains a process-local capture ID. A complete candidate has
-`status: "awaiting_confirmation"` and has not changed the ledger. Use that ID to
-read, revise, confirm, or cancel the capture:
+Start transaction capture with the same single endpoint:
 
 ```bash
-curl http://127.0.0.1:8000/api/v1/transaction-captures/<capture_id>
-
 curl --request POST \
-  http://127.0.0.1:8000/api/v1/transaction-captures/<capture_id>/contributions \
+  http://127.0.0.1:8000/api/v1/turns \
   --header 'content-type: application/json' \
-  --data '{"content":"Make it 35"}'
-
-curl --request POST \
-  http://127.0.0.1:8000/api/v1/transaction-captures/<capture_id>/confirm
-
-curl --request POST \
-  http://127.0.0.1:8000/api/v1/transaction-captures/<capture_id>/cancel
+  --data '{
+    "request_id":"request-1",
+    "input":{
+      "kind":"message",
+      "content":"Spent 40 dollars from USD cash on Groceries today"
+    }
+  }'
 ```
 
-Confirmation revalidates referenced accounts and categories, creates one posted
-transaction, and is idempotent after completion. Capture IDs become unavailable
-when the backend restarts and are not shared between backend workers. Model or
-structured-response failures return HTTP `502` without exposing model details.
+The model receives only the message, current draft and interaction, current date, and safe catalog
+labels with per-call opaque keys; it does not receive internal entity or request IDs. The response
+contains an opaque `active_task` with a `transaction_capture` view. A complete candidate has
+`phase: "awaiting_confirmation"` and has not changed the ledger. Copy the returned
+conversation ID for continuation and copy the offered task guard for confirmation:
 
-Configuration uses `WALLET_OLLAMA_BASE_URL`, `WALLET_OLLAMA_MODEL`, and
-`WALLET_OLLAMA_TIMEOUT_SECONDS`. Direct scenario and connection overrides are
+```bash
+curl http://127.0.0.1:8000/api/v1/conversations/<conversation_id>
+
+curl --request POST \
+  http://127.0.0.1:8000/api/v1/turns \
+  --header 'content-type: application/json' \
+  --data '{
+    "request_id":"request-2",
+    "conversation_id":"<conversation_id>",
+    "input":{"kind":"message","content":"Make it 35"}
+  }'
+
+curl --request POST \
+  http://127.0.0.1:8000/api/v1/turns \
+  --header 'content-type: application/json' \
+  --data '{
+    "request_id":"request-3",
+    "conversation_id":"<conversation_id>",
+    "input":{
+      "kind":"task_action",
+      "expected_task_id":"<active_task_id>",
+      "expected_conversation_version":<current_version>,
+      "action":"confirm",
+      "payload":{}
+    }
+  }'
+```
+
+Confirmation revalidates referenced accounts and categories and creates one posted
+transaction. Repeating an exact request with the same globally unique `request_id` replays its
+response without creating another transaction. Conversation IDs become unavailable when the
+backend restarts
+and are not shared between backend workers. Model or structured-response failures return
+HTTP `502` without exposing model details.
+
+Configuration uses `WALLET_OLLAMA_BASE_URL`, `WALLET_OLLAMA_MODEL`,
+`WALLET_OLLAMA_TIMEOUT_SECONDS`, and `WALLET_OLLAMA_CONTEXT_LENGTH`. The context
+length defaults to 8192 tokens and is sent as Ollama's per-request `num_ctx` option.
+For example, set `WALLET_OLLAMA_CONTEXT_LENGTH=32768` to test a 32K window without
+creating a second Modelfile-derived model. Larger windows consume more memory; use
+the privacy-safe `prompt_eval_count` and `eval_count` fields on
+`ollama.request.completed` events to size the window from observed traffic.
+The Docker development stack reaches host Ollama through
+`http://host.docker.internal:11434`; set `WALLET_OLLAMA_BASE_URL` before `make run-stack`
+to override it.
+
+Direct scenario and connection overrides are
 available through Poe:
 
 ```bash
