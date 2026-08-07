@@ -8,6 +8,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any, Protocol
+from uuid import uuid4
 
 from scripts.devex.smoke.common import (
     HttpResponse,
@@ -38,6 +39,7 @@ CANDIDATE_FIELDS = {
     "description",
     "merchant_name",
     "notes",
+    "currency_code",
 }
 
 
@@ -50,41 +52,118 @@ class HttpRequester(Protocol):
     ) -> HttpResponse: ...
 
 
-class CaptureSmokeApi:
-    """Small wire-level client for the endpoints used by capture smoke scenarios."""
+class ConversationCaptureApi:
+    """Drive transaction capture exclusively through the conversation control API."""
 
     def __init__(self, client: HttpRequester) -> None:
         self._client = client
+        self._request_prefix = f"smoke-{uuid4().hex}"
+        self._turn_number: dict[str, int] = {}
+        self._candidate: dict[str, dict[str, Any]] = {}
 
-    def create_capture(self, content: str) -> dict[str, Any]:
-        return self._object(
-            "POST",
-            f"{API_PREFIX}/transaction-captures",
-            expected_status=201,
-            payload={"content": content},
+    def start_capture(self, content: str) -> dict[str, Any]:
+        response = self._turn(
+            None,
+            {"kind": "message", "content": content},
         )
+        conversation = response["conversation"]
+        conversation_id = _required_string(conversation, "id")
+        self._turn_number[conversation_id] = 1
+        return self._capture_response(conversation, outcome=response["outcome"])
 
-    def get_capture(self, capture_id: str) -> dict[str, Any]:
-        return self._object(
+    def get_capture_projection(self, conversation_id: str) -> dict[str, Any]:
+        conversation = self._object(
             "GET",
-            f"{API_PREFIX}/transaction-captures/{capture_id}",
+            f"{API_PREFIX}/conversations/{conversation_id}",
             expected_status=200,
         )
+        return self._capture_response(conversation)
 
-    def contribute(self, capture_id: str, content: str) -> dict[str, Any]:
+    def submit_message(self, conversation_id: str, content: str) -> dict[str, Any]:
+        response = self._turn(
+            conversation_id,
+            {"kind": "message", "content": content},
+        )
+        return self._capture_response(response["conversation"], outcome=response["outcome"])
+
+    def confirm_current(self, conversation_id: str) -> dict[str, Any]:
+        conversation = self._object(
+            "GET",
+            f"{API_PREFIX}/conversations/{conversation_id}",
+            expected_status=200,
+        )
+        current = conversation.get("active_task")
+        if not isinstance(current, dict):
+            raise AssertionError("capture is not current")
+        response = self._turn(
+            conversation_id,
+            {
+                "kind": "task_action",
+                "expected_task_id": current.get("id"),
+                "expected_conversation_version": conversation.get("version"),
+                "action": "confirm",
+                "payload": {},
+            },
+        )
+        return self._capture_response(response["conversation"], outcome=response["outcome"])
+
+    def _turn(
+        self,
+        conversation_id: str | None,
+        input_payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        turn_number = (
+            1 if conversation_id is None else self._turn_number.get(conversation_id, 0) + 1
+        )
+        if conversation_id is not None:
+            self._turn_number[conversation_id] = turn_number
         return self._object(
             "POST",
-            f"{API_PREFIX}/transaction-captures/{capture_id}/contributions",
+            f"{API_PREFIX}/turns",
             expected_status=200,
-            payload={"content": content},
+            payload={
+                "request_id": f"{self._request_prefix}-{turn_number}",
+                "conversation_id": conversation_id,
+                "input": input_payload,
+            },
         )
 
-    def confirm(self, capture_id: str) -> dict[str, Any]:
-        return self._object(
-            "POST",
-            f"{API_PREFIX}/transaction-captures/{capture_id}/confirm",
-            expected_status=200,
-        )
+    def _capture_response(
+        self,
+        conversation: dict[str, Any],
+        *,
+        outcome: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        conversation_id = _required_string(conversation, "id")
+        resolved_outcome = outcome or conversation.get("last_outcome")
+        if not isinstance(resolved_outcome, dict):
+            raise AssertionError("conversation has no capture outcome")
+        current = conversation.get("active_task")
+        if isinstance(current, dict):
+            view = current.get("view")
+            data = view.get("data") if isinstance(view, dict) else None
+            if not isinstance(data, dict):
+                raise AssertionError("current capture has no public data")
+            candidate = data.get("candidate")
+            if not isinstance(candidate, dict):
+                raise AssertionError("current capture has no candidate")
+            self._candidate[conversation_id] = candidate
+            return {
+                "id": conversation_id,
+                "status": data.get("phase"),
+                "candidate": candidate,
+                "interaction": data.get("interaction"),
+                "message": resolved_outcome.get("message"),
+                "transaction": None,
+            }
+        return {
+            "id": conversation_id,
+            "status": "completed",
+            "candidate": self._candidate.get(conversation_id),
+            "interaction": None,
+            "message": resolved_outcome.get("message"),
+            "transaction": resolved_outcome.get("result"),
+        }
 
     def list_accounts(self) -> list[dict[str, Any]]:
         return self._objects("GET", f"{API_PREFIX}/accounts")
@@ -160,6 +239,7 @@ class ExpectedInteraction:
     field: str | None
     options: tuple[ExpectedOption, ...] = ()
     allow_additional_options: bool = False
+    reason: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -208,6 +288,121 @@ def build_scenarios(today: date) -> tuple[Scenario, ...]:
                 ExpectedPosting(None, "category_food_groceries", 4000, "ARS"),
             ),
         ),
+        _complete_scenario(
+            name="misspelled_account",
+            contribution="40 USD cache on groceries",
+            expected_fields={
+                "type": "expense",
+                "amount_minor": 4000,
+                "account_id": "sample_account_cash_usd",
+                "spending_category_id": "category_food_groceries",
+                "occurred_on": today_text,
+                "currency_code": "USD",
+            },
+            preview=(f"USD 40.00 expense from USD cash for Food > Groceries on {today_text}"),
+            expected_postings=(
+                ExpectedPosting("sample_account_cash_usd", None, -4000, "USD"),
+                ExpectedPosting(None, "category_food_groceries", 4000, "USD"),
+            ),
+        ),
+        _complete_scenario(
+            name="misspelled_category",
+            contribution="Spent 40 dollars from USD cash on groseries today",
+            expected_fields={
+                "type": "expense",
+                "amount_minor": 4000,
+                "account_id": "sample_account_cash_usd",
+                "spending_category_id": "category_food_groceries",
+                "occurred_on": today_text,
+            },
+            preview=(f"USD 40.00 expense from USD cash for Food > Groceries on {today_text}"),
+            expected_postings=(
+                ExpectedPosting("sample_account_cash_usd", None, -4000, "USD"),
+                ExpectedPosting(None, "category_food_groceries", 4000, "USD"),
+            ),
+        ),
+        Scenario(
+            name="currency_conflict_correction",
+            steps=(
+                ExpectedStep(
+                    contribution="Spent 40 USD from Daily checking on Groceries today.",
+                    status="active",
+                    expected_fields={
+                        "type": "expense",
+                        "amount_minor": 4000,
+                        "account_id": None,
+                        "spending_category_id": "category_food_groceries",
+                        "occurred_on": today_text,
+                        "currency_code": "USD",
+                    },
+                    interaction=ExpectedInteraction(
+                        kind="correct",
+                        field="account_id",
+                        reason="currency_conflict",
+                    ),
+                    message=(
+                        "That account's currency does not match USD. Which account did you use?"
+                    ),
+                ),
+                _confirmation_step(
+                    "USD cash",
+                    expected_fields={
+                        "type": "expense",
+                        "amount_minor": 4000,
+                        "account_id": "sample_account_cash_usd",
+                        "spending_category_id": "category_food_groceries",
+                        "occurred_on": today_text,
+                        "currency_code": "USD",
+                    },
+                    preview=(
+                        f"USD 40.00 expense from USD cash for Food > Groceries on {today_text}"
+                    ),
+                ),
+            ),
+            expected_postings=(
+                ExpectedPosting("sample_account_cash_usd", None, -4000, "USD"),
+                ExpectedPosting(None, "category_food_groceries", 4000, "USD"),
+            ),
+        ),
+        Scenario(
+            name="unknown_account_correction",
+            steps=(
+                ExpectedStep(
+                    contribution="Spent 25 from Nebula 7 on Groceries today.",
+                    status="active",
+                    expected_fields={
+                        "type": "expense",
+                        "amount_minor": 2500,
+                        "account_id": None,
+                        "spending_category_id": "category_food_groceries",
+                        "occurred_on": today_text,
+                    },
+                    interaction=ExpectedInteraction(
+                        kind="correct",
+                        field="account_id",
+                        reason="unresolved_value",
+                    ),
+                    message="I couldn't use that account. Which account did you use?",
+                ),
+                _confirmation_step(
+                    "USD cash",
+                    expected_fields={
+                        "type": "expense",
+                        "amount_minor": 2500,
+                        "account_id": "sample_account_cash_usd",
+                        "spending_category_id": "category_food_groceries",
+                        "occurred_on": today_text,
+                    },
+                    preview=(
+                        f"USD 25.00 expense from USD cash for Food > Groceries on {today_text}"
+                    ),
+                ),
+            ),
+            expected_postings=(
+                ExpectedPosting("sample_account_cash_usd", None, -2500, "USD"),
+                ExpectedPosting(None, "category_food_groceries", 2500, "USD"),
+            ),
+        ),
         Scenario(
             name="progressive_expense",
             steps=(
@@ -239,7 +434,7 @@ def build_scenarios(today: date) -> tuple[Scenario, ...]:
                     message="Which spending category should I use?",
                 ),
                 _confirmation_step(
-                    "Coffee",
+                    "Food > Coffee",
                     expected_fields={
                         "type": "expense",
                         "amount_minor": 3500,
@@ -426,23 +621,23 @@ def run_scenario(
 ) -> None:
     """Run one capture through HTTP and assert its public and persisted state."""
 
-    api = CaptureSmokeApi(client)
+    api = ConversationCaptureApi(client)
     _assert_seeded_wallet(api)
     references = _prepare_scenario(api, scenario)
     transactions_before = api.list_transactions()
     transaction_ids_before = {transaction["id"] for transaction in transactions_before}
     balances_before = _account_balances(api, scenario.expected_postings)
-    capture_id: str | None = None
+    conversation_id: str | None = None
     result: dict[str, Any] | None = None
 
     write(f"SCENARIO {scenario.name}")
     for step in scenario.steps:
         started = time.monotonic()
-        if capture_id is None:
-            result = api.create_capture(step.contribution)
-            capture_id = _required_string(result, "id")
+        if conversation_id is None:
+            result = api.start_capture(step.contribution)
+            conversation_id = _required_string(result, "id")
         else:
-            result = api.contribute(capture_id, step.contribution)
+            result = api.submit_message(conversation_id, step.contribution)
         elapsed = time.monotonic() - started
         write(f"  USER {step.contribution}")
         write(
@@ -466,15 +661,17 @@ def run_scenario(
             references=references,
             transaction_ids_before=transaction_ids_before,
         )
-        if api.get_capture(capture_id) != result:
-            raise AssertionError(f"{scenario.name}: capture GET did not match latest response")
+        if api.get_capture_projection(conversation_id) != result:
+            raise AssertionError(
+                f"{scenario.name}: conversation GET did not match latest capture projection"
+            )
 
     if result is None or result.get("status") != "awaiting_confirmation":
         raise AssertionError(f"scenario was not ready for confirmation: {scenario.name}")
     preview_message = _required_string(result, "message")
 
     started = time.monotonic()
-    completed = api.confirm(_required_string(result, "id"))
+    completed = api.confirm_current(_required_string(result, "id"))
     elapsed = time.monotonic() - started
     transaction = completed.get("transaction")
     write(
@@ -501,7 +698,7 @@ def run_scenario(
     write(f"PASS {scenario.name}")
 
 
-def _prepare_scenario(api: CaptureSmokeApi, scenario: Scenario) -> dict[str, str]:
+def _prepare_scenario(api: ConversationCaptureApi, scenario: Scenario) -> dict[str, str]:
     references: dict[str, str] = {}
     for expected in scenario.additional_spending_categories:
         parent_id = (
@@ -527,7 +724,7 @@ def _prepare_scenario(api: CaptureSmokeApi, scenario: Scenario) -> dict[str, str
 
 
 def _assert_step(
-    api: CaptureSmokeApi,
+    api: ConversationCaptureApi,
     *,
     scenario: Scenario,
     step: ExpectedStep,
@@ -581,6 +778,8 @@ def _assert_interaction(
         raise AssertionError(f"{scenario_name}: expected an interaction")
     if actual.get("kind") != expected.kind or actual.get("field") != expected.field:
         raise AssertionError(f"{scenario_name}: unexpected interaction: {actual!r}")
+    if actual.get("reason") != expected.reason:
+        raise AssertionError(f"{scenario_name}: unexpected interaction reason: {actual!r}")
     options = actual.get("options")
     if not isinstance(options, list):
         raise AssertionError(f"{scenario_name}: interaction options are not an array")
@@ -599,7 +798,7 @@ def _assert_interaction(
 
 
 def _assert_completed_capture(
-    api: CaptureSmokeApi,
+    api: ConversationCaptureApi,
     *,
     scenario: Scenario,
     completed: dict[str, Any],
@@ -623,8 +822,8 @@ def _assert_completed_capture(
     transaction_id = _required_string(transaction, "id")
     if api.get_transaction(transaction_id) != transaction:
         raise AssertionError(f"{scenario.name}: transaction GET did not match capture response")
-    if api.get_capture(_required_string(completed, "id")) != completed:
-        raise AssertionError(f"{scenario.name}: completed capture was not retained")
+    if api.get_capture_projection(_required_string(completed, "id")) != completed:
+        raise AssertionError(f"{scenario.name}: completed conversation outcome was not retained")
     transaction_ids_after = {persisted["id"] for persisted in api.list_transactions()}
     if transaction_ids_after != transaction_ids_before | {transaction_id}:
         raise AssertionError(f"{scenario.name}: expected exactly one new transaction")
@@ -665,7 +864,7 @@ def _assert_completed_capture(
     )
 
 
-def _assert_seeded_wallet(api: CaptureSmokeApi) -> None:
+def _assert_seeded_wallet(api: ConversationCaptureApi) -> None:
     expected_accounts = {
         "sample_account_checking_ars": ("Daily checking", "ARS", False),
         "sample_account_wallet_ars": ("Pocket wallet", "ARS", False),
@@ -697,7 +896,7 @@ def _assert_seeded_wallet(api: CaptureSmokeApi) -> None:
 
 
 def _account_balances(
-    api: CaptureSmokeApi,
+    api: ConversationCaptureApi,
     postings: tuple[ExpectedPosting, ...],
 ) -> dict[str, int]:
     accounts = {account.get("id"): account for account in api.list_accounts()}
@@ -716,7 +915,7 @@ def _account_balances(
 
 
 def _assert_balance_changes(
-    api: CaptureSmokeApi,
+    api: ConversationCaptureApi,
     *,
     scenario: Scenario,
     balances_before: dict[str, int],

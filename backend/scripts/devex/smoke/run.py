@@ -5,6 +5,7 @@ import importlib.util
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
@@ -53,6 +54,7 @@ class ScenarioSummary:
 class ManagedBackend:
     base_url: str
     process: subprocess.Popen[str]
+    output: TextIO | None = None
 
 
 class Console:
@@ -176,31 +178,40 @@ def managed_backend(
     if environment is not None:
         process_environment.update(environment)
 
-    process = subprocess.Popen(
-        [
-            sys.executable,
-            "-m",
-            "uvicorn",
-            "--factory",
-            "wallet.api.app:create_app",
-            "--host",
-            parsed_url.hostname,
-            "--port",
-            str(parsed_url.port),
-        ],
-        cwd=BACKEND_ROOT,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        env=process_environment,
-    )
-    backend = ManagedBackend(base_url=base_url.rstrip("/"), process=process)
+    # A pipe can deadlock a verbose managed backend when no reader drains it.
+    with tempfile.TemporaryFile(mode="w+t", encoding="utf-8") as output:
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "--factory",
+                "wallet.api.app:create_app",
+                "--host",
+                parsed_url.hostname,
+                "--port",
+                str(parsed_url.port),
+                "--no-access-log",
+                "--log-config",
+                "logging.json",
+            ],
+            cwd=BACKEND_ROOT,
+            stdout=output,
+            stderr=subprocess.STDOUT,
+            text=True,
+            env=process_environment,
+        )
+        backend = ManagedBackend(
+            base_url=base_url.rstrip("/"),
+            process=process,
+            output=output,
+        )
 
-    try:
-        wait_for_backend_ready(backend)
-        yield backend
-    finally:
-        _stop_process(process)
+        try:
+            wait_for_backend_ready(backend)
+            yield backend
+        finally:
+            _stop_process(process)
 
 
 def wait_for_backend_ready(backend: ManagedBackend) -> None:
@@ -210,8 +221,7 @@ def wait_for_backend_ready(backend: ManagedBackend) -> None:
     while time.monotonic() < deadline:
         if backend.process.poll() is not None:
             raise RuntimeError(
-                "managed backend exited before readiness\n"
-                + _collect_process_output(backend.process)
+                "managed backend exited before readiness\n" + _collect_process_output(backend)
             )
 
         try:
@@ -225,7 +235,7 @@ def wait_for_backend_ready(backend: ManagedBackend) -> None:
         time.sleep(0.1)
 
     raise RuntimeError(
-        "managed backend did not become ready in time\n" + _collect_process_output(backend.process)
+        "managed backend did not become ready in time\n" + _collect_process_output(backend)
     )
 
 
@@ -273,14 +283,11 @@ def _format_error(exc: Exception) -> str:
     return str(exc) or exc.__class__.__name__
 
 
-def _collect_process_output(process: subprocess.Popen[str]) -> str:
-    if process.stdout is None:
+def _collect_process_output(backend: ManagedBackend) -> str:
+    if backend.output is None or backend.process.poll() is None:
         return ""
-
-    if process.poll() is None:
-        return ""
-
-    output = process.stdout.read()
+    backend.output.seek(0)
+    output = backend.output.read()
     return output.strip()
 
 

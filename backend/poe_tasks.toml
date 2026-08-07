@@ -24,9 +24,13 @@ cmd = "mypy src"
 help = "Run tests"
 cmd = "pytest tests"
 
+[tasks.test-control]
+help = "Run deterministic control-layer and capability system tests"
+cmd = "pytest tests/ai/control tests/api/test_conversations_api.py tests/api/test_current_wallet_state_api.py tests/scripts/devex/transaction_capture_smoke/test_scenarios.py tests/application/test_transaction_service.py"
+
 [tasks.serve]
 help = "Run the FastAPI app locally with reload"
-cmd = "uvicorn --factory wallet.api.app:create_app --reload"
+cmd = "uvicorn --factory wallet.api.app:create_app --reload --no-access-log --log-config logging.json"
 
 [tasks.smoke]
 help = "Run the manual API smoke scenarios against an existing backend"
@@ -39,6 +43,10 @@ cmd = "python -m scripts.devex.smoke.run --managed"
 [tasks.capture-smoke]
 help = "Run transaction-capture API smoke scenarios against local Ollama"
 cmd = "python -m scripts.devex.transaction_capture_smoke"
+
+[tasks.router-smoke]
+help = "Run the message-router classification corpus against local Ollama"
+cmd = "python -m scripts.devex.message_router_smoke"
 
 [tasks.export-openapi]
 help = "Export the OpenAPI schema for frontend client generation"

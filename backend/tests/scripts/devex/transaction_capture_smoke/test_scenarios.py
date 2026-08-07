@@ -15,12 +15,28 @@ from scripts.devex.transaction_capture_smoke.scenarios import (
     run_scenario,
     select_scenarios,
 )
-from wallet.ai.transaction_capture import PhasedContributionProcessorFactory
+from wallet.ai.capabilities.contract import CapabilityDefinition
+from wallet.ai.control.routing import (
+    MessageRoutingContext,
+    RouteDecision,
+    StartRouteDecision,
+)
+from wallet.ai.transaction_capture import ModelDrivenContributionProcessorFactory
 from wallet.api.app import create_app
 from wallet.api.deps import AppContainer, build_app_container
 from wallet.config import Settings
 
 app_module = import_module("wallet.api.app")
+
+
+class CaptureMessageRouter:
+    def route(
+        self,
+        message: str,
+        context: MessageRoutingContext,
+        definitions: tuple[CapabilityDefinition, ...],
+    ) -> RouteDecision:
+        return StartRouteDecision("transactions.capture")
 
 
 class ProgressiveExpenseModel:
@@ -31,21 +47,22 @@ class ProgressiveExpenseModel:
         user_prompt: str,
         output_schema: dict[str, Any],
     ) -> str:
-        if "mentions" in output_schema.get("properties", {}):
-            return json.dumps({"mentions": [{"kind": "action", "source_text": "expense"}]})
-        return json.dumps(
-            {
-                "hypotheses": [
-                    {
-                        "field": "type",
-                        "mention_id": "m0",
-                        "origin": "explicit",
-                        "semantic_value": "expense",
-                    }
-                ],
-                "clears": [],
+        updates: dict[str, object]
+        if user_prompt == "Record an expense today.":
+            updates = {"type": "expense"}
+        elif user_prompt == "35":
+            updates = {"amount_minor": 3500}
+        elif user_prompt == "Pocket wallet":
+            updates = {"account_key": _reference_key(system_prompt, "accounts", "Pocket wallet")}
+        else:
+            updates = {
+                "spending_category_key": _reference_key(
+                    system_prompt,
+                    "spending_categories",
+                    "Food > Coffee",
+                )
             }
-        )
+        return _interpretation_response(updates=updates)
 
 
 class AmbiguousCategoryModel:
@@ -60,54 +77,34 @@ class AmbiguousCategoryModel:
         output_schema: dict[str, Any],
     ) -> str:
         self.calls += 1
-        if "mentions" in output_schema.get("properties", {}):
-            return json.dumps(
-                {
-                    "mentions": [
-                        {"kind": "action", "source_text": "Spent"},
-                        {"kind": "money", "source_text": "35 pesos"},
-                        {"kind": "reference", "source_text": "Pocket wallet"},
-                        {"kind": "reference", "source_text": "Coffee"},
-                        {"kind": "date_time", "source_text": "today"},
-                    ]
+        if user_prompt == "Food > Coffee":
+            return _interpretation_response(
+                updates={
+                    "spending_category_key": _reference_key(
+                        system_prompt,
+                        "spending_categories",
+                        "Food > Coffee",
+                    )
                 }
             )
-        return json.dumps(
-            {
-                "hypotheses": [
-                    {
-                        "field": "type",
-                        "mention_id": "m0",
-                        "origin": "inferred",
-                        "semantic_value": "expense",
-                    },
-                    {
-                        "field": "amount_minor",
-                        "mention_id": "m1",
-                        "origin": "explicit",
-                        "semantic_value": None,
-                    },
-                    {
-                        "field": "account_id",
-                        "mention_id": "m2",
-                        "origin": "explicit",
-                        "semantic_value": None,
-                    },
-                    {
-                        "field": "spending_category_id",
-                        "mention_id": "m3",
-                        "origin": "explicit",
-                        "semantic_value": None,
-                    },
-                    {
-                        "field": "occurred_on",
-                        "mention_id": "m4",
-                        "origin": "explicit",
-                        "semantic_value": None,
-                    },
-                ],
-                "clears": [],
-            }
+        coffee_keys = [
+            item["key"]
+            for item in _context(system_prompt)["spending_categories"]
+            if item["label"].endswith(" > Coffee")
+        ]
+        return _interpretation_response(
+            updates={
+                "type": "expense",
+                "amount_minor": 3500,
+                "account_key": _reference_key(system_prompt, "accounts", "Pocket wallet"),
+                "currency_code": "ARS",
+            },
+            ambiguities=[
+                {
+                    "field": "spending_category_id",
+                    "candidate_keys": coffee_keys,
+                }
+            ],
         )
 
 
@@ -141,7 +138,7 @@ def test_select_progressive_discovery_scenario() -> None:
         "Record an expense today.",
         "35",
         "Pocket wallet",
-        "Coffee",
+        "Food > Coffee",
     )
     assert [step.status for step in selected[0].steps] == [
         "active",
@@ -216,16 +213,43 @@ def _build_test_app(
     monkeypatch: pytest.MonkeyPatch,
     model: ProgressiveExpenseModel | AmbiguousCategoryModel,
 ) -> FastAPI:
-    processor_factory = PhasedContributionProcessorFactory(
-        extraction_model=model,
-        semantic_model=model,
-    )
+    processor_factory = ModelDrivenContributionProcessorFactory(model=model)
 
     def build_test_container(settings: Settings) -> AppContainer:
         return build_app_container(
             settings,
             capture_processor_factory=processor_factory,
+            message_router=CaptureMessageRouter(),
         )
 
     monkeypatch.setattr(app_module, "build_app_container", build_test_container)
     return create_app(Settings(environment="test", seed_sample_data=True))
+
+
+def _context(system_prompt: str) -> dict[str, Any]:
+    serialized = system_prompt.split("\nCONTEXT=", maxsplit=1)[1].splitlines()[0]
+    value = json.loads(serialized)
+    assert isinstance(value, dict)
+    return value
+
+
+def _reference_key(system_prompt: str, family: str, label: str) -> str:
+    references = _context(system_prompt)[family]
+    return next(item["key"] for item in references if item["label"] == label)
+
+
+def _interpretation_response(
+    *,
+    updates: dict[str, object],
+    ambiguities: list[dict[str, object]] | None = None,
+) -> str:
+    return json.dumps(
+        {
+            "updates": updates,
+            "clear_fields": [],
+            "ambiguities": ambiguities or [],
+            "unresolved_fields": [],
+            "clarification_needed": False,
+            "evidence": [],
+        }
+    )

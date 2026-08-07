@@ -23,7 +23,7 @@ from scripts.devex.transaction_capture_smoke.scenarios import (
 from wallet.config import Settings, get_settings
 
 DEFAULT_API_BASE_URL = "http://127.0.0.1:8011"
-DEFAULT_REQUEST_TIMEOUT_SECONDS = 60.0
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 120.0
 
 
 class ManagedBackendFactory(Protocol):
@@ -166,6 +166,7 @@ def _backend_environment(settings: Settings) -> dict[str, str]:
         "WALLET_OLLAMA_BASE_URL": settings.ollama_base_url,
         "WALLET_OLLAMA_MODEL": settings.ollama_model,
         "WALLET_OLLAMA_TIMEOUT_SECONDS": str(settings.ollama_timeout_seconds),
+        "WALLET_OLLAMA_CONTEXT_LENGTH": str(settings.ollama_context_length),
     }
 
 

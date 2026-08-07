@@ -6,9 +6,9 @@ POE := $(UV_BACKEND) run poe
 FRONTEND_COMPOSE := HOST_UID=$(shell id -u) HOST_GID=$(shell id -g) docker compose -f compose.frontend.yml
 DEV_COMPOSE := HOST_UID=$(shell id -u) HOST_GID=$(shell id -g) docker compose -f compose.dev.yml
 
-PREFERRED_WORKFLOWS := setup run-backend run-stack stop-stack logs-stack gen-client verify check-smoke check-capture-smoke clean
+PREFERRED_WORKFLOWS := setup run-backend run-stack stop-stack logs-stack gen-client verify check-smoke check-router-smoke check-capture-smoke clean
 SETUP_TARGETS := setup setup-sync setup-lock install install-git-hooks
-BACKEND_CHECK_TARGETS := gen-openapi fmt lint type test verify check check-smoke check-smoke-managed check-capture-smoke clean
+BACKEND_CHECK_TARGETS := gen-openapi fmt lint type test test-control verify check check-smoke check-smoke-managed check-router-smoke check-capture-smoke clean
 FRONTEND_DOCKER_TARGETS := run-frontend frontend-install frontend-generate-client frontend-type frontend-build frontend-test frontend-bun run-stack stop-stack logs-stack
 
 .PHONY: help
@@ -93,6 +93,10 @@ run-backend: install ## Run the backend locally with reload
 test: install ## Run unit tests
 	$(POE) test
 
+.PHONY: test-control
+test-control: install ## Run deterministic control-layer and capability system tests
+	$(POE) test-control
+
 .PHONY: check-smoke
 check-smoke: install ## Run manual API smoke scenarios against an existing backend
 	$(POE) smoke
@@ -104,6 +108,10 @@ check-smoke-managed: install ## Run manual API smoke scenarios with a managed ba
 .PHONY: check-capture-smoke
 check-capture-smoke: install ## Run transaction capture API scenarios against local Ollama
 	$(POE) capture-smoke
+
+.PHONY: check-router-smoke
+check-router-smoke: install ## Run the message routing corpus against local Ollama
+	$(POE) router-smoke
 
 .PHONY: clean
 clean: ensure-uv ## Remove caches and generated local artifacts

@@ -41,18 +41,20 @@ def test_load_config_defaults_to_managed_seeded_backend() -> None:
         ollama_base_url="http://localhost:11434",
         ollama_model="configured-model",
         ollama_timeout_seconds=18,
+        ollama_context_length=16384,
     )
 
     config = load_config([], configured=configured)
 
     assert config.api_base_url == DEFAULT_API_BASE_URL
     assert config.use_existing_backend is False
-    assert config.request_timeout_seconds == 60
+    assert config.request_timeout_seconds == 120
     assert config.settings.environment == "test"
     assert config.settings.seed_sample_data is True
     assert config.settings.ollama_base_url == "http://localhost:11434"
     assert config.settings.ollama_model == "configured-model"
     assert config.settings.ollama_timeout_seconds == 18
+    assert config.settings.ollama_context_length == 16384
     assert config.selected_scenario is None
 
 
@@ -110,6 +112,7 @@ def test_managed_run_passes_settings_to_one_backend_and_uses_selected_scenario(
         ollama_base_url="http://localhost:22468",
         ollama_model="test-model",
         ollama_timeout_seconds=17,
+        ollama_context_length=32768,
     )
     config = CaptureSmokeConfig(
         settings=settings,
@@ -153,7 +156,7 @@ def test_managed_run_passes_settings_to_one_backend_and_uses_selected_scenario(
     )
 
     assert [scenario.name for scenario in received_scenarios] == ["progressive_expense"]
-    assert client_calls == [(DEFAULT_API_BASE_URL, 60)]
+    assert client_calls == [(DEFAULT_API_BASE_URL, 120)]
     assert backend_calls == [
         (
             DEFAULT_API_BASE_URL,
@@ -163,6 +166,7 @@ def test_managed_run_passes_settings_to_one_backend_and_uses_selected_scenario(
                 "WALLET_OLLAMA_BASE_URL": "http://localhost:22468",
                 "WALLET_OLLAMA_MODEL": "test-model",
                 "WALLET_OLLAMA_TIMEOUT_SECONDS": "17.0",
+                "WALLET_OLLAMA_CONTEXT_LENGTH": "32768",
             },
         )
     ]
@@ -237,17 +241,21 @@ def test_runner_reuses_one_api_client_and_continues_after_failure(
     assert all(client is requester for client, _ in received)
     assert [name for _, name in received] == [
         "complete_expense",
+        "misspelled_account",
+        "misspelled_category",
+        "currency_conflict_correction",
+        "unknown_account_correction",
         "progressive_expense",
         "complete_income",
         "complete_transfer",
         "positive_adjustment",
         "ambiguous_category",
     ]
-    assert summary == ScenarioSummary(total=6, passed=5, failed=1)
+    assert summary == ScenarioSummary(total=10, passed=9, failed=1)
     assert output.getvalue() == (
-        f"Running 6 scenario(s) against {DEFAULT_API_BASE_URL}\n"
+        f"Running 10 scenario(s) against {DEFAULT_API_BASE_URL}\n"
         "FAIL complete_expense: candidate mismatch\n"
-        "FAIL scenarios: 5/6\n"
+        "FAIL scenarios: 9/10\n"
     )
 
 
@@ -261,8 +269,8 @@ def test_runner_reports_safe_api_failure_body(
             "expected HTTP 201, got 502",
             response=HttpResponse(
                 status_code=502,
-                body={"detail": "Transaction capture is temporarily unavailable."},
-                url="http://127.0.0.1:8000/api/v1/transaction-captures",
+                body={"detail": "Conversation processing is temporarily unavailable."},
+                url="http://127.0.0.1:8000/api/v1/turns",
             ),
         )
 
@@ -279,7 +287,7 @@ def test_runner_reports_safe_api_failure_body(
     )
 
     assert summary.failed == 1
-    assert "Transaction capture is temporarily unavailable." in output.getvalue()
+    assert "Conversation processing is temporarily unavailable." in output.getvalue()
     assert "model" not in output.getvalue().lower()
 
 

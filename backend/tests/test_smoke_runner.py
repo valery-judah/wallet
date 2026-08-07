@@ -112,6 +112,21 @@ def test_managed_backend_serves_health_and_stops() -> None:
     assert backend.process.poll() is not None
 
 
+def test_managed_backend_does_not_block_when_logs_exceed_pipe_capacity() -> None:
+    port = _reserve_local_port()
+    base_url = f"http://127.0.0.1:{port}"
+
+    with managed_backend(
+        base_url,
+        environment={"WALLET_ENVIRONMENT": "test"},
+    ) as backend:
+        client = HttpClient(backend.base_url, timeout_seconds=1.0)
+        for _ in range(200):
+            assert client.request("GET", "/api/v1/health").status_code == 200
+
+        assert backend.process.poll() is None
+
+
 def _reserve_local_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", 0))
