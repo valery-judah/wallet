@@ -1,3 +1,9 @@
+x-container-logging: &container-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 x-frontend-base: &frontend-base
   build:
     context: ./frontend
@@ -12,6 +18,7 @@ x-frontend-base: &frontend-base
     - ./frontend:/workspace/frontend
     - frontend_node_modules:/workspace/frontend/node_modules
     - bun_cache:/home/bun/.bun/install/cache
+  logging: *container-logging
 
 services:
   backend:
@@ -19,9 +26,11 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     working_dir: /app/backend
-    command: ["uvicorn", "--factory", "wallet.api.app:create_app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: ["uvicorn", "--factory", "wallet.api.app:create_app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--no-access-log", "--log-config", "logging.json"]
     environment:
       WALLET_SEED_SAMPLE_DATA: "true"
+      WALLET_OLLAMA_BASE_URL: "${WALLET_OLLAMA_BASE_URL:-http://host.docker.internal:11434}"
+      WALLET_OLLAMA_CONTEXT_LENGTH: "${WALLET_OLLAMA_CONTEXT_LENGTH:-8192}"
     env_file:
       - path: .env
         required: false
@@ -30,6 +39,7 @@ services:
     volumes:
       - ./backend/src:/app/backend/src
       - ./backend/scripts:/app/backend/scripts
+    logging: *container-logging
     stdin_open: true
     tty: true
 

@@ -1,3 +1,9 @@
+x-container-logging: &container-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 x-frontend-base: &frontend-base
   build:
     context: ./frontend
@@ -11,6 +17,7 @@ x-frontend-base: &frontend-base
     - ./frontend:/workspace/frontend
     - frontend_node_modules:/workspace/frontend/node_modules
     - bun_cache:/home/bun/.bun/install/cache
+  logging: *container-logging
 
 services:
   bun:

@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     app_name: str = "Wallet API"
     environment: Literal["local", "test", "staging", "production"] = "local"
     debug: bool = False
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     api_v1_prefix: str = "/api/v1"
     frontend_host: str = "http://localhost:5173"
     backend_cors_origins: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = []
@@ -61,6 +62,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "qwen3.5:9b"
     ollama_timeout_seconds: float = Field(default=30.0, gt=0)
+    ollama_context_length: int = Field(default=8192, gt=0)
 
     @field_validator("api_v1_prefix")
     @classmethod

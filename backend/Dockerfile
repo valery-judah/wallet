@@ -16,10 +16,11 @@ COPY backend/pyproject.toml backend/README.md /app/backend/
 RUN uv sync --frozen --package wallet --group dev --no-install-workspace
 
 COPY backend/src /app/backend/src
+COPY backend/logging.json /app/backend/logging.json
 COPY backend/scripts /app/backend/scripts
 
 RUN uv sync --frozen --package wallet --group dev
 
 WORKDIR /app/backend
 
-CMD ["uvicorn", "--factory", "wallet.api.app:create_app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "--factory", "wallet.api.app:create_app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--no-access-log", "--log-config", "logging.json"]

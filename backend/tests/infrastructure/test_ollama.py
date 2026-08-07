@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from io import BytesIO
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -29,27 +30,40 @@ class FakeResponse:
 
 def test_complete_sends_non_streaming_schema_constrained_chat_request(
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     requests: list[tuple[Request, float]] = []
 
     def fake_urlopen(request: Request, *, timeout: float) -> FakeResponse:
         requests.append((request, timeout))
-        return FakeResponse({"message": {"role": "assistant", "content": '{"value":1}'}})
+        return FakeResponse(
+            {
+                "message": {"role": "assistant", "content": '{"value":1}'},
+                "prompt_eval_count": 321,
+                "eval_count": 12,
+                "prompt_eval_duration": 1_200_000,
+                "eval_duration": 3_400_000,
+                "load_duration": 5_600_000,
+                "total_duration": 10_200_000,
+            }
+        )
 
     monkeypatch.setattr(ollama_module, "urlopen", fake_urlopen)
     model = OllamaStructuredChatModel(
         base_url="http://localhost:11434/",
         model="qwen3.5:9b",
         timeout_seconds=12.5,
+        context_length=32768,
     )
     schema: dict[str, Any] = {
         "type": "object",
         "properties": {"value": {"type": "integer"}},
     }
+    caplog.set_level(logging.INFO, logger="wallet.infrastructure.ollama")
 
     content = model.complete(
-        system_prompt="system",
-        user_prompt="user",
+        system_prompt="private system marker 7f34b6",
+        user_prompt="private user marker 8a45c7",
         output_schema=schema,
     )
 
@@ -61,13 +75,24 @@ def test_complete_sends_non_streaming_schema_constrained_chat_request(
         "model": "qwen3.5:9b",
         "stream": False,
         "think": False,
-        "options": {"temperature": 0},
+        "options": {"temperature": 0, "seed": 0, "num_ctx": 32768, "num_predict": 512},
         "format": schema,
         "messages": [
-            {"role": "system", "content": "system"},
-            {"role": "user", "content": "user"},
+            {"role": "system", "content": "private system marker 7f34b6"},
+            {"role": "user", "content": "private user marker 8a45c7"},
         ],
     }
+    completed = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "ollama.request.completed"
+    )
+    assert completed.event_data["endpoint"] == "/api/chat"
+    assert completed.event_data["prompt_eval_count"] == 321
+    assert completed.event_data["eval_count"] == 12
+    assert completed.event_data["total_duration"] == 10_200_000
+    assert "private system marker" not in caplog.text
+    assert "private user marker" not in caplog.text
 
 
 def test_list_models_reads_available_ollama_tags(monkeypatch: pytest.MonkeyPatch) -> None:

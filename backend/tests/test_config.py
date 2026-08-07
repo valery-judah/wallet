@@ -11,12 +11,14 @@ def test_settings_defaults() -> None:
     assert settings.app_name == "Wallet API"
     assert settings.environment == "local"
     assert settings.debug is False
+    assert settings.log_level == "INFO"
     assert settings.api_v1_prefix == "/api/v1"
     assert settings.frontend_host == "http://localhost:5173"
     assert settings.seed_sample_data is False
     assert settings.ollama_base_url == "http://127.0.0.1:11434"
     assert settings.ollama_model == "qwen3.5:9b"
     assert settings.ollama_timeout_seconds == 30.0
+    assert settings.ollama_context_length == 8192
     assert settings.all_cors_origins == [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
@@ -27,12 +29,14 @@ def test_get_settings_respects_environment_overrides(monkeypatch) -> None:
     monkeypatch.setenv("WALLET_APP_NAME", "Wallet Override")
     monkeypatch.setenv("WALLET_ENVIRONMENT", "test")
     monkeypatch.setenv("WALLET_DEBUG", "true")
+    monkeypatch.setenv("WALLET_LOG_LEVEL", "DEBUG")
     monkeypatch.setenv("WALLET_API_V1_PREFIX", "/api/custom/")
     monkeypatch.setenv("WALLET_FRONTEND_HOST", "http://localhost:4173/")
     monkeypatch.setenv("WALLET_SEED_SAMPLE_DATA", "true")
     monkeypatch.setenv("WALLET_OLLAMA_BASE_URL", "http://localhost:22468/")
     monkeypatch.setenv("WALLET_OLLAMA_MODEL", "qwen3.5:4b")
     monkeypatch.setenv("WALLET_OLLAMA_TIMEOUT_SECONDS", "45")
+    monkeypatch.setenv("WALLET_OLLAMA_CONTEXT_LENGTH", "32768")
     monkeypatch.setenv(
         "WALLET_BACKEND_CORS_ORIGINS",
         "http://localhost:3000/,https://wallet.example.com",
@@ -44,12 +48,14 @@ def test_get_settings_respects_environment_overrides(monkeypatch) -> None:
     assert settings.app_name == "Wallet Override"
     assert settings.environment == "test"
     assert settings.debug is True
+    assert settings.log_level == "DEBUG"
     assert settings.api_v1_prefix == "/api/custom"
     assert settings.frontend_host == "http://localhost:4173/"
     assert settings.seed_sample_data is True
     assert settings.ollama_base_url == "http://localhost:22468"
     assert settings.ollama_model == "qwen3.5:4b"
     assert settings.ollama_timeout_seconds == 45.0
+    assert settings.ollama_context_length == 32768
     assert settings.all_cors_origins == [
         "http://localhost:4173",
         "http://127.0.0.1:4173",
@@ -100,6 +106,7 @@ def test_settings_deduplicate_explicit_loopback_origin() -> None:
         {"ollama_base_url": "http://localhost:11434/api"},
         {"ollama_model": "  "},
         {"ollama_timeout_seconds": 0},
+        {"ollama_context_length": 0},
     ],
 )
 def test_settings_reject_invalid_ollama_configuration(values: dict[str, object]) -> None:

@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "wallet_json": {
+      "()": "wallet.observability.JsonLogFormatter"
+    }
+  },
+  "handlers": {
+    "wallet_stdout": {
+      "class": "logging.StreamHandler",
+      "formatter": "wallet_json",
+      "stream": "ext://sys.stdout"
+    }
+  },
+  "loggers": {
+    "uvicorn": {
+      "handlers": ["wallet_stdout"],
+      "level": "INFO",
+      "propagate": false
+    },
+    "uvicorn.error": {
+      "level": "INFO"
+    },
+    "uvicorn.access": {
+      "handlers": [],
+      "level": "INFO",
+      "propagate": false
+    }
+  },
+  "root": {
+    "handlers": ["wallet_stdout"],
+    "level": "INFO"
+  }
+}
