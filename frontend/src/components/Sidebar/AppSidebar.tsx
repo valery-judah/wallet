@@ -1,4 +1,4 @@
-import { ArrowUpRight, CreditCard, Plus, Tags } from "lucide-react"
+import { ArrowUpRight, CreditCard, MessageCircle, Plus, Tags } from "lucide-react"
 
 import { SidebarAppearance } from "@/components/Common/Appearance"
 import { Logo } from "@/components/Common/Logo"
@@ -11,6 +11,7 @@ import {
 import { type Item, Main } from "./Main"
 
 const items: Item[] = [
+  { icon: MessageCircle, title: "Assistant", path: "/assistant" },
   { icon: CreditCard, title: "Accounts", path: "/accounts" },
   { icon: ArrowUpRight, title: "Transactions", path: "/transactions" },
   { icon: Tags, title: "Categories", path: "/categories" },

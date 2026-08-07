@@ -10,6 +10,7 @@ import { useEffect } from "react"
 import { AccountDetailRoute } from "@/routes/account-detail"
 import { AccountsListRoute } from "@/routes/accounts-list"
 import { AccountsNewRoute } from "@/routes/accounts-new"
+import { AssistantRoute } from "@/routes/assistant"
 import { CategoriesRoute } from "@/routes/categories"
 import { ErrorPage, NotFoundPage, RootLayout } from "@/routes/root"
 import { TransactionsRoute } from "@/routes/transactions"
@@ -67,6 +68,12 @@ const categoriesRoute = createRoute({
   component: CategoriesRoute,
 })
 
+const assistantRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "assistant",
+  component: AssistantRoute,
+})
+
 const transactionsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "transactions",
@@ -78,6 +85,7 @@ const routeTree = rootRoute.addChildren([
   accountsRoute,
   accountsNewRoute,
   accountDetailRoute,
+  assistantRoute,
   transactionsRoute,
   categoriesRoute,
 ])
