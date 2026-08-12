@@ -1,0 +1,166 @@
+{
+  "status": "ok",
+  "tuple_id": "T022",
+  "examples": [
+    {
+      "id": "E01",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Record a balance adjustment for Cash Wallet, increasing it by ARS 12,500."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E02",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Please add a USD 80 balance adjustment to Savings Fund."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E03",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Create a balance adjustment decreasing Main Checking by EUR 45.20."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E04",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Log a balance adjustment for Mercado Pago dated August 5, 2026."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E05",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I need a balance adjustment on Travel Card for yesterday."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E06",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Start a balance adjustment for Office Cash, effective August 1, 2026."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E07",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Make a balance adjustment to PayPal Balance, putting it up by USD 32.75."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E08",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Enter a negative balance adjustment of BRL 90 for Everyday Debit."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E09",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Book a balance adjustment that lowers Household Cash by ARS 7,500."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E10",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Record a balance adjustment for Wise on July 30, 2026."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E11",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Put through a balance adjustment for Bank Account today."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E12",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "For August 3, 2026, please create a balance adjustment on Payoneer Balance."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E13",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Apply a CAD 110 increase as a balance adjustment to Emergency Cash."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E14",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Personal Checking needs a balance adjustment of minus AUD 95."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E15",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Log a JPY 4,200 upward balance adjustment against Daily Wallet."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E16",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Record a balance adjustment for Visa Credit on August 2, 2026."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E17",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Could you create a balance adjustment on Savings Account for yesterday?"
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E18",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Apply a balance adjustment that takes MXN 350 off Weekend Wallet."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E19",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I want a balance adjustment entered for Family Card, increasing its balance by CLP 30,000."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E20",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "As of August 6, 2026, could you record a balance adjustment for Main Card?"
+      ],
+      "focal_message_index": 0
+    }
+  ]
+}

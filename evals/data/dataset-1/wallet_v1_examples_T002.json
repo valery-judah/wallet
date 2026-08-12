@@ -1,0 +1,166 @@
+{
+  "status": "ok",
+  "tuple_id": "T002",
+  "examples": [
+    {
+      "id": "E01",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Record an expense of ARS 4,500 from my Cash Wallet in Food > Groceries for yesterday."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E02",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Please add yesterday's expense: USD 18.75 paid from Main Card and categorized as Food > Dining Out."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E03",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Log an expense for today under Transport > Taxi: ARS 12,800 from Mercado Pago."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E04",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I need to record an expense dated August 3, 2026. It was EUR 42.30 from Travel Card and belongs in Shopping > Clothing."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E05",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "On 2026-07-31, create an expense for USD 65.99 from Checking Account in the Bills > Internet category."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E06",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Expense for two days ago: ARS 23,400, paid out of Office Cash, category Work > Supplies."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E07",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Please record one expense dated 7 August 2026—BRL 89.50 from Everyday Debit, filed under Health > Pharmacy."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E08",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Add an expense for August 1, 2026: USD 14.00 from PayPal Balance, spending category Entertainment > Streaming."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E09",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Record the following as an expense on 5 August 2026: ARS 76,000 from Household Cash, categorized as Home > Repairs."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E10",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "For July 28, 2026, log an expense of USD 132.40 against USD Cash under Travel > Accommodation."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E11",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "There's an expense I need entered for yesterday: MXN 540 from Weekend Wallet in Leisure > Events."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E12",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Could you create an expense with amount CAD 58.20, account Visa Credit, spending category Transport > Fuel, and date July 19, 2026?"
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E13",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "New expense—GBP 27.80 from Bank Account for Education > Books, dated August 2, 2026."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E14",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Please make an expense entry for EUR 11.49 charged to Wise on July 30, 2026, using Subscriptions > Software."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E15",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Log an expense from August 4, 2026 under Children > School Supplies: ARS 31,250 paid with Family Card."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E16",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Put through an expense dated July 25, 2026 for CLP 48,900 from Emergency Cash in Health > Doctor."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E17",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I want to record an expense: USD 6.75, Coffee Card, Food > Coffee, today."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E18",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Enter today's expense of AUD 45.00 from Personal Checking and assign it to Gifts > Birthdays."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E19",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "An expense for July 30, 2026 needs logging: ARS 9,600 from Cash Wallet, spending category Pets > Veterinary."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E20",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Please capture an expense dated yesterday for JPY 3,200 from Daily Wallet, classified under Household > Cleaning."
+      ],
+      "focal_message_index": 0
+    }
+  ]
+}

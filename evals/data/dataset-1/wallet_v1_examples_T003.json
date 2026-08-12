@@ -1,0 +1,166 @@
+{
+  "status": "ok",
+  "tuple_id": "T003",
+  "examples": [
+    {
+      "id": "E01",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "My salary of ARS 1,250,000 landed in Main account today, under Salary > Payroll."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E02",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Yesterday I got a USD 850 freelance payment into PayPal; categorize it as Business > Contracts."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E03",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "A EUR 42.75 dividend payment arrived in Wise on August 5, 2026, filed under Investments > Dividends."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E04",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "The BRL 600 birthday gift I received today went into Cash wallet, under Gifts > Family."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E05",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "On August 1, 2026, Main checking was credited USD 2,400 for Client Work > Consulting."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E06",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "My ARS 95,000 tax refund came through to Mercado Pago this morning; use Refunds > Tax."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E07",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I deposited GBP 300 in Cash wallet today after selling my old bicycle, with Sales > Personal Items as the category."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E08",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Rent from my tenant hit Bank account yesterday: USD 700, Property > Rental."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E09",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "On July 31, 2026, I was paid EUR 1,180 into Wise for the design project, categorized Business > Design."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E10",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "A USD 25.50 cashback payout was deposited into Main checking today; put it under Rewards > Cashback."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E11",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "ARS 18,500 from tutoring reached Mercado Pago on August 6, 2026 — Education > Tutoring."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E12",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Payoneer received USD 312.40 in royalties on July 28, 2026, under Creative Work > Royalties."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E13",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "This morning, ARS 7,000 in tips went into Cash wallet, with Tips > Service as the category."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E14",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I got paid CAD 1,900 into Main bank account on August 3, 2026 for Business > Contracts."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E15",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "A bonus of ARS 210,000 was added to Salary account today; classify it as Salary > Bonus."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E16",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "USD 56.18 in bank interest was credited to Savings fund on August 4, 2026, under Investments > Interest."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E17",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Yesterday's commission payment was MXN 8,750 and went straight to Bank account, categorized Work > Commissions."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E18",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I received a EUR 150 scholarship payment in Wise today; Education > Scholarship."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E19",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "On August 2, 2026, USD 500 from a consulting retainer arrived in Payoneer and belongs to Business > Consulting."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E20",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Cash wallet gained ARS 36,000 from my weekend catering work yesterday; Business > Catering."
+      ],
+      "focal_message_index": 0
+    }
+  ]
+}

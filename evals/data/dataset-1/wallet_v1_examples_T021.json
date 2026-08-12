@@ -1,0 +1,206 @@
+{
+  "status": "ok",
+  "tuple_id": "T021",
+  "examples": [
+    {
+      "id": "E01",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "One more time."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E02",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Again."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E03",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Another one."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E04",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Let's go again."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E05",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Let's do another."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E06",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Can we go again?"
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E07",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Can I do another?"
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E08",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "One more, please."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E09",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "I'd like another one."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E10",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Let's try again."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E11",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Could we do one more?"
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E12",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Ready for another."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E13",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Repeat, please."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E14",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "I'd like to go again."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E15",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "How about another?"
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E16",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "I'll do one more."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E17",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Let's have another go."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E18",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Once more."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E19",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Let's start another."
+      ],
+      "focal_message_index": 2
+    },
+    {
+      "id": "E20",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "cancel",
+        "Can we try another?"
+      ],
+      "focal_message_index": 2
+    }
+  ]
+}

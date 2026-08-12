@@ -1,0 +1,186 @@
+{
+  "status": "ok",
+  "tuple_id": "T018",
+  "examples": [
+    {
+      "id": "E01",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "What are my current balances?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E02",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "How much money do I have right now?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E03",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "Where do my finances stand at the moment?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E04",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "Can I see how much money I currently have?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E05",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "How are my balances looking today?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E06",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "How much money is currently recorded in my wallet?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E07",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "What funds do I currently have?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E08",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "Where do all my balances stand now?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E09",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "What's the current state of my wallet?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E10",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "Could I get an up-to-date view of my balances?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E11",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "What does my money situation look like right now?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E12",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "What's my balance situation at the moment?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E13",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "I'd like to know where my balances currently stand."
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E14",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "What balances do I have at the moment?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E15",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "At the moment, what amounts am I holding?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E16",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "Where does my wallet stand today?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E17",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "What's the latest picture of my balances?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E18",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "Can you give me a current overview of my money?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E19",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "What are my current totals by currency?"
+      ],
+      "focal_message_index": 1
+    },
+    {
+      "id": "E20",
+      "interaction_form": "sequence",
+      "user_messages": [
+        "Record an expense of 20 from Main account for Groceries.",
+        "Can I see the latest balance snapshot?"
+      ],
+      "focal_message_index": 1
+    }
+  ]
+}

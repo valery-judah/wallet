@@ -1,0 +1,166 @@
+{
+  "status": "ok",
+  "tuple_id": "T013",
+  "examples": [
+    {
+      "id": "E01",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "My ARS 1,250,000 salary hit Main chk today; tag it Sal > Pay."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E02",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Yesterday, a USD 850 client payment landed in PP bal, filed as Biz > Contract."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E03",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "EUR 42.75 in dividends arrived in Wise bal on August 5, 2026 — Invest > Div."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E04",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "On August 2, 2026, the BRL 600 birthday gift I got went into Csh wal under Gift > Fam."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E05",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Main bk was credited USD 2,400 for consulting on August 1, 2026; use Biz > Consult."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E06",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "My ARS 95,000 tax refund came through to MP this morning, belonging to Ref > Tax rtn."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E07",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "After selling my old bicycle, I put GBP 300 into Csh wal today and marked it Sell > Pers."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E08",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "The USD 700 my tenant paid reached Rent chk yesterday; that goes in Prop > Rnt."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E09",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I was paid EUR 1,180 for the design project into Wise bal on July 31, 2026, under Biz > Dsgn."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E10",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "A USD 25.50 cashback payout showed up in Day-to-day deb today; classify it Rew > CB."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E11",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "ARS 18,500 from tutoring reached MP bal on August 6, 2026 — Edu > Tutor."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E12",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "On July 28, 2026, Payo received a USD 312.40 royalty payment for Creat > Roy."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E13",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "This morning's ARS 7,000 in tips went straight into Pocket csh, with Tip > Svc as the category."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E14",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "CAD 1,900 for the contract arrived in Main acct on August 3, 2026; file it Biz > Contract."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E15",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Today my employer added an ARS 210,000 bonus to Sal acct, and it belongs under Sal > Bon."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E16",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "USD 56.18 of bank interest was credited to USD sav on August 4, 2026, tagged Invest > Int."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E17",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Yesterday's MXN 8,750 commission payment went into Work chk, in Wrk > Comm."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E18",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "A EUR 150 scholarship payment came into Wise acct today; use Edu > Schol."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E19",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "On August 2, 2026, USD 500 from my consulting retainer arrived in Payo bal and belongs to Biz > Consult."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E20",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Weekend catering brought ARS 36,000 into Side-gig wal yesterday, categorized Biz > Cater."
+      ],
+      "focal_message_index": 0
+    }
+  ]
+}

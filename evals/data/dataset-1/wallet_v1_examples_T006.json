@@ -1,0 +1,166 @@
+{
+  "status": "ok",
+  "tuple_id": "T006",
+  "examples": [
+    {
+      "id": "E01",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Yesterday's move between my accounts was ARS 18,000 out of Main account."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E02",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I moved USD 75 between my accounts into PayPal Balance this morning."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E03",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Savings Fund funded Main Checking today when I rearranged money between my accounts."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E04",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Move EUR 120 from Wise to Travel Wallet."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E05",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "BRL 300 left Everyday Debit in a move between my accounts on August 5, 2026."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E06",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Mercado Pago received ARS 42,500 from a move between my own accounts yesterday."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E07",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Today's account-to-account move went from Bank Account into Cash Wallet."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E08",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Send GBP 90 from Payoneer Balance to Travel Wallet."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E09",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "The MXN 1,600 I shifted between my accounts two days ago came out of Weekend Wallet."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E10",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Main Card was the receiving side when I moved CAD 250 between my accounts on August 1, 2026."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E11",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "On July 31, 2026, money was shifted out of ARS Cash and into Mercado Pago."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E12",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Shift AUD 45 from Personal Checking into Emergency Fund."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E13",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Daily Wallet was the source of yesterday's JPY 8,000 move between my accounts."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E14",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I shifted CLP 35,000 between my accounts on August 4, 2026, putting it into Household Cash."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E15",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Visa Credit was the source and Main Bank the destination when I moved funds today."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E16",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Put USD 500 from Savings Account into Main Debit."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E17",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Yesterday I sent some funds from Wise Balance over to PayPal Balance."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E18",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "ARS 9,750 came out of Main Checking during an account-to-account move today."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E19",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Travel Card was where I moved EUR 60 between my accounts on August 2, 2026."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E20",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Earlier today, funds moved from Cash Reserve into Family Wallet."
+      ],
+      "focal_message_index": 0
+    }
+  ]
+}

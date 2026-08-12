@@ -1,0 +1,166 @@
+{
+  "status": "ok",
+  "tuple_id": "T008",
+  "examples": [
+    {
+      "id": "E01",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I paid ARS 4,500—actually, make that ARS 5,400—from Cash Wallet for groceries under Food > Groceries yesterday."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E02",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Lunch today was USD 24.80 at first glance, but the final total was USD 28.40, paid with Main Card and filed under Food > Dining Out."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E03",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Yesterday's ARS 12,800 taxi ride was paid from Cash Wallet—or so I thought; Mercado Pago is the account I actually used. It belongs in Transport > Taxi."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E04",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I bought a jacket for EUR 86.50 from Travel Card on August 3, 2026. I first put it under Shopping > Accessories, but Shopping > Clothing is the correct category."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E05",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "The USD 65.99 internet bill was charged to Checking Account on July 31, 2026—sorry, the correct date is August 1, 2026—and goes under Bills > Internet."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E06",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Office supplies cost ARS 23,400 two days ago and were paid from Office Cash. I first thought Work > Equipment, but the right category is Work > Supplies."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E07",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I paid BRL 89.50 for medicine with Everyday Debit today—correction, it was BRL 98.50. The category is Health > Pharmacy."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E08",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "The streaming renewal on August 1, 2026 was USD 14.00 from PayPal Balance. It was Netflix—no, Disney Plus is the correct description—under Entertainment > Streaming."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E09",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Home repairs on August 5, 2026 came to ARS 76,000, paid from Household Cash; change that total to ARS 79,600. Category: Home > Repairs."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E10",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "On July 28, 2026 I paid USD 132.40 for a hotel from USD Cash, although I should say it came from Travel Wallet instead. Put it under Travel > Accommodation."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E11",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Tickets for the August 1, 2026 concert were MXN 540 from Weekend Wallet. I was going to use Leisure > Events, but Leisure > Concerts is the final category."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E12",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Fuel on July 19, 2026 cost CAD 58.20 on Visa Credit—scratch that, the card used was Daily Credit. Classify it as Transport > Fuel."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E13",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I spent GBP 27.80 from Bank Account on course books, under Education > Books. That was August 2, 2026, not August 3."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E14",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "The software subscription charged to Wise on July 30, 2026 was EUR 11.49—let me correct the currency and amount: the final charge was USD 12.60. Use Subscriptions > Software."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E15",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "On August 4, 2026 I bought school supplies for ARS 31,250 with Family Card. I called it Education > Supplies before, but Children > School Supplies is the final category."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E16",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "A doctor's visit on July 25, 2026 took CLP 48,900 from Emergency Cash; actually the receipt says CLP 49,800, so use that amount under Health > Doctor."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E17",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Coffee this morning was USD 6.75, paid with Coffee Card. It wasn't Food > Dining Out after all; the final category is Food > Coffee."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E18",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Today's birthday present cost AUD 45.00 from Personal Checking—wait, the correct total is AUD 54.00—and belongs in Gifts > Birthdays."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E19",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "The vet visit was ARS 9,600 on July 30, 2026, paid from Cash Wallet. Make the date July 29, 2026 instead; Pets > Veterinary stays the category."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E20",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Yesterday I paid JPY 3,200 from Daily Wallet for cleaning products. The merchant was Home Market, correction: Clean House is the final merchant, and the category is Household > Cleaning."
+      ],
+      "focal_message_index": 0
+    }
+  ]
+}

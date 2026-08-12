@@ -1,0 +1,166 @@
+{
+  "status": "ok",
+  "tuple_id": "T015",
+  "examples": [
+    {
+      "id": "E01",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I moved ARS 18,500 from my Main checking account to MP yesterday."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E02",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Send ARS 7,200 today from Mrcdo Pgo into my Cash wallet."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E03",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "On August 5, 2026, I shifted USD 240 out of PP and into my Savings fund."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E04",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "The USD 680 I moved on August 1 went from my Payoneer balance to my Mn bank acount."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E05",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Move ARS 42,000 from CC over to my Main bank account, dated August 7, 2026."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E06",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Yesterday I put ARS 15,750 from my ARS cash wallet into Mercdo Pago."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E07",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Please move USD 1,100 from my Savings acct to my Main debit card on August 3."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E08",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "USD 95 went from Paypall to my USD cash wallet this morning."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E09",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "For August 6, move ARS 9,800 out of MP and into my Main checking account."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E10",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I sent EUR 320 from my Wise wallet to PP on July 31, 2026."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E11",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "On Monday, I moved ARS 27,300 from my Mayn card into my Emergency savings fund."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E12",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Take ARS 63,000 from my Salary bank account and put it in CC for August 2."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E13",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I moved ARS 5,450 from MP to my Csh walet on August 4."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E14",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Put USD 775 from Pyoneer into my Main acct today."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E15",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "The EUR 130 movement on August 6 was from my Travel savings fund into Wse walet."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E16",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Yesterday, USD 60 left PP and went into my USD csh walet."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E17",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Send ARS 88,000 from Mrcado Pago to my Rent bank account on August 7."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E18",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "As of August 1, move ARS 21,900 from my Everyday debit card into my Savs acct."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E19",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I shifted USD 430 from my Main acct over to my PayPal wallet on August 5."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E20",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "On August 3, ARS 3,600 came out of my Cash wallet and went straight into MP."
+      ],
+      "focal_message_index": 0
+    }
+  ]
+}

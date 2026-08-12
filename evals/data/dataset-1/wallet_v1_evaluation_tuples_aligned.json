@@ -1,0 +1,561 @@
+{
+  "schema_version": "1.0",
+  "dataset": "wallet_v1_evaluation_tuples",
+  "tuple_count": 22,
+  "source_materials": [
+    {
+      "file": "spec.md",
+      "role": "Wallet MVP product specification"
+    },
+    {
+      "file": "prompts-04-tuples.md",
+      "role": "Tuple construction and review procedure"
+    },
+    {
+      "file": "wallet_user_query_dimensions_v1_1.json",
+      "role": "Dimension set definition and applicability rules"
+    }
+  ],
+  "dimension_set_version": "v1.1",
+  "conventions": {
+    "dimension_names_and_values": "Use the supplied dimension set verbatim.",
+    "omitted_dimensions": "A dimension is omitted from a tuple when its applicability rule does not apply.",
+    "user_job_arrays": "User Job may be an array only for unresolved intent or a compound cross-job request. Such tuples must include user_job_mode='candidate_set' for alternative candidate jobs or user_job_mode='compound_set' for jointly requested jobs.",
+    "goal_transition": "Conversational Goal Transition is included only when the target turn is part of a message sequence with a relevant preceding goal. Standalone tuples omit it.",
+    "reference_surface_none": "Reference Surface is always present; use 'none' when the target user contribution contains no account/category reference.",
+    "information_coverage_none": "For transaction-capture jobs, Current-turn Information Coverage='none' means the target contribution supplies no transaction fields and communicates only conversational intent.",
+    "compound_dimension_scope": "For compound requests, query-level dimensions assigned to transaction clauses must be homogeneous across the relevant clauses unless the tuple explicitly exists to test heterogeneity.",
+    "sequence_context": "null means the tuple is standalone. A non-null value defines the minimum prior conversation needed before generating the target user contribution.",
+    "prior_user_messages": "These are setup messages only. They are not the target user input for the tuple.",
+    "required_prior_actions": "Used only when a non-message typed action is required to establish the intended prior state.",
+    "target_generation_constraint": "May appear at tuple level for standalone tuples or inside sequence_context for contextual tuples. It constrains later generation of the target user contribution; it is not itself an example target message."
+  },
+  "open_product_questions": [
+    "The intended handling policy for multiple_same_job and multiple_cross_job ordinary messages is not specified.",
+    "The product materials do not specify account-filtered wallet_state semantics.",
+    "The product materials do not specify whether an ordinary contribution can change the transaction job of an active capture draft."
+  ],
+  "tuples": [
+    {
+      "id": "T001",
+      "dimensions": {
+        "User Job": "wallet_state",
+        "Intent Expression": "outcome_or_question",
+        "Interpretive Determinacy": "clear",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single",
+        "Reference Surface": "none"
+      },
+      "coverage_basis": "Baseline coverage for the read-only wallet_state job.",
+      "purpose": "Establish straightforward routing and execution of current wallet-state retrieval.",
+      "failure_surface": "A direct balance/state question could be misrouted into transaction capture.",
+      "nearest_related_tuple": null,
+      "material_difference": "Baseline for the wallet_state capability.",
+      "sequence_context": null
+    },
+    {
+      "id": "T002",
+      "dimensions": {
+        "User Job": "expense",
+        "Intent Expression": "job_explicit",
+        "Current-turn Information Coverage": "full",
+        "Interpretive Determinacy": "clear",
+        "Reference Surface": "named_phrase",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single"
+      },
+      "coverage_basis": "Baseline expense capture.",
+      "purpose": "Establish explicit, complete, unambiguous expense interpretation.",
+      "failure_surface": "Incorrect field extraction, reference binding, or job selection on the simplest expense case.",
+      "nearest_related_tuple": null,
+      "material_difference": "Baseline for the expense transaction job.",
+      "sequence_context": null
+    },
+    {
+      "id": "T003",
+      "dimensions": {
+        "User Job": "income",
+        "Intent Expression": "event_or_action",
+        "Current-turn Information Coverage": "full",
+        "Interpretive Determinacy": "clear",
+        "Reference Surface": "named_phrase",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single"
+      },
+      "coverage_basis": "Baseline income capture using inferred event/action wording.",
+      "purpose": "Verify inference of income from an event/action formulation.",
+      "failure_surface": "Expense/income polarity confusion or field extraction failure.",
+      "nearest_related_tuple": "T002",
+      "material_difference": "Covers a different supported transaction job and inferred rather than explicitly named intent.",
+      "sequence_context": null
+    },
+    {
+      "id": "T004",
+      "dimensions": {
+        "User Job": "transfer",
+        "Intent Expression": "event_or_action",
+        "Current-turn Information Coverage": "full",
+        "Interpretive Determinacy": "clear",
+        "Reference Surface": "named_phrase",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single"
+      },
+      "coverage_basis": "Baseline transfer capture.",
+      "purpose": "Establish interpretation of amount, source account, and destination account together.",
+      "failure_surface": "Source/destination inversion, dropped endpoint, or misclassification as expense.",
+      "nearest_related_tuple": "T003",
+      "material_difference": "Transfer has a distinct two-account structure with source/destination semantics.",
+      "sequence_context": null
+    },
+    {
+      "id": "T005",
+      "dimensions": {
+        "User Job": "adjustment",
+        "Intent Expression": "outcome_or_question",
+        "Current-turn Information Coverage": "full",
+        "Interpretive Determinacy": "clear",
+        "Reference Surface": "named_phrase",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single"
+      },
+      "coverage_basis": "Baseline balance-adjustment job.",
+      "purpose": "Represent outcome-oriented adjustment language separately from ledger-event language.",
+      "failure_surface": "A desired balance state could be treated as expense/income or the target state could be misinterpreted.",
+      "nearest_related_tuple": "T002",
+      "material_difference": "Adjustment is a supported job with outcome-oriented semantics rather than ordinary transaction-event semantics.",
+      "sequence_context": null
+    },
+    {
+      "id": "T006",
+      "dimensions": {
+        "User Job": "transfer",
+        "Intent Expression": "event_or_action",
+        "Current-turn Information Coverage": "partial",
+        "Interpretive Determinacy": "clear",
+        "Reference Surface": "named_phrase",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single"
+      },
+      "coverage_basis": "Progressive capture of an incomplete structurally demanding job.",
+      "purpose": "Exercise missing transfer information without introducing ambiguity.",
+      "failure_surface": "The system could guess the missing endpoint, discard supplied fields, or produce a complete candidate prematurely.",
+      "nearest_related_tuple": "T004",
+      "material_difference": "Changes the transfer from complete to incomplete, exercising progressive collection.",
+      "sequence_context": null
+    },
+    {
+      "id": "T007",
+      "dimensions": {
+        "User Job": "transfer",
+        "Intent Expression": "fragment",
+        "Current-turn Information Coverage": "fragment",
+        "Interpretive Determinacy": "clear",
+        "Reference Surface": "named_phrase",
+        "Context Dependence": "reference_only",
+        "Request Multiplicity": "single",
+        "Conversational Goal Transition": "continue_goal"
+      },
+      "coverage_basis": "Progressive collection requires fragmentary follow-ups to be interpreted against the pending interaction.",
+      "purpose": "Complete an existing transfer draft from a slot-only follow-up.",
+      "failure_surface": "The fragment could be treated as a new request, bound to the wrong field, or cause the existing draft to be lost.",
+      "nearest_related_tuple": "T006",
+      "material_difference": "Adds dependency on the active transfer draft and pending slot; this cannot be exercised by a standalone partial transfer.",
+      "sequence_context": {
+        "required": true,
+        "prior_user_messages": [
+          {
+            "order": 1,
+            "content": "Move 120 from Main account.",
+            "intended_effect": "Start transactions.capture as a transfer; establish amount=120 and source=Main account while leaving destination unresolved."
+          }
+        ],
+        "required_prior_actions": [],
+        "required_resulting_state": [
+          "transactions.capture is active",
+          "the draft represents a transfer",
+          "amount and source account are already present",
+          "destination account is the unresolved/pending field"
+        ],
+        "target_generation_constraint": "Generate only the next user contribution. It should be a fragment that supplies the destination account reference and relies on the pending transfer context."
+      }
+    },
+    {
+      "id": "T008",
+      "dimensions": {
+        "User Job": "expense",
+        "Intent Expression": "event_or_action",
+        "Current-turn Information Coverage": "full",
+        "Interpretive Determinacy": "resolved_correction",
+        "Reference Surface": "named_phrase",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single"
+      },
+      "coverage_basis": "Valid same-turn correction should be distinguishable from ambiguity or contradiction.",
+      "purpose": "Isolate an internally resolved correction within one contribution.",
+      "failure_surface": "The system could retain both values, choose the superseded value, or ask for unnecessary clarification.",
+      "nearest_related_tuple": "T002",
+      "material_difference": "Adds an explicit winner among competing same-turn values while remaining self-contained.",
+      "sequence_context": null
+    },
+    {
+      "id": "T009",
+      "dimensions": {
+        "User Job": "expense",
+        "Intent Expression": "fragment",
+        "Current-turn Information Coverage": "fragment",
+        "Interpretive Determinacy": "resolved_correction",
+        "Context Dependence": "context_linked",
+        "Request Multiplicity": "single",
+        "Conversational Goal Transition": "continue_goal",
+        "Reference Surface": "none"
+      },
+      "coverage_basis": "An active reviewable draft must support correction of previously supplied information across turns.",
+      "purpose": "Exercise correction of one existing expense field while the remainder of the draft stays implicit.",
+      "failure_surface": "The system could ignore the correction, lose other draft fields, create a second transaction, or preserve stale confirmation state.",
+      "nearest_related_tuple": "T008",
+      "material_difference": "Moves correction from a self-contained contribution to a draft-relative follow-up requiring conversational state preservation.",
+      "sequence_context": {
+        "required": true,
+        "prior_user_messages": [
+          {
+            "order": 1,
+            "content": "Record an expense of 20 from Main account for Groceries.",
+            "intended_effect": "Create a complete expense candidate and enter the review/awaiting-confirmation state without posting it."
+          }
+        ],
+        "required_prior_actions": [],
+        "required_resulting_state": [
+          "transactions.capture is active",
+          "the expense draft is complete and reviewable",
+          "the transaction has not been posted",
+          "the draft currently contains amount=20, account=Main account, and spending category=Groceries"
+        ],
+        "target_generation_constraint": "Generate only the next user contribution. It should be a short correction of the previously supplied amount, rely on the existing draft rather than restating the transaction, and contain no account or category reference."
+      }
+    },
+    {
+      "id": "T010",
+      "dimensions": {
+        "User Job": "transfer",
+        "Intent Expression": "event_or_action",
+        "Current-turn Information Coverage": "full",
+        "Interpretive Determinacy": "field_ambiguous",
+        "Reference Surface": "named_phrase",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single"
+      },
+      "coverage_basis": "Unresolved transfer fields should produce corrective interaction instead of arbitrary account selection.",
+      "purpose": "Exercise ambiguity in one transfer account-selection slot while all semantic slots are present.",
+      "failure_surface": "The system could choose an account arbitrarily or confuse an ambiguous source with the destination.",
+      "nearest_related_tuple": "T004",
+      "material_difference": "Keeps the transfer structurally complete but makes one account reference unresolved.",
+      "sequence_context": null
+    },
+    {
+      "id": "T011",
+      "dimensions": {
+        "User Job": [
+          "expense",
+          "income",
+          "adjustment"
+        ],
+        "Intent Expression": "event_or_action",
+        "Interpretive Determinacy": "intent_ambiguous",
+        "Reference Surface": "named_phrase",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single"
+      },
+      "coverage_basis": "Transaction capture must sometimes determine which supported transaction job is intended from semantically incomplete monetary language.",
+      "purpose": "Represent one monetary event whose direction or meaning does not uniquely determine transaction type.",
+      "failure_surface": "The system could silently force an expense, income, or adjustment interpretation.",
+      "nearest_related_tuple": "T003",
+      "material_difference": "The transaction job itself is unresolved rather than merely one transaction field.",
+      "sequence_context": null,
+      "user_job_mode": "candidate_set",
+      "target_generation_constraint": "Generate one standalone monetary-event contribution whose intended transaction job remains genuinely ambiguous among expense, income, and adjustment. Include a normal named account reference. Do not add wording that resolves the direction or operation into one candidate job."
+    },
+    {
+      "id": "T012",
+      "dimensions": {
+        "User Job": "expense",
+        "Intent Expression": "job_explicit",
+        "Current-turn Information Coverage": "full",
+        "Interpretive Determinacy": "contradictory",
+        "Reference Surface": "named_phrase",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single"
+      },
+      "coverage_basis": "Contradiction must remain distinct from a resolved correction with an explicit winner.",
+      "purpose": "Exercise incompatible values for one required expense field while the job itself remains explicit.",
+      "failure_surface": "The system could select one conflicting assertion arbitrarily or incorrectly treat the conflict as a resolved correction.",
+      "nearest_related_tuple": "T008",
+      "material_difference": "Unlike T008, there is no coherent winning value.",
+      "sequence_context": null
+    },
+    {
+      "id": "T013",
+      "dimensions": {
+        "User Job": "income",
+        "Intent Expression": "event_or_action",
+        "Current-turn Information Coverage": "full",
+        "Interpretive Determinacy": "clear",
+        "Reference Surface": "shorthand",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single"
+      },
+      "coverage_basis": "Alias/shorthand reference resolution is explicitly supported by the capture interpreter.",
+      "purpose": "Isolate shorthand normalization without additional ambiguity.",
+      "failure_surface": "The system could reject a valid alias, bind the wrong registered reference, or ask for unnecessary clarification.",
+      "nearest_related_tuple": "T003",
+      "material_difference": "Changes the reference surface from an ordinary named phrase to shorthand.",
+      "sequence_context": null
+    },
+    {
+      "id": "T014",
+      "dimensions": {
+        "User Job": "expense",
+        "Intent Expression": "event_or_action",
+        "Current-turn Information Coverage": "full",
+        "Interpretive Determinacy": "clear",
+        "Reference Surface": "noisy",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single"
+      },
+      "coverage_basis": "Typo/noise normalization is explicitly supported by the capture interpreter.",
+      "purpose": "Isolate recovery of a noisy domain reference.",
+      "failure_surface": "The system could fail normalization or select an unrelated account/category.",
+      "nearest_related_tuple": "T002",
+      "material_difference": "Changes the reference surface to a typo/noisy form while preserving otherwise straightforward expense behavior.",
+      "sequence_context": null
+    },
+    {
+      "id": "T015",
+      "dimensions": {
+        "User Job": "transfer",
+        "Intent Expression": "event_or_action",
+        "Current-turn Information Coverage": "full",
+        "Interpretive Determinacy": "clear",
+        "Reference Surface": "mixed",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single"
+      },
+      "coverage_basis": "Transfer requires two account references, making heterogeneous reference forms behaviorally meaningful.",
+      "purpose": "Exercise simultaneous resolution of differently expressed source and destination account references.",
+      "failure_surface": "The system could normalize only one endpoint, swap endpoints, or lose a resolved reference.",
+      "nearest_related_tuple": "T004",
+      "material_difference": "Exercises two reference surfaces in the same transfer rather than one uniform named-reference form.",
+      "sequence_context": null
+    },
+    {
+      "id": "T016",
+      "dimensions": {
+        "User Job": "expense",
+        "Intent Expression": "event_or_action",
+        "Current-turn Information Coverage": "full",
+        "Interpretive Determinacy": "clear",
+        "Reference Surface": "named_phrase",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "multiple_same_job"
+      },
+      "coverage_basis": "Capture is defined around one transaction, so two independently specified same-job operations in one contribution are a consequential boundary.",
+      "purpose": "Detect handling of more than one expense operation in one ordinary message.",
+      "failure_surface": "The system could silently drop one operation or incorrectly merge independent expenses.",
+      "nearest_related_tuple": "T002",
+      "material_difference": "Adds a second independent operation of the same job, exercising one-task-at-a-time behavior.",
+      "sequence_context": null,
+      "target_generation_constraint": "Generate one standalone message containing exactly two distinct expense operations. Both expense clauses must use event/action wording, each must be individually full and clear, and their domain references must use normal named phrases."
+    },
+    {
+      "id": "T017",
+      "dimensions": {
+        "User Job": [
+          "wallet_state",
+          "expense"
+        ],
+        "Intent Expression": "job_explicit",
+        "Current-turn Information Coverage": "full",
+        "Interpretive Determinacy": "clear",
+        "Reference Surface": "named_phrase",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "multiple_cross_job"
+      },
+      "coverage_basis": "Idle routing assigns one ordinary message to one capability, creating a distinct compound-request risk when clauses span capabilities.",
+      "purpose": "Exercise a clear wallet-state request and a complete expense request in the same contribution.",
+      "failure_surface": "The router/capability could discard one clause, merge incompatible jobs, or route unstably.",
+      "nearest_related_tuple": "T016",
+      "material_difference": "The multiple operations span different capabilities rather than one transaction job.",
+      "sequence_context": null,
+      "user_job_mode": "compound_set",
+      "target_generation_constraint": "Generate one standalone message containing exactly two clearly requested jobs: a wallet-state request and one complete expense request. Express both jobs explicitly; the expense clause must be complete, clear, and use a normal named domain reference."
+    },
+    {
+      "id": "T018",
+      "dimensions": {
+        "User Job": "wallet_state",
+        "Intent Expression": "outcome_or_question",
+        "Interpretive Determinacy": "clear",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single",
+        "Conversational Goal Transition": "change_goal",
+        "Reference Surface": "none"
+      },
+      "coverage_basis": "While transaction capture is active, ordinary messages bypass routing and capability switching is unavailable.",
+      "purpose": "Exercise a semantically clear wallet-state request while transactions.capture is active.",
+      "failure_surface": "The system could illegally switch capabilities, abandon the active draft, or invoke the idle router.",
+      "nearest_related_tuple": "T001",
+      "material_difference": "The same wallet-state semantics occur under an active foreign capability, where routing behavior is explicitly different.",
+      "sequence_context": {
+        "required": true,
+        "prior_user_messages": [
+          {
+            "order": 1,
+            "content": "Record an expense of 20 from Main account for Groceries.",
+            "intended_effect": "Start transactions.capture and create a complete reviewable expense draft that remains active pending confirmation."
+          }
+        ],
+        "required_prior_actions": [],
+        "required_resulting_state": [
+          "transactions.capture is active",
+          "the expense candidate is reviewable and not posted",
+          "the conversation is not idle"
+        ],
+        "target_generation_constraint": "Generate only the next ordinary user message. It should independently request wallet_state without naming any account or category, rather than answer or modify the active expense draft."
+      }
+    },
+    {
+      "id": "T019",
+      "dimensions": {
+        "User Job": "wallet_state",
+        "Intent Expression": "fragment",
+        "Interpretive Determinacy": "clear",
+        "Context Dependence": "reference_only",
+        "Request Multiplicity": "single",
+        "Conversational Goal Transition": "repeat_goal",
+        "Reference Surface": "none"
+      },
+      "coverage_basis": "Bounded routing memory explicitly supports reference-only follow-ups, and wallet_state completes in one turn leaving the conversation idle.",
+      "purpose": "Exercise legitimate capability repetition where no private transaction draft needs replay.",
+      "failure_surface": "The router could fail to recover prior capability identity or interpret the repetition as a transaction request.",
+      "nearest_related_tuple": "T001",
+      "material_difference": "Requires bounded routing memory and a reference-only repeat rather than a self-contained wallet-state request.",
+      "sequence_context": {
+        "required": true,
+        "prior_user_messages": [
+          {
+            "order": 1,
+            "content": "What are my balances?",
+            "intended_effect": "Route to wallet.current_state, return the wallet snapshot, and leave the conversation idle with wallet.current_state as the most recent capability-associated identity."
+          }
+        ],
+        "required_prior_actions": [],
+        "required_resulting_state": [
+          "conversation is idle",
+          "most recent capability-associated identity is wallet.current_state"
+        ],
+        "target_generation_constraint": "Generate only the next user contribution. It should use reference-only repetition language that does not restate the wallet-state job and contains no account or category reference."
+      }
+    },
+    {
+      "id": "T020",
+      "dimensions": {
+        "User Job": "expense",
+        "Intent Expression": "fragment",
+        "Current-turn Information Coverage": "none",
+        "Interpretive Determinacy": "clear",
+        "Context Dependence": "reference_only",
+        "Request Multiplicity": "single",
+        "Conversational Goal Transition": "repeat_goal",
+        "Reference Surface": "none"
+      },
+      "coverage_basis": "Routing memory may recover transactions.capture identity but must not replay prior messages, private state, or domain effects.",
+      "purpose": "Contrast transaction repetition with stateless wallet-state repetition.",
+      "failure_surface": "The system could duplicate the prior posted expense or reconstruct the old transaction draft from forbidden memory.",
+      "nearest_related_tuple": "T019",
+      "material_difference": "Repeating a transaction capability has domain-effect and private-draft replay risks absent from wallet_state repetition.",
+      "sequence_context": {
+        "required": true,
+        "prior_user_messages": [
+          {
+            "order": 1,
+            "content": "Record an expense of 20 from Main account for Groceries.",
+            "intended_effect": "Create a complete reviewable expense candidate."
+          }
+        ],
+        "required_prior_actions": [
+          {
+            "order": 2,
+            "kind": "typed_task_action",
+            "action": "confirm",
+            "intended_effect": "Authoritatively post exactly one expense and complete the active capture task."
+          }
+        ],
+        "required_resulting_state": [
+          "conversation is idle",
+          "most recent capability-associated identity is transactions.capture",
+          "exactly one expense from the prior capture has been posted",
+          "no active transaction draft exists"
+        ],
+        "target_generation_constraint": "Generate only the next user contribution. It should express repetition without restating the former expense fields, supply no transaction fields, and contain no account or category reference. Generation must not assume routing memory contains the prior draft."
+      }
+    },
+    {
+      "id": "T021",
+      "dimensions": {
+        "User Job": "expense",
+        "Intent Expression": "fragment",
+        "Current-turn Information Coverage": "none",
+        "Interpretive Determinacy": "clear",
+        "Context Dependence": "reference_only",
+        "Request Multiplicity": "single",
+        "Conversational Goal Transition": "repeat_goal",
+        "Reference Surface": "none"
+      },
+      "coverage_basis": "The most recent capability-associated identity is explicitly preserved through cancellation.",
+      "purpose": "Verify that cancellation preserves routing identity while still forbidding canceled draft/effect replay.",
+      "failure_surface": "The system could lose the prior capability identity after cancellation or restore the canceled transaction state.",
+      "nearest_related_tuple": "T020",
+      "material_difference": "Exercises the explicit identity-preservation-through-cancellation guarantee instead of repetition after successful completion.",
+      "sequence_context": {
+        "required": true,
+        "prior_user_messages": [
+          {
+            "order": 1,
+            "content": "Record an expense of 20 from Main account for Groceries.",
+            "intended_effect": "Start transactions.capture and create a complete reviewable expense candidate."
+          },
+          {
+            "order": 2,
+            "content": "cancel",
+            "intended_effect": "Invoke the deterministic whole-message cancel control and cancel the active transaction capture."
+          }
+        ],
+        "required_prior_actions": [],
+        "required_resulting_state": [
+          "conversation is idle",
+          "most recent capability-associated identity is still transactions.capture",
+          "the canceled draft is no longer active",
+          "the canceled expense was not posted"
+        ],
+        "target_generation_constraint": "Generate only the next user contribution. It should express repetition without restating transaction fields, supply no transaction fields, and contain no account or category reference. It may rely only on preserved capability identity, not canceled draft contents."
+      }
+    },
+    {
+      "id": "T022",
+      "dimensions": {
+        "User Job": "adjustment",
+        "Intent Expression": "job_explicit",
+        "Current-turn Information Coverage": "partial",
+        "Interpretive Determinacy": "clear",
+        "Reference Surface": "named_phrase",
+        "Context Dependence": "self_contained",
+        "Request Multiplicity": "single"
+      },
+      "coverage_basis": "Adjustment has distinct outcome semantics, so progressive collection should not be represented only through transfer.",
+      "purpose": "Exercise a clear adjustment request missing required adjustment information.",
+      "failure_surface": "The system could guess the missing target/value, misclassify the request, or fail to preserve the partial adjustment draft.",
+      "nearest_related_tuple": "T005",
+      "material_difference": "Adds incomplete-information behavior to the adjustment job.",
+      "sequence_context": null
+    }
+  ]
+}

@@ -1,0 +1,408 @@
+{
+  "schema_version": "1.0",
+  "name": "wallet_user_query_dimensions_v1_1",
+  "purpose": "Product-grounded dimensions for constructing representative user-query tuples for Wallet Assistant evaluation. These dimensions describe observable properties of user input or the relevant message sequence, not hidden application/runtime state.",
+  "dimensions": [
+    {
+      "id": "user_job",
+      "name": "User Job",
+      "definition": "The semantic Wallet job the user is asking the assistant to perform.",
+      "values": [
+        {
+          "value": "wallet_state",
+          "definition": "Ask for the current wallet/account balance state."
+        },
+        {
+          "value": "expense",
+          "definition": "Record outgoing spending."
+        },
+        {
+          "value": "income",
+          "definition": "Record incoming money."
+        },
+        {
+          "value": "transfer",
+          "definition": "Move money between two user-owned accounts."
+        },
+        {
+          "value": "adjustment",
+          "definition": "Correct or set an account balance through a balance adjustment."
+        }
+      ],
+      "applies_when": "All ordinary task-oriented user inputs.",
+      "why_it_matters": "This is the primary semantic distinction for routing and transaction interpretation. Different jobs require different transaction structures and assistant behavior.",
+      "examples": [
+        {
+          "query": "Show my current balances.",
+          "value": "wallet_state"
+        },
+        {
+          "query": "I spent ARS 4,500 on groceries.",
+          "value": "expense"
+        },
+        {
+          "query": "I received ARS 120,000 salary.",
+          "value": "income"
+        },
+        {
+          "query": "Move ARS 10,000 from Main to Cash.",
+          "value": "transfer"
+        },
+        {
+          "query": "Set Cash balance to ARS 25,000.",
+          "value": "adjustment"
+        }
+      ]
+    },
+    {
+      "id": "intent_expression",
+      "name": "Intent Expression",
+      "definition": "How the current user message linguistically communicates the intended job, independent of which job it is.",
+      "values": [
+        {
+          "value": "job_explicit",
+          "definition": "The user explicitly names the operation or job."
+        },
+        {
+          "value": "event_or_action",
+          "definition": "The user describes what happened or the money movement without naming the operation."
+        },
+        {
+          "value": "outcome_or_question",
+          "definition": "The user asks for a result or describes the desired end state."
+        },
+        {
+          "value": "fragment",
+          "definition": "The user supplies an elliptical or short contribution rather than a complete request."
+        }
+      ],
+      "applies_when": "All ordinary user messages.",
+      "why_it_matters": "Wallet must infer equivalent semantics from direct commands, event descriptions, questions, desired outcomes, and conversational fragments.",
+      "examples": [
+        {
+          "query": "Record an expense of ARS 4,500.",
+          "value": "job_explicit"
+        },
+        {
+          "query": "I paid ARS 4,500 for groceries.",
+          "value": "event_or_action"
+        },
+        {
+          "query": "How much money do I have right now?",
+          "value": "outcome_or_question"
+        },
+        {
+          "query": "Cash.",
+          "value": "fragment"
+        }
+      ]
+    },
+    {
+      "id": "current_turn_information_coverage",
+      "name": "Current-turn Information Coverage",
+      "definition": "How much job-specific transaction information is explicitly supplied by the current user contribution. This measures the current message only, not information already stored in the conversation's transaction draft.",
+      "values": [
+        {
+          "value": "full",
+          "definition": "The current contribution explicitly supplies the information needed for the transaction candidate, subject to normal validation."
+        },
+        {
+          "value": "partial",
+          "definition": "The current contribution supplies a meaningful subset of the transaction information but leaves one or more needed fields unspecified."
+        },
+        {
+          "value": "fragment",
+          "definition": "The current contribution supplies only a narrow answer, correction, or field value."
+        },
+        {
+          "value": "none",
+          "definition": "The current contribution supplies no transaction fields; it communicates only conversational intent such as repetition."
+        }
+      ],
+      "applies_when": "Transaction-capture jobs when a specific transaction job is semantically identified. If User Job is intent-ambiguous across candidate transaction jobs, this dimension may be omitted unless coverage is deliberately defined across every candidate job.",
+      "why_it_matters": "This exercises progressive information collection and distinguishes complete requests, partial requests, field-level fragments, and conversational contributions that supply no transaction fields at all.",
+      "examples": [
+        {
+          "query": "Move ARS 10,000 from Main to Cash.",
+          "value": "full"
+        },
+        {
+          "query": "Move ARS 10,000 from Main.",
+          "value": "partial"
+        },
+        {
+          "context": "Assistant previously asked which account was used.",
+          "query": "Cash.",
+          "value": "fragment"
+        },
+        {
+          "context": "A previous expense has completed and the conversation is idle.",
+          "query": "One more time.",
+          "value": "none"
+        }
+      ]
+    },
+    {
+      "id": "interpretive_determinacy",
+      "name": "Interpretive Determinacy",
+      "definition": "Whether the user input yields one coherent interpretation, and when it does not, what kind of unresolved or resolved competing interpretation is present.",
+      "values": [
+        {
+          "value": "clear",
+          "definition": "The input supports one coherent interpretation."
+        },
+        {
+          "value": "resolved_correction",
+          "definition": "The user explicitly replaces an earlier value or statement with a clear final value."
+        },
+        {
+          "value": "intent_ambiguous",
+          "definition": "The intended Wallet job itself has more than one plausible interpretation."
+        },
+        {
+          "value": "field_ambiguous",
+          "definition": "The job is clear but one or more transaction fields or references have multiple plausible values."
+        },
+        {
+          "value": "contradictory",
+          "definition": "The user provides incompatible assertions without indicating which one should win."
+        }
+      ],
+      "applies_when": "All ordinary user messages.",
+      "why_it_matters": "The assistant must distinguish valid corrections from ambiguity or contradiction and ask for clarification rather than silently choosing an interpretation.",
+      "examples": [
+        {
+          "query": "I spent ARS 4,500 from Cash.",
+          "value": "clear"
+        },
+        {
+          "query": "It was 4,500—actually 5,400.",
+          "value": "resolved_correction"
+        },
+        {
+          "query": "I moved ARS 10,000 out of Cash.",
+          "value": "intent_ambiguous"
+        },
+        {
+          "query": "It was from Main or Cash, I'm not sure.",
+          "value": "field_ambiguous"
+        },
+        {
+          "query": "It was definitely 4,500 and definitely 5,400.",
+          "value": "contradictory"
+        }
+      ]
+    },
+    {
+      "id": "reference_surface",
+      "name": "Reference Surface",
+      "definition": "The observable textual form used to refer to Wallet domain entities such as accounts or categories, without judging whether the reference actually resolves against current data.",
+      "values": [
+        {
+          "value": "none",
+          "definition": "The message contains no account/category reference."
+        },
+        {
+          "value": "named_phrase",
+          "definition": "The user uses a normal explicit account/category name or phrase."
+        },
+        {
+          "value": "shorthand",
+          "definition": "The user uses an abbreviation, shortened name, or alias-like form."
+        },
+        {
+          "value": "noisy",
+          "definition": "The reference contains a typo, misspelling, or similarly noisy surface form."
+        },
+        {
+          "value": "mixed",
+          "definition": "The same message contains references using more than one surface type."
+        }
+      ],
+      "applies_when": "Any message; use 'none' when no domain reference is present.",
+      "why_it_matters": "Transaction interpretation is expected to normalize aliases and typos when selecting registered account/category references.",
+      "examples": [
+        {
+          "query": "I spent ARS 4,500.",
+          "value": "none"
+        },
+        {
+          "query": "I spent ARS 4,500 from Main account.",
+          "value": "named_phrase"
+        },
+        {
+          "query": "I spent ARS 4,500 from MP.",
+          "value": "shorthand"
+        },
+        {
+          "query": "I spent ARS 4,500 from Mrcdo Pgo.",
+          "value": "noisy"
+        },
+        {
+          "query": "Move 10k frm Mn Acct to Cash.",
+          "value": "mixed"
+        }
+      ]
+    },
+    {
+      "id": "context_dependence",
+      "name": "Context Dependence",
+      "definition": "How much the meaning of the current user message depends on previous conversation turns.",
+      "values": [
+        {
+          "value": "self_contained",
+          "definition": "The message can be interpreted without previous conversational context."
+        },
+        {
+          "value": "context_linked",
+          "definition": "The message is mostly interpretable but contains references such as 'that', 'same', or a correction whose target comes from prior turns."
+        },
+        {
+          "value": "reference_only",
+          "definition": "The message is primarily meaningful only by resolving it against prior conversational context."
+        }
+      ],
+      "applies_when": "All messages or message sequences.",
+      "why_it_matters": "This exercises transaction-draft continuity and bounded routing memory for follow-up turns.",
+      "examples": [
+        {
+          "query": "I spent ARS 4,500 from Cash.",
+          "value": "self_contained"
+        },
+        {
+          "context": "The prior amount was ARS 4,500.",
+          "query": "Make that 5,400.",
+          "value": "context_linked"
+        },
+        {
+          "context": "The assistant asked which account was used.",
+          "query": "Cash.",
+          "value": "reference_only"
+        }
+      ]
+    },
+    {
+      "id": "conversational_goal_transition",
+      "name": "Conversational Goal Transition",
+      "definition": "The relationship between the current user's intended goal and the preceding conversational goal.",
+      "values": [
+        {
+          "value": "new_goal",
+          "definition": "The current message begins a distinct goal when no prior goal needs to be continued."
+        },
+        {
+          "value": "continue_goal",
+          "definition": "The current message advances, completes, or corrects the same goal."
+        },
+        {
+          "value": "repeat_goal",
+          "definition": "The current message asks to perform the preceding kind of goal again."
+        },
+        {
+          "value": "change_goal",
+          "definition": "The current message attempts to move from the preceding goal to a different Wallet job."
+        }
+      ],
+      "applies_when": "Conversational sequences where a preceding goal is available. For standalone-query datasets, this dimension may be omitted rather than forcing a value.",
+      "why_it_matters": "Wallet preserves task ownership while transaction capture is active and also supports reference-only repeat routing. Continuing, repeating, and changing goals therefore exercise different conversational behavior.",
+      "examples": [
+        {
+          "context": "No relevant prior Wallet goal.",
+          "query": "I spent ARS 4,500 on lunch.",
+          "value": "new_goal"
+        },
+        {
+          "context": "An expense capture is active.",
+          "query": "It was from Cash.",
+          "value": "continue_goal"
+        },
+        {
+          "context": "A previous transfer has completed.",
+          "query": "One more time.",
+          "value": "repeat_goal"
+        },
+        {
+          "context": "An expense capture is active.",
+          "query": "Show my balances instead.",
+          "value": "change_goal"
+        }
+      ]
+    },
+    {
+      "id": "request_multiplicity",
+      "name": "Request Multiplicity",
+      "definition": "Whether the current message asks for one operation or combines multiple operations.",
+      "values": [
+        {
+          "value": "single",
+          "definition": "The message asks for one operation."
+        },
+        {
+          "value": "multiple_same_job",
+          "definition": "The message asks for multiple operations of the same Wallet job type."
+        },
+        {
+          "value": "multiple_cross_job",
+          "definition": "The message combines operations belonging to different Wallet jobs."
+        }
+      ],
+      "applies_when": "All task-oriented user messages.",
+      "why_it_matters": "Wallet handles one request/task at a time. Compound requests can expose silent dropping, incorrect merging, or routing failures.",
+      "examples": [
+        {
+          "query": "Record lunch for ARS 4,500.",
+          "value": "single"
+        },
+        {
+          "query": "Record lunch for ARS 4,500 and taxi for ARS 3,000.",
+          "value": "multiple_same_job"
+        },
+        {
+          "query": "Record lunch for ARS 4,500 and show my balances.",
+          "value": "multiple_cross_job"
+        }
+      ]
+    }
+  ],
+  "query_details_to_vary": [
+    "absolute versus relative dates",
+    "currency code, symbol, or implicit currency wording",
+    "numeric formatting and separators",
+    "merchant or reason wording",
+    "specific account names",
+    "specific category names and category depth",
+    "message length",
+    "casing and punctuation",
+    "incidental non-reference typos"
+  ],
+  "excluded_from_query_dimensions": [
+    {
+      "property": "entity availability or existence",
+      "reason": "Depends on Wallet/catalog state and should be modeled as an evaluation fixture."
+    },
+    {
+      "property": "archived versus active referenced account",
+      "reason": "Depends on hidden/application state and should be modeled as an evaluation fixture."
+    },
+    {
+      "property": "account-currency compatibility",
+      "reason": "Depends on selected entity state and should be modeled as an execution fixture."
+    },
+    {
+      "property": "tool/model/backend availability",
+      "reason": "Runtime condition, not an observable property of the user query."
+    },
+    {
+      "property": "exact deterministic control parsing",
+      "reason": "Whole-message help/cancel/restart controls should have a separate deterministic test suite rather than being mixed into AI user-query coverage."
+    }
+  ],
+  "open_product_questions": [
+    "Which exact capture fields/defaults define 'full' versus 'partial' for each transaction job?",
+    "What should happen when one message contains multiple transactions of the same type?",
+    "What should the assistant do with unsupported or genuinely out-of-scope idle requests?",
+    "Should wallet-state queries support account-scoped questions or always return the full active-account snapshot?",
+    "Which textual control synonyms are authoritative if the product spec and proposed help-page behavior differ?"
+  ],
+  "dimension_set_version": "v1.1"
+}

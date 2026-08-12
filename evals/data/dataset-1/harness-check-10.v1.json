@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "id": "harness-check-10",
+  "description": "A stable 10-case cohort for checking harness lifecycle, isolation, execution forms, artifact capture, and trace joins; it is not a Wallet quality or production-readiness sample.",
+  "cases": [
+    "T001/E01",
+    "T002/E01",
+    "T006/E01",
+    "T007/E01",
+    "T008/E01",
+    "T010/E01",
+    "T011/E01",
+    "T020/E01",
+    "T021/E01",
+    "T022/E01"
+  ]
+}

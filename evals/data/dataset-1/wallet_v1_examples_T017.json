@@ -1,0 +1,166 @@
+{
+  "status": "ok",
+  "tuple_id": "T017",
+  "examples": [
+    {
+      "id": "E01",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Show my current wallet balances, and record an expense of ARS 18,400 from Cash Wallet today under Food > Groceries."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E02",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Record a USD 24.50 expense from Main Debit Card yesterday in Food > Dining, then display my current wallet state."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E03",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I need two things: retrieve my current account balances and log an expense of EUR 42.90 from Travel Wallet for August 5, 2026 in Transport > Trains."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E04",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Please capture an expense of ARS 9,750 on August 4 against Mercado Pago, categorized as Health > Pharmacy, and show my current wallet balances."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E05",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Give me the current wallet-state summary; also add a GBP 63.20 expense dated August 3, 2026 to Everyday Account under Shopping > Clothing."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E06",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "List all my current account balances and record an expense for CAD 97.50 dated 2026-08-02 from Student Checking in Education > Books."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E07",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Along with showing my current wallet balances, record an expense of MXN 380.00 from Personal Wallet on the first of August under Personal Care > Haircuts."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E08",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Log a JPY 4,280 expense from Blue Card last Friday in Household > Cleaning, and fetch my current wallet state."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E09",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Can you show my current balances and create an expense of BRL 210.00 dated July 30, 2026 from Weekend Wallet with the spending category Transport > Fuel?"
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E10",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Pull up my current wallet state, plus record an expense of CHF 11.80 on 29 July 2026 from Main Bank Account under Food > Coffee."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E11",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Record an AUD 118.30 expense dated 28/07/2026 from Family Checking in Pets > Veterinary, and at the same time show my current wallet balances."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E12",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Display the current balances across my wallet and enter one expense: USD 135 from Household Card on July 27, 2026, spending category Health > Dental."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E13",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "First show my current account balances; then capture an expense of EUR 9.99 for July 26, 2026 from Wise Wallet under Entertainment > Music."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E14",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Add an expense of ARS 42,900 dated July 25, 2026 from Reserve Account to Bills > Internet, and return my current wallet-state balances too."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E15",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Please do both: show the current state of my wallet and record a NZD 56.40 expense on July 24, 2026 from Daily Wallet, categorized under Home > Supplies."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E16",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Get my current wallet balances while also logging an expense of USD 245.99 from PayPal Wallet on July 23, 2026 in Home > Furniture."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E17",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "I'd like my current wallet state displayed, and I want you to record an expense of EUR 129.00 dated July 22, 2026 from Travel Fund under Travel > Hotels."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E18",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Enter an expense for SEK 315.00 on July 21, 2026 from Everyday Debit Card in Household > Utilities; separately, show my current wallet balances."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E19",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Show me the current balance snapshot for my wallet, and book an expense of USD 14.00 dated July 20, 2026 from USD Cash under Entertainment > Movies."
+      ],
+      "focal_message_index": 0
+    },
+    {
+      "id": "E20",
+      "interaction_form": "standalone",
+      "user_messages": [
+        "Capture an expense of COP 84,000 from Spending Card on July 19, 2026 in Food > Takeout, as well as retrieve my current wallet balances."
+      ],
+      "focal_message_index": 0
+    }
+  ]
+}
