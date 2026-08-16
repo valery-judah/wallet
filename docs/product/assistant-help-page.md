@@ -5,11 +5,15 @@ Status: proposed
 ## Purpose
 
 Add a small, user-facing Help page for the Wallet Assistant. The page should explain what the
+
 assistant can do, show useful example requests, document the exact conversation controls, and
+
 set expectations for an active transaction workflow.
 
 This is product help, not an API or architecture reference. It should use the same language as
+
 the chat UI and avoid capability IDs, route-decision names, request IDs, versions, prompts, and
+
 other implementation details.
 
 ## Product Decision
@@ -26,6 +30,7 @@ Help should be a static page at `/assistant/help`, not another conversation turn
   unsent draft.
 
 The distinction is intentional: the page teaches the complete interaction model, while the
+
 chat command provides a brief answer without leaving the conversation.
 
 ## Information Architecture
@@ -44,6 +49,7 @@ The primary action and back link both return to `/assistant` without resetting t
 ### 2. What You Can Ask
 
 Show five compact example cards. Each card names the supported job and includes one realistic
+
 message.
 
 | Job | Example message |
@@ -55,13 +61,17 @@ message.
 | Adjust a balance | `Set Cash balance to ARS 25,000` |
 
 Examples are instructional, not quick-reply buttons in the first version. This avoids implying
+
 that the example will be sent immediately or that its account and category names exist in the
+
 user's wallet.
 
 ### 3. Conversation Controls
 
 Explain that a control must be the entire message. Matching is case-insensitive, ignores extra
+
 whitespace, and permits trailing `.`, `?`, or `!` punctuation. For example, `Cancel!` is a
+
 control, while `cancel my membership` is an ordinary message.
 
 | Control | Accepted messages | When to use it | Result |
@@ -90,6 +100,7 @@ Include this important ownership rule:
 > balances or begin different work, cancel the current task first.
 
 Do not suggest that typing `yes` is equivalent to the guarded **Confirm** action. Confirmation
+
 is represented by the action offered beneath the latest assistant response.
 
 ### 5. Good to Know
@@ -103,6 +114,7 @@ Keep operational guidance short and user-oriented:
 - Balance requests are read-only.
 
 Do not expose Ollama configuration on this page. If the language service is unavailable, the
+
 chat's existing error and retry experience is the appropriate explanation.
 
 ## Layout and Responsive Behavior
@@ -123,21 +135,29 @@ Mobile:
 - Do not use a dense desktop-style table when it would require side-to-side scrolling.
 
 The page should reuse existing typography, borders, cards, buttons, muted text, and primary
+
 color. It does not need illustrations, screenshots, search, tabs, accordions, or a table of
+
 contents.
 
 ## Navigation and Chat State
 
 The existing Assistant Help button currently submits a typed Help control. Replace that button
+
 behavior with navigation to `/assistant/help`.
 
 Because the Assistant route unmounts during navigation, the stored Assistant session should
+
 also retain the unsent composer draft. Evolve the versioned session shape safely so an existing
+
 version-1 session restores with an empty draft rather than being discarded. Returning from Help
+
 must not create a user message, increment the conversation version, invoke the message router,
+
 or change the active task.
 
 Textual Help remains a normal deterministic control submission. This preserves non-UI clients
+
 and gives chat users a concise answer when they type the command directly.
 
 ## Accessibility and Copy

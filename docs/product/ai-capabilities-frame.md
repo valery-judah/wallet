@@ -3,29 +3,43 @@
 Status: working product frame
 
 This document defines where AI can help Wallet users, what value it must create, and the trust and
+
 control conditions it must respect. It is subordinate to the [Wallet Product Frame](wallet-frame.md):
+
 AI supports the same product jobs and must not create a different financial truth.
 
 This frame sits above the current behavior in [the MVP specification](spec.md) and the technical
-contracts in `docs/evergreen/`. Shared assistant-facing and technical terms are defined in
-[Wallet AI Concepts](ai-concepts.md). This frame is not a model, prompt, conversation, or
-architecture specification.
+
+contracts in `docs/evergreen/`. Financial meanings are defined in
+
+[Wallet Concepts](concepts.md), while downstream Assistant terms are defined in
+
+[Wallet Assistant Concepts](assistant-concepts.md). This frame is not a model, prompt,
+
+conversation, or architecture specification.
 
 ## Frame at a Glance
 
 **AI capability promise:** Let a person express a Wallet need in their own words and receive a
+
 grounded answer or reviewable action with less translation effort, without giving up control of
+
 their financial record.
 
 **Role of AI:** AI interprets variable human language and helps shape it into a bounded Wallet
+
 task. Wallet data and deterministic domain rules remain authoritative for facts, validity, and
+
 financial effects.
 
 **Product thesis:** AI is valuable where the user's intent is easy to say but tedious to translate
+
 into product fields, references, and steps. It is not valuable merely because an interaction can
+
 be conversational. A direct control remains preferable when it is clearer or faster.
 
 **Baseline:** Manual Wallet use is a complete mode. AI must earn its place by reducing effort while
+
 preserving or improving correctness, explainability, and control.
 
 ## Primary AI-Enabled Job to Be Done
@@ -45,7 +59,9 @@ This job has three parts:
   makes uncertainty and consequences visible, and completes only the intended job.
 
 The functional job is to reduce the work between an expressed intent and a valid Wallet outcome.
+
 The desired emotional outcome is to feel assisted and in control, not impressed by fluent behavior
+
 or uncertain about what the system understood.
 
 ### Forces around the job to validate
@@ -64,13 +80,13 @@ These are hypotheses for discovery, not findings from user research:
   apps directly when conversation takes too many turns or feels less predictable.
 
 ## Supporting Jobs
-
 ### Express intent without learning the schema
 
 > When I know what happened in everyday terms, help me state it without translating it into Wallet
 > fields first, so capture does not interrupt the activity I am trying to remember.
 
 The user may provide details in any order, use shorthand, make a typo, or omit information that is
+
 not yet known.
 
 ### Connect my words to my Wallet
@@ -79,6 +95,7 @@ not yet known.
 > reference to the right current Wallet entity, so the result reflects my actual setup.
 
 Grounding is part of the product value. A linguistically plausible response that is disconnected
+
 from the user's Wallet has not completed the job.
 
 ### Resolve only the uncertainty that matters
@@ -87,6 +104,7 @@ from the user's Wallet has not completed the job.
 > question, so I can continue without starting over or filling unnecessary fields.
 
 The product should retain valid contributions, expose meaningful ambiguity, and avoid asking for
+
 information that does not affect the outcome.
 
 ### Review the understood action
@@ -95,6 +113,7 @@ information that does not affect the outcome.
 > can correct or reject it before it becomes part of my history.
 
 Natural-language agreement is not sufficient authority for a write. Confirmation is a distinct,
+
 guarded product action.
 
 ### Ask for a grounded Wallet answer
@@ -129,6 +148,7 @@ An answer must distinguish recorded facts from limitations or unsupported interp
 ## Capability Model
 
 An AI capability is a bounded way to help complete a Wallet job. It is not a general permission for
+
 the model to inspect state or take action. Each capability should define:
 
 1. the user situation and intended outcome;
@@ -159,7 +179,9 @@ The current MVP tests two narrow uses of this model:
 | Orient to current balances | Current Wallet state | Recognize the request as a supported Wallet-state job | Wallet code reads posted entries and returns active-account balances separated by currency |
 
 These capabilities are evidence about the broader product thesis, not proof that a general
+
 financial assistant is desirable. Their value should be compared with the equivalent direct Wallet
+
 workflow.
 
 ### Authority levels
@@ -190,60 +212,72 @@ AI capabilities are doing their job when the user can:
 - choose a manual workflow when it is more useful or when AI is unavailable.
 
 The strongest AI outcome is not conversational fluency or the number of messages handled. It is a
+
 supported Wallet job completed with less user effort and no loss of financial trust.
 
 ## Product Principles
-
 ### Use AI for interpretation, not authority
 
 AI may help determine what the user means. It does not define Wallet facts, domain validity, or the
+
 permission to change the ledger.
 
 ### Ground before answering or proposing
 
 A capability should operate on explicitly supplied, current Wallet context. It should not invent
+
 accounts, categories, balances, history, conversions, or available actions.
 
 ### Match control to consequence
 
 Read-only answers may be returned directly. A proposed financial write must remain reviewable and
+
 ledger-neutral until the user takes the defined confirmation action.
 
 ### Treat ambiguity as product state
 
 When more than one materially different result is plausible, preserve what is known and expose the
+
 choice. Do not hide uncertainty behind a fluent response or an arbitrary selection.
 
 ### Make correction cheaper than starting over
 
 Users should be able to amend one part of an in-progress task while retaining the rest. Cancel,
+
 restart, stale state, and failure paths are part of the capability, not edge behavior.
 
 ### Keep the interaction honest
 
 The product should distinguish a recorded fact, a proposed interpretation, a missing detail, and an
+
 unsupported request. Friendly language must not imply knowledge, memory, or certainty the system
+
 does not have.
 
 ### Minimize exposed context
 
 Give each model call only the user contribution and Wallet context needed for its bounded language
+
 task. More context is not automatically better when it increases privacy risk or unintended
+
 inference.
 
 ### Preserve channel equivalence
 
 AI may reduce interaction effort, but the valid domain result must match an equivalent manual or API
+
 operation. Conversation does not create special ledger semantics.
 
 ### Remain useful without AI
 
 Model unavailability must not corrupt Wallet state or turn manual use into a degraded product. A
+
 capability may fail safely while the core Wallet remains usable.
 
 ## Evaluation Anchors
 
 Evaluate a capability from the user job through the observable Wallet outcome. Do not evaluate only
+
 the wording of a single model response.
 
 Every scenario should identify:
@@ -276,12 +310,17 @@ Every scenario should identify:
 - **Channel consistency:** Does the result have the same meaning as the equivalent manual operation?
 
 Financial correctness, grounding, and absence of unintended effects are gates. Fluency, tone, and
+
 interaction speed cannot compensate for failure at those gates. After they pass, prioritize job
+
 completion, control, recoverability, and reduced effort.
 
 Useful evaluation families include complete requests, incomplete requests, corrections,
+
 ambiguities, unavailable or similarly named references, currency conflicts, state changes before
+
 confirmation, cancellation and restart, repeated inputs, model or transport failure, and
+
 unsupported requests.
 
 ## Product Boundaries
@@ -298,6 +337,7 @@ The current AI layer is not:
 - a way to bypass review, confirmation, currency, lifecycle, or ledger rules.
 
 These boundaries may be reconsidered as separate product decisions. They should not expand merely
+
 because a model can produce relevant-sounding language.
 
 ## Assumptions to Validate
@@ -332,6 +372,7 @@ The following claims are working hypotheses:
 - What user evidence would justify proactive, personalized, or advisory behavior in the future?
 
 Answers should update this frame before becoming capability requirements, evaluation datasets, or
+
 implementation contracts.
 
 ## Using This Frame
@@ -343,10 +384,12 @@ Use the framing chain in this order:
 2. **AI Capabilities Frame:** defines where AI may reduce effort and the trust conditions it must
    preserve.
 3. **Product specification:** selects the current capabilities and their supported behavior.
-4. **Wallet and AI concepts:** define shared financial and assistant-facing meanings.
+4. **Wallet and Assistant concepts:** define core financial meanings and the downstream
+   supporting-context language.
 5. **Technical contracts:** define authoritative control and execution boundaries.
 6. **Capability designs and evaluations:** specify an interaction and test the complete outcome.
 7. **Implementation:** realizes the capability within those boundaries.
 
 Implementation constraints may narrow a capability, but model behavior alone should not redefine
+
 the user job or expand product authority.

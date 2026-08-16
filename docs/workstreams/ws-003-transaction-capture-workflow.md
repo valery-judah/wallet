@@ -1,12 +1,15 @@
 # Transaction Capture Workflow
 
 Status: historical snapshot
+
 Superseded by: [Transaction Interpretation Contract](../evergreen/transaction-interpretation-contract.md)
 
 This document records the earlier capture-session design. Names, endpoints, processing stages,
+
 and implementation details below are not current operational guidance.
 
 The transaction-capture workflow progressively fills the fields required to
+
 record one transaction.
 
 Its objective is:
@@ -14,7 +17,6 @@ Its objective is:
 > Build a complete transaction candidate from the conversation, ask for any
 > required fields that are still missing, and record the transaction once the
 > candidate is complete.
-
 
 Related workstream material:
 
@@ -31,10 +33,13 @@ The first version supports the four MVP transaction types:
 - `adjustment`
 
 The workflow tracks only the current value of each field. It does not track
+
 confidence, provenance, previous values, or whether a value was explicit,
+
 inferred, defaulted, or corrected.
 
 Confirmation policy, transaction editing, voiding, refunds, multi-currency
+
 transfers, and split-expense capture are outside this first workflow design.
 
 ## Capture Session
@@ -51,14 +56,17 @@ CaptureSession
 `candidate` contains the transaction information collected so far.
 
 `remaining_fields` is computed from the candidate. It is not maintained as an
+
 independent source of truth.
 
 `requested_field` identifies the field the workflow most recently asked the
+
 user to provide. It helps interpret short answers such as `35` or `Cash`.
 
 ## Candidate Fields
 
 The candidate uses user-facing transaction fields rather than signed ledger
+
 postings:
 
 ```text
@@ -80,11 +88,15 @@ TransactionCandidate
 Only the fields relevant to the selected transaction type are used.
 
 Money is stored in minor units. `amount_minor` is a positive magnitude for
+
 expenses, income, and transfers. `balance_change_minor` is signed: a positive
+
 value increases an account balance and a negative value decreases it.
 
 Currency is not collected as a separate candidate field. It is obtained from
+
 the selected account. A transfer is allowed only when its source and destination
+
 accounts use the same currency.
 
 ## Required Fields
@@ -99,10 +111,13 @@ The transaction type determines which fields must be present before recording.
 | `adjustment` | `account_id`, `balance_change_minor`, `occurred_on` |
 
 `type` is required for every candidate because it selects the applicable field
+
 set.
 
 The workflow initializes `occurred_on` to today's date. A date stated by the
+
 user replaces that value. As a result, the workflow normally does not need to
+
 ask for a date.
 
 The following fields are optional for every type:
@@ -114,6 +129,7 @@ The following fields are optional for every type:
 ## Computing Remaining Fields
 
 The workflow selects the required field set for the current transaction type
+
 and removes every field already populated on the candidate.
 
 ```text
@@ -125,6 +141,7 @@ else:
 ```
 
 The result uses a stable order so the workflow knows which question to ask
+
 next:
 
 ```text
@@ -156,9 +173,11 @@ Compute remaining_fields
 ```
 
 Each message may fill or replace one or more candidate fields. After every
+
 change, `remaining_fields` is recomputed from the current candidate.
 
 When `requested_field` is set, a short answer is interpreted as the value of
+
 that field:
 
 ```text
@@ -168,10 +187,10 @@ result: candidate.amount_minor = 3500
 ```
 
 If the user supplies other transaction information in the same answer, the
+
 workflow applies that information too before recomputing the remaining fields.
 
 ## Type-Specific Construction
-
 ### Expense
 
 An expense requires:
@@ -231,6 +250,7 @@ destination account posting: +amount_minor
 ```
 
 The source and destination accounts must be different, active accounts with the
+
 same currency.
 
 ### Balance Adjustment
@@ -250,16 +270,21 @@ account posting: balance_change_minor
 ```
 
 The transaction service creates the balancing system-equity posting. The
+
 posting currency comes from `account_id`.
 
 This first design captures a balance change, such as `increase Cash by $50`.
+
 Capturing a target balance, such as `set Cash to $500`, requires reading the
+
 current balance and converting the target into a balance change; that can be
+
 added as a later input form without changing the adjustment transaction model.
 
 ## Validation Before Recording
 
 A candidate with no remaining fields is complete, but its values must still be
+
 valid:
 
 - monetary amounts must be non-zero and use the sign rules above;
@@ -270,10 +295,10 @@ valid:
 - the date must be accepted by the transaction service.
 
 If validation identifies an unusable field, the workflow clears that field,
+
 recomputes `remaining_fields`, and asks for it again.
 
 ## Examples
-
 ### Expense with one missing field
 
 ```text
@@ -321,6 +346,7 @@ Result: record the transfer
 ## Completion
 
 The workflow finishes when the transaction service returns the created
+
 transaction. It responds with a compact summary and closes the capture session.
 
 ```text

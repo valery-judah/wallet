@@ -1,8 +1,10 @@
 # Wallet MVP Spec
 
 Product intent, the primary job, user needs, desired outcomes, and evaluation anchors are defined
+
 in [Wallet Product Frame](wallet-frame.md). This specification defines the current MVP scope and
-supported behavior.
+
+supported behavior. Core financial meanings are defined in [Wallet Concepts](concepts.md).
 
 ## Product Scope
 
@@ -18,6 +20,7 @@ For the current MVP, the product is centered on **manual accounts backed by a tr
 - Users can manage separate spending and income category trees.
 
 The current account balance remains visible in account read responses, but it is
+
 derived from ledger postings rather than stored as the source of truth.
 
 ## Primary Concept
@@ -65,6 +68,7 @@ An account currently supports these lifecycle actions:
 - Archive account
 
 Archived accounts remain visible for history, but they do not accept new
+
 transactions.
 
 ## Balance Model
@@ -124,24 +128,33 @@ All accounts are manual by default in MVP.
 
 Reserved future concepts:
 
-- Connected account
-- Bank sync
-- Import pipelines
-- Pending and void transaction workflows
+- **Connected account:** an account whose records are synchronized from a financial provider.
+- **Bank sync:** ongoing retrieval of account and transaction records from a financial provider.
+- **Import pipeline:** ingestion of account or transaction records from an external source.
+- **Pending transaction:** a transaction represented before it becomes posted financial history.
+- **Void transaction:** a transaction explicitly invalidated through a supported lifecycle
+  operation.
 
 ## Conversational Control and Capabilities
 
 The product role, user needs, authority model, principles, and evaluation anchors for AI are
+
 defined in [Wallet AI Capabilities Frame](ai-capabilities-frame.md). Shared assistant and
-control-layer terminology is defined in [Wallet AI Concepts](ai-concepts.md). This section defines
-the current MVP behavior.
+
+control-layer terminology is defined in
+
+[Wallet Assistant Concepts](assistant-concepts.md). This section defines the current MVP behavior.
 
 The MVP exposes one process-local conversation control layer. A caller submits every input to
+
 `POST /api/v1/turns`. Omitting `conversation_id` creates and processes a conversation atomically;
+
 supplying the returned ID continues it. `GET /api/v1/conversations/{conversation_id}` reads the
+
 current projection. There is no public empty-conversation or workflow-start operation.
 
 A conversation has zero or one opaque active task. Capability implementations form an open
+
 extension point; the current runtime registry contains:
 
 - `transactions.capture`, which progressively collects and records one expense, income,
@@ -150,52 +163,87 @@ extension point; the current runtime registry contains:
   totals kept separate by currency.
 
 While a conversation is idle, an authoritative LLM message router assigns each ordinary
+
 natural-language message to one registered capability. It receives the complete validated
+
 message, the most recent committed capability-associated identity, and control-level routing
+
 profiles, but no raw transcript, capability-private state, or Wallet catalogs. This bounded
+
 routing memory supports reference-only follow-ups such as `one more time` without authorizing
+
 replay of prior messages, state, or domain effects. The identity is preserved through outcomes
+
 that are not capability-associated, including cancellation.
 
 While a task is active, every non-control message goes directly to its capability; the router is
+
 not called and capability switching is unavailable. Typed task actions and typed cancel/restart
+
 controls carry task and conversation-version guards; typed Help is unguarded. Exact whole-message
+
 `help`, `cancel`, and `restart` controls remain deterministic and bypass both routing and
+
 capability message handling. Textual controls are unguarded and act on the task current when the
+
 serialized turn is processed.
 
 Transaction capture sends every natural-language contribution through one schema-constrained
+
 interpreter. The model sees the current reviewable draft, pending interaction, current date, and
+
 safe account/category labels, and may normalize values or select registered references even when
+
 the user's wording contains typos or aliases. Per-call opaque keys keep internal entity IDs out of
+
 the prompt. Valid partial changes enter the draft; ambiguous, unresolved, unavailable, and
+
 currency-conflicting fields produce corrective interactions.
 
 The interpreter never executes transactions. Deterministic code validates selected references,
+
 account currencies, amounts, transaction-type rules, and transfer compatibility. A complete
+
 candidate enters `awaiting_confirmation` without changing the ledger. Only a guarded typed
+
 `confirm` task action performs authoritative revalidation and creates exactly one posted
+
 transaction. Turn replay and Wallet operation IDs prevent duplicate execution.
 
 Current wallet state is read-only. It derives balances from posted account entries, excludes
+
 archived accounts, returns its snapshot once in the structured view, and leaves the conversation
+
 idle after the turn. Ambiguous routing decisions preserve the current lifecycle state and ask
+
 for clarification.
 
 The web app exposes one lightweight Wallet Assistant at `/assistant`. It supports ordinary
+
 messages, capability action offers, and the help, cancel, and restart lifecycle controls. The
+
 browser keeps one transcript and its current conversation in tab-scoped session storage; there is
+
 no durable conversation list. Friendly capture and wallet-state summaries are projections of the
+
 public capability views, while optional details expose public outcome and version metadata.
 
 Conversations, global request replay records, and active-task state are process-local. They
+
 survive requests handled by the same backend process but not restarts or multiple workers.
+
 The UI discards an expired restored conversation and starts fresh after a backend restart.
+
 Every ordinary idle message requires the configured Ollama service for routing. A message routed
+
 to transaction capture then requires one interpretation call, and each later non-control capture
+
 message requires one interpretation call without re-routing. Current-wallet-state execution remains
+
 deterministic after routing. Exact controls, typed controls, and typed task actions require neither
+
 routing nor interpretation.
+
 Direct manual transaction creation through `/api/v1/transactions` remains immediate.
 
 ## Out of Scope

@@ -3,30 +3,43 @@
 Status: working product frame
 
 This document defines the user situation, desired progress, and product principles that sit above
+
 the current Wallet specification. It is intended to guide discovery, prioritization, scenario
+
 design, and evaluation. It does not replace the behavior defined in
+
 [the MVP specification](spec.md) or the vocabulary defined in [Wallet Concepts](concepts.md).
+
 Where AI is used to support these jobs, its role and trust conditions are defined in the
+
 [Wallet AI Capabilities Frame](ai-capabilities-frame.md).
 
 The frame is intentionally independent of interface. A web form, an API, an import flow, and a
+
 conversational assistant are different ways to help with the same product jobs. They should not
+
 create different financial truths.
 
 ## Frame at a Glance
 
 **Product promise:** Help a person know where their money is and keep that picture true as money
+
 moves.
 
 **Primary user context:** An individual manages money across several places, such as cash, bank
+
 accounts, cards, and digital wallets. Their financial picture is fragmented, may span currencies,
+
 and is easy to lose track of when records are incomplete.
 
 **Progress the product enables:** The user can build a faithful map of those places, record why
+
 balances changed, correct the record without erasing history, and return later to a state they can
+
 understand and trust.
 
 The current MVP tests whether this value can be delivered with manual accounts and a transaction
+
 ledger before adding bank connections, imports, or richer financial planning.
 
 ## Primary Job to Be Done
@@ -45,7 +58,9 @@ This job has three parts:
   explainable over time.
 
 The functional job is to maintain an accurate personal money record. The desired emotional outcome
+
 is to feel oriented and in control rather than uncertain or behind. No social job is assumed in the
+
 current frame because shared or public financial use has not been established.
 
 ### Forces around the job to validate
@@ -61,13 +76,13 @@ These forces are hypotheses for discovery, not findings from user research:
   return to those habits if Wallet is slower or less trustworthy.
 
 ## Supporting Jobs
-
 ### Build my money map
 
 > When I start using Wallet or add a new place where money lives, help me represent it in a way I
 > recognize, so my financial picture has the right coverage and starting point.
 
 This includes naming an account, selecting its type and currency, setting its opening balance, and
+
 giving it recognizable presentation metadata.
 
 ### Keep the record current
@@ -76,6 +91,7 @@ giving it recognizable presentation metadata.
 > so the balances stay current and I do not need to recalculate them myself.
 
 Expenses, income, transfers, and balance adjustments are distinct events because they have
+
 different meanings even when their effect on one balance looks similar.
 
 ### Understand what changed
@@ -84,6 +100,7 @@ different meanings even when their effect on one balance looks similar.
 > current balance rather than merely accept a number.
 
 The transaction history and spending or income classification support this job. The ledger is a
+
 product trust mechanism, not only an implementation detail.
 
 ### Reconcile the record with reality
@@ -92,6 +109,7 @@ product trust mechanism, not only an implementation detail.
 > correction, so I can trust both the balance and its history.
 
 A balance adjustment is an explicit correction. It should not silently rewrite an opening balance
+
 or an earlier transaction.
 
 ### Retire an account without losing context
@@ -137,50 +155,60 @@ Wallet is doing its job when the user can:
 - return later without having to reconstruct the Wallet state from memory.
 
 The strongest product outcome is not the number of records created. It is whether the user can rely
+
 on Wallet as a faithful, understandable representation of their money.
 
 ## Product Principles
-
 ### Financial truth before convenience
 
 The product must not create a plausible but incorrect financial record. A blocked or corrective
+
 interaction is better than a silently wrong balance or classification.
 
 ### Preserve causes, not only totals
 
 A current balance is useful, but a balance whose causes are visible is more trustworthy and easier
+
 to correct. Transactions remain the source of balance changes.
 
 ### Use user concepts at the product boundary
 
 Users act on accounts, expenses, income, transfers, adjustments, and categories. Postings and
+
 system-equity accounts support those concepts internally and should not become required user
+
 knowledge.
 
 ### Make currency boundaries explicit
 
 Amounts in different currencies are not one total unless an exchange model exists. The product
+
 should preserve separate currency contexts rather than imply a conversion.
 
 ### Treat manual use as a complete mode
 
 Manual accounts are the current product, not broken connected accounts. Future automation should
+
 reduce maintenance effort without weakening control, explainability, or history.
 
 ### Keep channels consistent
 
 The same user intent should produce the same valid domain effect regardless of whether it enters
+
 through a form, API, import, or conversation. Channel-specific convenience must not change ledger
+
 meaning.
 
 ### Do not manufacture confidence
 
 The product should show recorded facts, state, and limitations. It should not label an account or a
+
 financial situation as healthy, safe, or advisable without a defined and supported basis.
 
 ## Evaluation Anchors
 
 Evaluations should begin with a user job and an observable outcome, not with the current screen,
+
 endpoint, or model behavior. Each evaluation scenario should identify:
 
 1. the user situation and intended job;
@@ -191,6 +219,7 @@ endpoint, or model behavior. Each evaluation scenario should identify:
 6. effects that must not occur.
 
 Cross-channel evaluations should use the same expected financial outcome even when the interaction
+
 steps differ.
 
 Useful evaluation dimensions derived from this frame are:
@@ -209,10 +238,13 @@ Useful evaluation dimensions derived from this frame are:
   financial health judgments?
 
 Financial correctness and absence of unintended effects are gates, not dimensions to trade against
+
 polish. After those gates pass, evaluation should prioritize job completion and state fidelity,
+
 then control and recoverability, then effort and presentation quality.
 
 These are product-level anchors. A later evaluation design can turn them into weighted dimensions,
+
 task suites, fixtures, and pass criteria for a particular surface.
 
 ## Product Boundaries
@@ -232,6 +264,7 @@ These boundaries prevent adjacent needs from silently redefining the primary job
 ## Assumptions to Validate
 
 The domain model is established in the current product base. The following product claims remain
+
 working hypotheses until supported by user evidence:
 
 - People with fragmented money locations experience enough uncertainty to maintain a separate
@@ -255,6 +288,7 @@ working hypotheses until supported by user evidence:
 - Which future automation reduces effort without reducing user understanding or control?
 
 Answers to these questions should update this frame before they are converted into implementation
+
 requirements or evaluation expectations.
 
 ## Using This Frame Upstream and Downstream
@@ -272,4 +306,5 @@ Use the documents in this order:
 7. **Implementation:** realizes the behavior and provides evidence about feasibility and gaps.
 
 Implementation can reveal that a frame or specification is incomplete, but current implementation
+
 behavior alone should not become product intent.

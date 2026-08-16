@@ -1,10 +1,13 @@
-# Transaction Capture Workflow — Use Cases
+# Transaction Capture Workflow -- Use Cases
 
 Status: historical snapshot
+
 Superseded by: [Wallet MVP Spec](../product/spec.md) and
+
 [Control Layer and Capability System Test Design](../evergreen/control-layer-testing.md)
 
 These use cases preserve the earlier capture-session requirements and vocabulary. They should be
+
 read as design history, not as the current HTTP, control, or interpretation contract.
 
 ## 1. Purpose
@@ -29,11 +32,8 @@ The use cases cover the four supported transaction types:
 * Transfer
 * Balance adjustment
 
----
-
 # Core Capture Use Cases
-
-## UC-01 — Capture a complete expense in one message
+## UC-01 -- Capture a complete expense in one message
 
 **Goal:** Record an expense without asking follow-up questions.
 
@@ -73,9 +73,7 @@ Dining category:  +4000
 
 The workflow returns a compact summary and closes the session.
 
----
-
-## UC-02 — Capture a complete income transaction
+## UC-02 -- Capture a complete income transaction
 
 **Goal:** Record income from a single message.
 
@@ -106,9 +104,7 @@ Salary category:  -250000
 
 The transaction is recorded without a follow-up question.
 
----
-
-## UC-03 — Capture a complete transfer
+## UC-03 -- Capture a complete transfer
 
 **Goal:** Record a transfer when all required information is supplied.
 
@@ -145,9 +141,7 @@ Savings account:  +50000
 
 The transaction is recorded.
 
----
-
-## UC-04 — Capture a balance adjustment
+## UC-04 -- Capture a balance adjustment
 
 **Goal:** Record a signed balance change.
 
@@ -184,11 +178,8 @@ The candidate contains:
 balance_change_minor: -2000
 ```
 
----
-
 # Progressive Capture Use Cases
-
-## UC-05 — Ask for the transaction type
+## UC-05 -- Ask for the transaction type
 
 **Goal:** Determine the applicable field set when the type cannot be inferred.
 
@@ -211,9 +202,7 @@ The workflow asks the user to identify the transaction type.
 
 After the user answers, the workflow recomputes `remaining_fields` using the selected type.
 
----
-
-## UC-06 — Ask for one missing expense field
+## UC-06 -- Ask for one missing expense field
 
 **When**
 
@@ -250,9 +239,7 @@ When the user answers:
 
 The workflow assigns `Cash` to `account_id`, recomputes the remaining fields, and records the expense.
 
----
-
-## UC-07 — Ask for multiple fields in stable order
+## UC-07 -- Ask for multiple fields in stable order
 
 **Goal:** Ensure missing fields are collected predictably.
 
@@ -272,7 +259,7 @@ account_id
 spending_category_id
 ```
 
-`occurred_on` is already populated with today’s date.
+`occurred_on` is already populated with today's date.
 
 The workflow asks for `amount_minor` first.
 
@@ -280,9 +267,7 @@ After each answer, it recomputes the missing fields and asks for the next field 
 
 The workflow must not maintain a separate mutable missing-field list that can diverge from the candidate.
 
----
-
-## UC-08 — Interpret a short answer using `requested_field`
+## UC-08 -- Interpret a short answer using `requested_field`
 
 **Given**
 
@@ -306,9 +291,7 @@ amount_minor: 3500
 
 It does not interpret `35` as a date, account, category, or another transaction field.
 
----
-
-## UC-09 — Apply additional information from a follow-up answer
+## UC-09 -- Apply additional information from a follow-up answer
 
 **Given**
 
@@ -334,9 +317,7 @@ The workflow recomputes `remaining_fields` after applying all extracted informat
 
 It does not stop after assigning the requested amount.
 
----
-
-## UC-10 — Collect a transfer over multiple turns
+## UC-10 -- Collect a transfer over multiple turns
 
 **When**
 
@@ -366,11 +347,8 @@ When the user replies:
 
 The workflow assigns the destination account and records the transfer.
 
----
-
 # Date Use Cases
-
-## UC-11 — Default the date to today
+## UC-11 -- Default the date to today
 
 **Goal:** Avoid asking for a date in the normal capture flow.
 
@@ -388,9 +366,7 @@ occurred_on: today
 
 Unless the user provides another date, `occurred_on` is considered populated and is excluded from `remaining_fields`.
 
----
-
-## UC-12 — Replace the default date
+## UC-12 -- Replace the default date
 
 **Given**
 
@@ -412,11 +388,8 @@ The workflow replaces the existing date with the resolved date for last Friday.
 
 It recomputes `remaining_fields` from the updated candidate.
 
----
-
 # Candidate Update Use Cases
-
-## UC-13 — Replace a previously captured field
+## UC-13 -- Replace a previously captured field
 
 **Given**
 
@@ -444,9 +417,7 @@ The workflow retains only the current field value.
 
 It does not retain field history, correction metadata, provenance, or confidence.
 
----
-
-## UC-14 — Change the transaction type before recording
+## UC-14 -- Change the transaction type before recording
 
 **Given**
 
@@ -476,9 +447,7 @@ Expense-specific fields such as `spending_category_id` are no longer relevant to
 
 The specification does not define whether irrelevant values must be physically removed from the candidate or merely ignored. This should be resolved as an implementation rule.
 
----
-
-## UC-15 — Preserve optional metadata
+## UC-15 -- Preserve optional metadata
 
 **When**
 
@@ -499,11 +468,8 @@ Optional metadata is preserved but does not affect `remaining_fields`.
 
 The absence of `description`, `merchant_name`, or `notes` must not block transaction creation.
 
----
-
 # Validation and Recovery Use Cases
-
-## UC-16 — Reject a zero amount
+## UC-16 -- Reject a zero amount
 
 **Given**
 
@@ -535,9 +501,7 @@ remaining_fields: [amount_minor]
 requested_field: amount_minor
 ```
 
----
-
-## UC-17 — Reject an unusable account
+## UC-17 -- Reject an unusable account
 
 **Given**
 
@@ -564,9 +528,7 @@ destination_account_id
 
 The workflow recomputes `remaining_fields` and requests a valid account.
 
----
-
-## UC-18 — Reject an incorrect expense category type
+## UC-18 -- Reject an incorrect expense category type
 
 **Given**
 
@@ -584,9 +546,7 @@ spending_category_id
 
 It asks the user to select a spending category.
 
----
-
-## UC-19 — Reject an incorrect income category type
+## UC-19 -- Reject an incorrect income category type
 
 **Given**
 
@@ -604,9 +564,7 @@ income_category_id
 
 It asks the user to select an income category.
 
----
-
-## UC-20 — Reject a transfer to the same account
+## UC-20 -- Reject a transfer to the same account
 
 **Given**
 
@@ -633,9 +591,7 @@ Clear destination_account_id and preserve source_account_id.
 
 This policy aligns with the stable capture order because the source is collected before the destination.
 
----
-
-## UC-21 — Reject a cross-currency transfer
+## UC-21 -- Reject a cross-currency transfer
 
 **Given**
 
@@ -652,9 +608,7 @@ The workflow clears an account field, recomputes the missing fields, and request
 
 The specification does not define which account field should be cleared. Preserving the source and clearing the destination would provide deterministic behavior.
 
----
-
-## UC-22 — Reject an invalid date
+## UC-22 -- Reject an invalid date
 
 **Given**
 
@@ -677,9 +631,7 @@ requested_field: occurred_on
 
 The workflow asks the user for another date.
 
----
-
-## UC-23 — Revalidate after correcting a field
+## UC-23 -- Revalidate after correcting a field
 
 **Given**
 
@@ -700,11 +652,8 @@ The workflow:
 
 Validation recovery may repeat until the candidate is valid.
 
----
-
 # Completion Use Cases
-
-## UC-24 — Record only after all required fields are populated
+## UC-24 -- Record only after all required fields are populated
 
 **Given**
 
@@ -724,9 +673,7 @@ remaining_fields is empty
 
 and candidate validation succeeds.
 
----
-
-## UC-25 — Generate postings only after candidate completion
+## UC-25 -- Generate postings only after candidate completion
 
 **Goal:** Keep conversational capture separate from ledger construction.
 
@@ -741,9 +688,7 @@ Postings are constructed only after:
 
 The conversation operates on transaction-shaped fields rather than signed ledger postings.
 
----
-
-## UC-26 — Close the session after successful creation
+## UC-26 -- Close the session after successful creation
 
 **Given**
 
@@ -760,10 +705,7 @@ The workflow:
 Example:
 
 > Recorded: $40 dinner expense from Cash for today.
-
----
-
-## UC-27 — Do not close the session when creation fails
+## UC-27 -- Do not close the session when creation fails
 
 **Given**
 
@@ -788,13 +730,11 @@ The specification does not define:
 
 A recommended baseline is to retain the candidate and keep the session active for retryable failures.
 
----
-
 # Boundary and Unsupported Use Cases
 
 The following scenarios are explicitly outside the first workflow design or lack defined behavior.
 
-## UC-B01 — Split expense
+## UC-B01 -- Split expense
 
 Example:
 
@@ -806,9 +746,7 @@ The workflow should not silently convert this into a single-category expense.
 
 A product-level response policy is required.
 
----
-
-## UC-B02 — Multi-currency transfer
+## UC-B02 -- Multi-currency transfer
 
 Example:
 
@@ -818,9 +756,7 @@ Multi-currency transfers are outside MVP scope.
 
 The workflow must not record the transfer using equal minor-unit amounts across currencies.
 
----
-
-## UC-B03 — Target-balance adjustment
+## UC-B03 -- Target-balance adjustment
 
 Example:
 
@@ -836,25 +772,21 @@ Supporting this request requires:
 
 This input form is deferred.
 
----
-
-## UC-B04 — Refund, void, or transaction editing
+## UC-B04 -- Refund, void, or transaction editing
 
 Examples:
 
-> Refund yesterday’s restaurant expense.
+> Refund yesterday's restaurant expense.
 
 > Delete the transaction I just added.
 
-> Change last week’s expense to $45.
+> Change last week's expense to $45.
 
 Refunds, voiding, editing, and post-completion corrections are outside this workflow.
 
 They should route to separate workflows rather than modifying a completed capture session.
 
----
-
-## UC-B05 — Confirmation before recording
+## UC-B05 -- Confirmation before recording
 
 Example:
 
@@ -864,13 +796,11 @@ Confirmation policy is outside the first workflow design.
 
 The current completion rule records a valid complete candidate immediately.
 
----
-
 # Unresolved Interaction Use Cases
 
 The specification does not define the expected behavior for these cases. They should be resolved before finalizing conversational acceptance tests.
 
-## UC-U01 — Cancel an active capture
+## UC-U01 -- Cancel an active capture
 
 Example:
 
@@ -882,9 +812,7 @@ Required decision:
 * Confirm cancellation or cancel immediately.
 * Decide whether any candidate state is retained.
 
----
-
-## UC-U02 — Start another transaction during active capture
+## UC-U02 -- Start another transaction during active capture
 
 Example:
 
@@ -902,15 +830,13 @@ Required decision:
 
 The current `CaptureSession` model implies one active candidate but does not state the interruption policy.
 
----
-
-## UC-U03 — Ambiguous account or category name
+## UC-U03 -- Ambiguous account or category name
 
 Example:
 
 > Cash
 
-when several accounts contain “Cash” in their names.
+when several accounts contain "Cash" in their names.
 
 Required decision:
 
@@ -920,9 +846,7 @@ Required decision:
 
 The specification requires valid referenced entities but does not define entity-resolution behavior.
 
----
-
-## UC-U04 — Unrecognized or unrelated answer
+## UC-U04 -- Unrecognized or unrelated answer
 
 Example:
 
@@ -937,9 +861,7 @@ Required decision:
 * Repeat the pending question.
 * Pause or cancel the session.
 
----
-
-## UC-U05 — Unsupported transaction type
+## UC-U05 -- Unsupported transaction type
 
 Example:
 
@@ -953,9 +875,7 @@ Required decision:
 
 The workflow supports only expense, income, transfer, and adjustment.
 
----
-
-## UC-U06 — Explicit negative expense, income, or transfer amount
+## UC-U06 -- Explicit negative expense, income, or transfer amount
 
 Example:
 
@@ -968,8 +888,6 @@ Required decision:
 * Reject the negative amount and request a positive magnitude.
 * Infer a different transaction type.
 * Treat the wording as a correction or refund request.
-
----
 
 # Recommended MVP Acceptance Suite
 

@@ -1,12 +1,15 @@
 # Message Router Contract
 
 Status: implemented MVP contract
+
 Last reviewed: 2026-08-07
 
 ## Decision
 
 Message routing selects new work only while a conversation is idle. Once a capability has an
+
 active task, ownership is sticky: every non-control message goes directly to that capability
+
 until it completes or is cancelled.
 
 This is the central control rule:
@@ -22,6 +25,7 @@ The rule uses each mechanism where it is strongest:
 - the control engine alone starts, continues, restarts, cancels, and publishes tasks.
 
 The router proposes a capability ID. It cannot execute a capability, mutate conversation state,
+
 switch an active task, extract transaction fields, construct commands, or perform a control.
 
 ## Responsibility boundaries
@@ -37,7 +41,9 @@ switch an active task, extract transaction fields, construct commands, or perfor
 | Turn coordinator and registries | Serialize conversation updates and commit successful request replays |
 
 Capability implementations remain an open registry. Turn inputs, route decisions, controller
+
 instructions, capability inputs, and capability results are closed unions dispatched
+
 exhaustively.
 
 ## Resolution algorithm
@@ -66,15 +72,19 @@ TurnSubmission
 ```
 
 Typed inputs bypass both textual-control recognition and message routing. Exact textual controls
+
 bypass the active capability and the router. Only an idle ordinary message reaches the router.
 
 The resolver chooses a route but executes nothing. The engine validates and executes the
+
 resulting instruction afterward.
 
 ## Message normalization and exact controls
 
 `MessageSubmission` accepts 1 to 4,000 characters after trimming surrounding whitespace. The
+
 trimmed content remains otherwise intact. In particular, case, punctuation, and internal
+
 spacing are preserved when the content is sent to a capability or the router.
 
 The exact-control recognizer uses a separate comparison-only normalization:
@@ -93,18 +103,25 @@ Supported phrases are:
 | Help | `help`, `what can you do` |
 
 `Cancel!` and `Never   mind.` are controls. `don't cancel`, `cancel my membership`, and `cancel
+
 and show my balance` are ordinary messages because the complete normalized message is not an
+
 exact phrase.
 
 Typed cancel and restart inputs carry an expected task ID and conversation version. Their guards
+
 are validated before execution. Textual cancel and restart are deliberately unguarded: they act
+
 on the task current at the time the serialized turn is processed. Help is unguarded in both
+
 forms.
 
 ## Active-task ownership
 
 When `conversation.current` exists, every non-control `MessageSubmission` becomes
+
 `ContinueCurrent(CapabilityMessage(content))`. The LLM router is not called and no capability
+
 profiles are consulted.
 
 This includes:
@@ -116,10 +133,13 @@ This includes:
 - compound text such as `cancel and show my balance`.
 
 Such a message cannot perform a global control or switch capabilities. It is still real
+
 capability input, however, and the active capability may update its reviewable state from it. To
+
 leave the workflow, the user must complete it or submit an exact or typed cancel/restart control.
 
 This design avoids reclassifying context-dependent workflow replies. The capability already has
+
 the private state needed to understand them; the idle router intentionally does not.
 
 ## Idle router input
@@ -131,7 +151,9 @@ the private state needed to understand them; the idle router intentionally does 
 3. every registered `CapabilityDefinition`.
 
 `LlmMessageRouter` sends the message alone as untrusted user content. Its trusted system prompt
+
 contains the routing policy, bounded recent-capability context, capability descriptions and
+
 routing profiles, the dynamic output schema, and compact retry feedback when needed.
 
 The router does not receive:
@@ -149,16 +171,23 @@ An active capability ID is absent because reaching the router proves that no tas
 ## Bounded recent-capability memory
 
 `Conversation.recent_capability_id` is internal control metadata. After a turn commits, the engine
+
 stores `outcome.capability_id` when the outcome is capability-associated; otherwise it preserves
+
 the previous value.
 
 Consequently, memory is updated after a committed capability start, continuation, completion, or
+
 restart. It is retained through help, clarification, unsupported input, no-op controls, and
+
 cancellation. A cancelled capability can therefore remain the recent capability after the
+
 conversation becomes idle.
 
 The value is not exposed in the public conversation projection and is read by the router only
+
 while idle. The prompt receives the recent capability's ID and description and marks the matching
+
 profile as recent.
 
 The model may use this identity for explicit reference-only requests such as:
@@ -169,12 +198,17 @@ The model may use this identity for explicit reference-only requests such as:
 - `check again`.
 
 For such a message, the router may return `StartRouteDecision(recent_capability_id)`. This starts
+
 the capability with the new message; it does not replay the previous message, restore capability
+
 state, reuse a previous draft, or repeat a domain side effect. Repeating wallet state produces a
+
 fresh deterministic snapshot. Repeating transaction capture starts a fresh capture and may need
+
 new details.
 
 Complete requests must be classified from their own content. Recent identity is not a general
+
 conversation-history bias.
 
 ## Capability routing metadata
@@ -192,7 +226,9 @@ Each profile has:
 - optional `counterexamples` describing boundaries owned elsewhere.
 
 The registry must be nonempty and rejects duplicate IDs. Registered capability IDs are the only
+
 routing ontology; there is no separate global intent enum. Expense, income, transfer, and balance
+
 adjustment are therefore examples owned by `transactions.capture`, not top-level route kinds.
 
 The current production registry contains:
@@ -203,7 +239,9 @@ The current production registry contains:
 | `wallet.current_state` | Show current active accounts and balances by currency |
 
 Profiles may contain boundary examples phrased as active-workflow answers. They are prompt
+
 metadata only: runtime ownership of an active message was already decided structurally before
+
 the router could be called.
 
 ## Closed route decisions
@@ -218,19 +256,25 @@ the router could be called.
 | `CompoundControlRouteDecision()` | A global control and domain request were combined | `Clarify("compound_instruction")` |
 
 There is no `ContinueRouteDecision`. Continuation is decided before routing from
+
 `conversation.current`.
 
 Clarification candidate IDs are internal diagnostic metadata. The tuple may be empty or contain
+
 one or more IDs, but every supplied ID must be registered and distinct. Candidate IDs are not
+
 published; the public outcome uses a generic clarification message.
 
 A start decision always creates new capability work. It cannot resume state or replace an active
+
 task because routing is unreachable while active.
 
 ## Model schema and application validation
 
 Each attempt makes one `StructuredChatModel.complete()` call. The output schema is built from the
+
 current registry and uses a closed `oneOf`; capability fields enumerate the registered IDs and
+
 every variant forbids additional properties.
 
 Before calling the model, the router checks that:
@@ -247,18 +291,23 @@ After parsing, application code validates again that:
 - no variant contains fields owned by another variant.
 
 Invalid JSON, malformed shapes, invented IDs, duplicated candidates, and context-inconsistent
+
 output receive one retry. Retry feedback describes the validation problem but never reproduces
+
 the raw model output. A second invalid response raises `MessageRoutingError`.
 
 Transport and structured-chat adapter failures are not retried by the router. They propagate to
+
 the control engine and become the existing safe `502` response.
 
 There is no keyword fallback, confidence threshold, shadow classifier, transcript lookup,
+
 embedding search, or partial route execution.
 
 ## Lifecycle and failure guarantees
 
 Routing occurs inside the conversation transition, before capability execution is committed.
+
 When routing or later processing fails:
 
 - no new conversation is inserted and no existing conversation is replaced;
@@ -268,9 +317,11 @@ When routing or later processing fails:
 - the API returns the safe conversation-processing `502` for model-related failures.
 
 Conversation updates are serialized per conversation. Successful request IDs are serialized
+
 globally and replay the stored response only when the request fingerprint matches.
 
 Because the router is unreachable while active, it cannot replace a task. Capability switching
+
 is intentionally unsupported.
 
 ## Privacy-safe observability
@@ -285,10 +336,13 @@ Successful routing emits `control.routing.completed` with:
 - duration.
 
 Exhausted model validation emits `control.routing.failed` with recent capability ID, attempt
+
 count, duration, and a stable error code. Transport telemetry is emitted by the structured-chat
+
 adapter.
 
 Routing events never contain message text, prompts, raw model output, capability-private state,
+
 Wallet catalogs, or domain data.
 
 ## Operational consequences
@@ -314,6 +368,7 @@ When adding a capability:
 4. verify active-task messages still bypass routing.
 
 When adding a route-decision variant, update the union, model schema, parser, validation,
+
 logging projections, resolver match, strict-mypy exhaustiveness checks, and tests together.
 
 The suite must continue to prove:
@@ -331,6 +386,7 @@ The suite must continue to prove:
   unsupported input, compound controls, and recent-capability references.
 
 The executable acceptance matrix lives in
+
 [`control-layer-testing.md`](control-layer-testing.md).
 
 ## Implementation anchors

@@ -1,14 +1,18 @@
 # Commit Message Conventions
-
 ## Purpose
+
 This file defines the preferred Conventional Commits style for this
+
 repository.
 
 ## When To Use
+
 Consult it before creating a commit, recommending a commit type, or reviewing
+
 whether a commit message matches repo conventions.
 
 ## Canonical Format
+
 Use the Conventional Commits structure:
 
 ```text
@@ -29,10 +33,13 @@ Use the Conventional Commits structure:
 Prefer lowercase `type` and lowercase `scope` for consistency.
 
 ## Approved Types
+
 The core Conventional Commits specification gives special SemVer meaning to
+
 `feat` and `fix`.
 
 This repository also explicitly allows the common Angular-style and
+
 `config-conventional` types:
 
 - `build`: changes that affect the build system or external dependencies
@@ -48,6 +55,7 @@ This repository also explicitly allows the common Angular-style and
 - `test`: test-only additions or test maintenance
 
 ## Scope Guidance
+
 Scopes are optional.
 
 Use a scope only when it adds concrete context, for example:
@@ -58,17 +66,20 @@ Use a scope only when it adds concrete context, for example:
 - `ci(github): run verification on pull requests`
 
 Prefer stable nouns such as `api`, `worker`, `eval`, `devex`, `docs`,
+
 `observability`, or `github`.
 
 Do not add a scope just to satisfy a rule.
 
 ## Breaking Changes
+
 Breaking changes may be marked in either standard Conventional Commits form:
 
 - `type(scope)!: description`
 - a `BREAKING CHANGE:` footer
 
 Use those markers when a commit introduces an incompatible API or contract
+
 change, even when the type is not `feat` or `fix`.
 
 Example:
@@ -80,6 +91,7 @@ BREAKING CHANGE: clients must read `state` instead of `status`
 ```
 
 ## Choosing The Type
+
 - Use `feat` when users or external integrations would observe a new capability
   or intended behavior change.
 - Use `fix` when the main point is restoring behavior that was wrong.
@@ -92,19 +104,23 @@ BREAKING CHANGE: clients must read `state` instead of `status`
   build system itself.
 - Use `ci` for CI pipeline or automation wiring changes.
 - Use `perf` when the change is primarily about performance improvement.
-- Use `revert` when the commit’s purpose is to revert an earlier change.
+- Use `revert` when the commit's purpose is to revert an earlier change.
 - Use `style` for formatting-only or presentation-only changes that do not
   change meaning or behavior.
 - Use `test` when the change is primarily new or updated tests.
 
 Only `feat` and `fix` have SemVer meaning in the core specification unless a
+
 commit also declares a breaking change.
 
 ## Boundary With Workstream Types
+
 Commit types and workstream types are related but not identical.
 
 Workstream taxonomy in `docs/harness/taxonomy/workstream-taxonomy.md`
+
 classifies the primary shape of an effort, such as `feature`, `defect`,
+
 `refactor`, or `operations-infrastructure`.
 
 The rough mapping is:
@@ -116,17 +132,23 @@ The rough mapping is:
   commits
 
 Workstream types classify efforts. Commit types classify individual git history
+
 entries. An `operations-infrastructure` workstream can still contain
+
 `chore(...)`, `build(...)`, and `ci(...)` commits.
 
 ## Legacy History Note
+
 Older history may contain unprefixed titles or non-canonical variants such as
+
 `dox:`.
 
 Treat those as legacy history, not as examples to copy forward. Prefer the
+
 approved types in this file for new commits.
 
 ## Examples
+
 - `feat: add swagger`
 - `fix: project compile`
 - `refactor: introduce settings management`

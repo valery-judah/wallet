@@ -1,9 +1,11 @@
 # Contribution Processing Research
 
 Status: historical research snapshot
+
 Current contract: [Transaction Interpretation Contract](../evergreen/transaction-interpretation-contract.md)
 
 This research predates the unified model-driven interpreter. Its extraction, grounding, and
+
 dialogue-state alternatives explain the design space but do not describe the current pipeline.
 
 Your problem fits **task-oriented language understanding**: convert conversational text into a typed, grounded, executable transaction candidate while maintaining state across turns.
@@ -57,7 +59,7 @@ That structure is useful, but still needs to be translated into wallet semantics
 
 ### NLU
 
-**Natural Language Understanding** usually refers to producing a task-oriented representation of the user’s meaning.
+**Natural Language Understanding** usually refers to producing a task-oriented representation of the user's meaning.
 
 A classic NLU representation is:
 
@@ -103,8 +105,6 @@ Or directly into your domain schema:
 Semantic parsing is conventionally defined as translating natural-language utterances into machine-readable meaning representations or executable logical forms. ([ACL Anthology][2])
 
 For your use case, semantic parsing is a useful conceptual model, but the parser should generally produce a **proposed interpretation**, rather than immediately modifying persistent transaction state.
-
----
 
 ## 2. The important distinction: extraction, normalization, and grounding
 
@@ -157,7 +157,7 @@ Resolve mentions against system data and runtime context:
 }
 ```
 
-“Daily card” is not a conventional named entity. It is a user-specific reference that must be linked to one of the user’s accounts.
+"Daily card" is not a conventional named entity. It is a user-specific reference that must be linked to one of the user's accounts.
 
 This means generic NER alone is insufficient. The more relevant tasks are:
 
@@ -167,10 +167,7 @@ This means generic NER alone is insufficient. The more relevant tasks are:
 * ontology grounding;
 * dialogue state tracking.
 
----
-
 ## 3. Common implementation approaches
-
 ### 3.1 Rules, patterns, and grammars
 
 This includes:
@@ -219,8 +216,6 @@ A rule may produce:
 
 Rules remain valuable inside a larger system, especially for normalization and validation.
 
----
-
 ### 3.2 Classical statistical NLP
 
 Historically, systems used:
@@ -258,8 +253,6 @@ This is commonly called **BIO** or **IOB sequence tagging**.
 * difficult to generalize to new slot types without retraining.
 
 This approach is still reasonable where model size, latency, or deployment constraints dominate.
-
----
 
 ### 3.3 Neural sequence models
 
@@ -303,8 +296,6 @@ Transformer models generally provide stronger contextual representations than tr
 * conversation context must be explicitly incorporated.
 
 This is often the strongest approach when the domain is stable and large quantities of representative training data are available.
-
----
 
 ### 3.4 Generative semantic parsing
 
@@ -356,8 +347,6 @@ The representation can be:
 
 Grammar-constrained decoding can guarantee that output follows a defined structural grammar, although structural validity alone does not guarantee semantic correctness. ([arXiv][3])
 
----
-
 ### 3.5 LLM-based structured extraction
 
 This is the contemporary variant of generative semantic parsing. An LLM receives:
@@ -405,8 +394,6 @@ The application must still perform:
 * authorization checks;
 * transaction-service validation.
 
----
-
 ### 3.6 Dialogue state tracking
 
 Single-message NLU is insufficient for your workflow:
@@ -416,7 +403,7 @@ System: Which account did you use?
 User: Cash
 ```
 
-“Cash” has little standalone meaning. It becomes `account_id` because the current dialogue state says:
+"Cash" has little standalone meaning. It becomes `account_id` because the current dialogue state says:
 
 ```text
 requested_field = account_id
@@ -440,8 +427,6 @@ The workflow document already specifies several DST behaviors:
 * values may be replaced;
 * short answers are interpreted using `requested_field`;
 * missing fields determine the next system action.
-
----
 
 ### 3.7 End-to-end task-oriented dialogue
 
@@ -469,11 +454,9 @@ This can combine NLU, state tracking, dialogue policy, and response generation i
 * failures cannot be easily attributed to extraction, grounding, state update, or policy;
 * training and evaluation are more complex.
 
-Task-oriented dialogue systems are commonly described either as modular pipelines—NLU, state tracking, policy, and generation—or as end-to-end architectures. ([ACL Anthology][6])
+Task-oriented dialogue systems are commonly described either as modular pipelines--NLU, state tracking, policy, and generation--or as end-to-end architectures. ([ACL Anthology][6])
 
 For financial transaction capture, a fully end-to-end executable architecture would usually provide insufficient control.
-
----
 
 ## 4. A phased architecture for the wallet
 
@@ -539,10 +522,10 @@ This phase should preserve the source text. It should avoid committing to accoun
 
 This layer interprets:
 
-* “move” as a transfer;
-* “from” as the source role;
-* “to” as the destination role;
-* “fifty” as a monetary magnitude.
+* "move" as a transfer;
+* "from" as the source role;
+* "to" as the destination role;
+* "fifty" as a monetary magnitude.
 
 ### Phase 3: Ground against system context
 
@@ -636,8 +619,6 @@ else:
 
 This is dialogue policy, even when implemented as deterministic application logic.
 
----
-
 ## 5. A useful intermediate representation
 
 The current candidate stores only the accepted field values. The workflow explicitly excludes confidence, provenance, explicit-versus-inferred status, previous values, and correction metadata.
@@ -692,8 +673,6 @@ Candidate      = values currently accepted by the workflow
 Transaction    = validated domain object created by the service
 ```
 
----
-
 ## 6. Wallet entity categories
 
 For your schema, I would classify values into four groups.
@@ -732,7 +711,7 @@ spending_category_id
 income_category_id
 ```
 
-Use mention extraction followed by entity linking against the user’s accessible records.
+Use mention extraction followed by entity linking against the user's accessible records.
 
 ### Free-text values
 
@@ -747,8 +726,6 @@ notes
 Use span extraction or generative extraction, with length and content constraints.
 
 The distinction matters because each type needs a different evaluation and acceptance policy.
-
----
 
 ## 7. Recommended implementation family
 
@@ -796,8 +773,6 @@ The semantic model handles the broader language:
 "My cash balance should go up by fifty"
 ```
 
----
-
 ## 8. Evaluation should be layered
 
 A single end-to-end success metric will make diagnosis difficult.
@@ -833,8 +808,19 @@ NLP extraction
 This gives you a modular path from existing NLU techniques to the `TransactionCandidate` and `CaptureSession` abstractions already defined in your workflow.
 
 [1]: https://aclanthology.org/2020.coling-main.42/?utm_source=chatgpt.com "Recent Neural Methods on Slot Filling and Intent Classification for Task-Oriented Dialogue Systems: A Survey - ACL Anthology"
+
 [2]: https://aclanthology.org/N19-2003/?utm_source=chatgpt.com "Practical Semantic Parsing for Spoken Language Understanding - ACL Anthology"
+
 [3]: https://arxiv.org/abs/2305.13971?utm_source=chatgpt.com "Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning"
-[4]: https://arxiv.org/abs/2312.17617?utm_source=chatgpt.com "Large Language Models for Generative Information Extraction: A Survey"
-[5]: https://aclanthology.org/2022.sigdial-1.33/?utm_source=chatgpt.com "“Do you follow me?”: A Survey of Recent Approaches in Dialogue State Tracking - ACL Anthology"
+
+[4]: https://arxiv.org/abs/2312.17617?utm_source=chatgpt.com "Large Language Models for Generative Information Extraction: A Survey" ([[xu-2024-llms-generative-information-extraction-survey.pdf|PDF]])
+
+[5]: https://aclanthology.org/2022.sigdial-1.33/?utm_source=chatgpt.com ""Do you follow me?": A Survey of Recent Approaches in Dialogue State Tracking - ACL Anthology"
+
 [6]: https://aclanthology.org/anthology-files/anthology-files/pdf/emnlp/2023.emnlp-main.363.pdf?utm_source=chatgpt.com "End-to-end Task-oriented Dialogue: A Survey of ..."
+
+## Library sources
+
+- [[jurafsky-2025-speech-and-language-processing-3e-draft.pdf|Jurafsky and Martin 2025]], *Speech and Language Processing, 3rd Edition*
+- [[jurafsky-2026-slp3-appendix-k-frame-based-dialogue.pdf|Jurafsky and Martin 2026]], *SLP3 Appendix K: Frame-Based Dialogue Systems*
+- [[lee-2025-nlp-textbook-with-python.pdf|Lee 2025]], *Natural Language Processing* ([doi:10.1007/978-981-96-3208-4](https://doi.org/10.1007/978-981-96-3208-4))
