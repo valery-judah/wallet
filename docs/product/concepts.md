@@ -1,137 +1,121 @@
 # Wallet Concepts
 
-## Core Vocabulary
+Status: canonical financial product vocabulary
 
-Use these terms consistently in product copy, docs, and domain naming.
+## Purpose and Authority
 
-| Concept | Preferred term | Meaning |
-| --- | --- | --- |
-| Place where money lives | `Account` | Any place the user keeps or spends money from |
-| Manual source | `Manual account` | User-managed account without bank sync |
-| Synced source | `Connected account` | Reserved for future bank-connected flows |
-| General money movement | `Transaction` | Umbrella term for a recorded movement |
-| Outgoing user spending | `Expense` | Spending that should count as spending |
-| Incoming money | `Income` | Money entering the user’s finances |
-| Own-account movement | `Transfer` | Money moved between two user-owned accounts |
-| Explicit correction | `Balance adjustment` | Manual correction recorded as a ledger transaction |
-| Expense classification bucket | `Spending category` | A two-level category used to classify expenses |
-| Income classification bucket | `Income category` | A two-level category used to classify income |
-| Missing expense category | `Uncategorized` | UI label for spending with no category assigned |
-| Conversational context | `Conversation` | Server-created continuity holder returned after the first accepted turn |
-| Current unit of work | `Active task` | One opaque running task inside a conversation; absent while the conversation is idle |
-| Internal task implementation | `Capability` | Statically registered handler selected while idle and given every non-control message while active |
-| Semantic ownership decision | `Route decision` | Closed model result proposing which registered capability should start for one idle message |
-| Bounded conversational routing hint | `Routing memory` | Identity from the most recent committed capability-associated outcome, retained through later non-capability outcomes; supports explicit references without storing transcript text or domain state |
-| One caller interaction | `Turn` | Globally identified input submitted for a new or existing conversation |
-| Natural-language draft change | `Transaction interpretation` | Structured model proposal that updates a reviewable capture candidate without executing it |
-| Reviewable transaction state | `Transaction draft` | Capture candidate assembled from interpreted contributions and validated before confirmation |
-| Current financial snapshot | `Wallet state` | Read-only active-account balances with totals kept separate by currency |
+This document defines the preferred terms and stable financial distinctions used in Wallet
+product work. Use it to keep product framing, specifications, designs, evaluations, product copy,
+and domain naming aligned.
 
-## Domain Concepts
+The related documents have different responsibilities:
+
+- [Wallet Product Frame](wallet-frame.md) defines the underlying user situation, jobs, needs,
+  outcomes, and product principles.
+- [Wallet AI Concepts](ai-concepts.md) defines assistant-facing and AI control-layer vocabulary.
+- [Wallet MVP Spec](spec.md) defines the behavior and constraints supported by the current product
+  slice.
+- The contracts in `docs/evergreen/` define implementation mechanics.
+
+Concepts in this document describe what something means. They do not imply that every possible
+operation on that concept is supported in the current MVP.
+
+## Wallet and Financial Concepts
+
+### Wallet
+
+**Wallet** is the personal money record maintained in the product. It brings together the user's
+recorded accounts, balances, transactions, and classifications.
+
+Wallet represents what has been recorded in the product. It is not automatically a complete view
+of the user's finances or a substitute for an account provider's records.
+
+Use **Wallet** for the product and the complete record. Use **digital wallet** for an account type
+such as Mercado Pago, PayPal, or Wise.
 
 ### Account
 
-The primary product entity is `Account`.
+An **account** is any place the user keeps money or spends money from.
 
-Definition:
+Examples include:
 
-> An account is any place you keep or spend money from.
+- a debit or prepaid card;
+- a credit card;
+- physical cash;
+- a bank account;
+- a digital wallet; and
+- a payout or stored-value balance.
 
-Examples:
+Account is the top-level concept. A card, cash holding, bank account, or digital wallet is a kind
+of account, not a separate top-level entity.
 
-- Main card
-- Cash wallet
-- Bank account
-- Savings fund
-- Mercado Pago balance
-- Payoneer balance
+#### Manual account
 
-### Account Type
+A **manual account** is maintained by the user without bank synchronization. Manual does not mean
+incomplete or temporary; it is a complete way to use Wallet.
 
-Account type is a category on the account itself, not a separate relation.
+#### Account type
 
-For example:
+An **account type** describes what kind of place an account represents. The current product
+vocabulary is:
 
-- A debit card is `Account(type="debit_card")`
-- A credit card is `Account(type="credit_card")`
-- A cash wallet is `Account(type="cash")`
-- A bank balance is `Account(type="bank_account")`
+| Preferred term | Current identifier | Meaning |
+| --- | --- | --- |
+| Debit card | `debit_card` | A debit or prepaid card balance |
+| Credit card | `credit_card` | A credit-card account and its liability |
+| Cash | `cash` | Physical money held in one currency |
+| Bank account | `bank_account` | A checking, current, or similar bank balance |
+| Digital wallet | `wallet` | A digital wallet, payout balance, or stored-value service |
 
-The MVP account type set is:
+The [MVP specification](spec.md#mvp-account-types) is authoritative for which types the current
+product supports.
 
-- `debit_card`
-- `credit_card`
-- `cash`
-- `bank_account`
-- `wallet`
+### Account lifecycle
+
+An **active account** is an account currently in use and available for new transactions.
+
+An **archived account** is no longer available for new transactions but remains in Wallet so its
+identity, balances, and transaction history continue to make sense. Archiving is not deletion.
+
+The specification defines the currently supported lifecycle operations and where archived
+accounts appear.
 
 ### Balance
 
-The current product model derives the visible balance from account postings.
+A **balance** is the amount currently recorded for one account in that account's currency. It is
+derived from the account's posted transaction history rather than maintained as an unrelated
+number.
 
-Rules:
-
-- Balance is expressed as money in minor units plus currency code.
-- One account has one currency.
-- Multi-currency ownership is modeled as multiple accounts.
-- User-facing balances come from summing posted account postings.
-- Hidden system-equity accounts may exist internally and are excluded from
-  user-facing account views.
-
-### Lifecycle
-
-Accounts have lifecycle status:
-
-- `active`
-- `archived`
-
-Archived accounts stay visible but no longer accept new transactions.
+One account has one currency. Amounts in different currencies remain separate unless Wallet has an
+explicit exchange model. A combined number without such a model is not a Wallet balance.
 
 ### Transaction
 
-A transaction is the top-level record of one money movement.
+A **transaction** is a recorded event that explains why money entered, left, moved within, or was
+corrected in Wallet. Transaction is the umbrella term; its type preserves the event's meaning.
 
-The current MVP supports:
+The current transaction vocabulary is:
 
-- `expense`
-- `income`
-- `transfer`
-- `adjustment`
+| Preferred term | Current identifier | Meaning |
+| --- | --- | --- |
+| Expense | `expense` | Spending that leaves the user's finances and counts as spending |
+| Income | `income` | Money entering the user's finances from an outside source |
+| Transfer | `transfer` | Money moving between two accounts owned by the user |
+| Balance adjustment | `adjustment` | An explicit correction that brings a recorded account balance in line with reality |
 
-Rules:
+An expense is not a transfer merely because money leaves one account. A transfer does not count as
+spending or income because the money remains within the user's own accounts.
 
-- Transactions are created as `posted` only in this phase.
-- `pending` and `void` exist as reserved status values, but there are no
-  lifecycle operations for them yet.
-- Expense transactions may split one negative account posting across one or
-  more positive spending-category postings.
+A balance adjustment records the fact that a correction occurred. It does not silently rewrite an
+opening balance or an earlier transaction, and it should not be described as a known expense or
+income when the cause is unknown.
 
-### Posting
+The [MVP specification](spec.md#transaction-model) defines the transaction shapes and validations
+currently supported.
 
-A posting is one balanced leg of a transaction.
+### Classification
 
-Rules:
-
-- A posting targets exactly one account or one category.
-- Transaction postings must sum to zero.
-- All postings in one normal transaction use the same currency.
-- Transfers use account postings only.
-- Expenses use one negative account posting and one or more positive
-  spending-category postings.
-- Income uses one positive account posting and one negative income-category
-  posting.
-- Adjustments persist as one user-account posting plus one hidden
-  system-equity posting.
-
-### Spending Category
-
-A spending category classifies expense-like activity.
-
-The current product slice supports:
-
-- A maximum depth of two levels
-- Top-level categories and child categories
-- Create and update only for now
+A **spending category** classifies an expense. Spending categories form their own category family.
 
 Examples:
 
@@ -139,18 +123,8 @@ Examples:
 - `Transport > Fuel`
 - `Health > Pharmacy`
 
-`Uncategorized` is presentation language only. It should not be modeled as a
-real category entity.
-
-### Income Category
-
-An income category classifies real income activity.
-
-The current product slice supports:
-
-- A maximum depth of two levels
-- Top-level categories and child categories
-- Create and update only for now
+An **income category** classifies income. Income categories form a separate category family because
+income and spending answer different questions.
 
 Examples:
 
@@ -158,5 +132,40 @@ Examples:
 - `Investments > Dividends`
 - `Business > Contracts`
 
-`IncomeCategory` is separate from `SpendingCategory`. Income is not modeled as a
-kind on the spending-category entity.
+**Uncategorized** is the user-facing label for an expense or income record without a selected
+category. It is a presentation state, not a real category entity.
+
+The specification defines the supported category depth and maintenance operations.
+
+## Naming and Distinction Rules
+
+Use these distinctions consistently in product copy, design, evaluation, and product-facing
+documentation.
+
+| Use | Avoid | Reason |
+| --- | --- | --- |
+| Account as the top-level place where money is kept or spent from | Treating cards or digital wallets as separate top-level entities | They are account types |
+| Wallet for the product record; digital wallet for an account type | Calling a digital-wallet account “Wallet” without context | The terms refer to different levels |
+| Expense for spending | Withdrawal as a synonym for every outgoing amount | An outgoing amount may instead be a transfer or adjustment |
+| Transfer for movement between the user's own accounts | Counting a transfer as expense or income | Ownership of the money has not changed |
+| Balance adjustment for an explicit correction | Describing a correction as silently setting or rewriting history | The correction remains a recorded event |
+| Spending category and income category | One undifferentiated category family | Spending and income answer different questions |
+
+## Internal Ledger Vocabulary
+
+**Posting** is the internal term for one balanced ledger leg targeting an account or category. It
+is useful in API and engineering work but is not preferred user-facing language. The
+[MVP specification](spec.md#transaction-model) defines current posting rules.
+
+## Reserved Product Language
+
+These terms are recognized for future product work but are not promises of current support:
+
+| Reserved term | Intended meaning |
+| --- | --- |
+| Connected account | An account whose records are synchronized from a financial provider |
+| Pending transaction | A transaction represented before it becomes posted financial history |
+| Void transaction | A transaction explicitly invalidated through a supported lifecycle operation |
+
+The specification is authoritative about whether any reserved concept has entered the supported
+product scope. Do not present a reserved term as available behavior until that change is specified.

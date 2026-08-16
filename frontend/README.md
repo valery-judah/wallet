@@ -1,11 +1,7 @@
 # Wallet Frontend
 
 This workspace contains the wallet UI that consumes the FastAPI backend through
-the generated OpenAPI client. The current slice covers three user flows:
-- list accounts
-- create a new account
-- open an account and review ledger-backed transactions
-- record a withdrawal-style expense transaction
+the generated OpenAPI client.
 
 ## Requirements
 - Docker with Compose support
@@ -16,35 +12,35 @@ the generated OpenAPI client. The current slice covers three user flows:
 From the repo root:
 
 ```bash
-make verify
-make run-backend
-make gen-openapi
-make frontend-generate-client
+make backend-run      # terminal 1
+make frontend-run     # terminal 2
+make api-client       # after an API change
 make frontend-type
 make frontend-test
-make run-frontend
 ```
 
-This writes the generated TypeScript client into `src/client/` and keeps both
-`node_modules` and the Bun package cache inside Docker-managed volumes. The dev
-server runs on [http://localhost:5173](http://localhost:5173). `make verify`
-from the repo root now includes frontend TypeScript validation in addition to
-the backend verification suite.
+`make api-client` writes the generated TypeScript client into `src/client/`. `node_modules` and
+the Bun package cache live in Docker volumes. The dev server runs on
+[http://localhost:5173](http://localhost:5173). `make verify` runs the backend checks and the
+frontend type check.
 
 Optional full-stack Compose mode:
 
 ```bash
-make run-stack
+make stack-up
 ```
 
-That starts both the backend and the frontend in containers. The host-`uv`
-backend flow above remains the primary developer workflow.
+That starts the seeded backend and the frontend in containers and returns once they run. Use
+`make stack-status`, `make stack-logs`, and `make stack-down` to check and stop them. The host
+backend flow above is the main developer workflow.
 
 ## Routes
 - `/accounts` lists accounts and links to the create flow or a selected account
 - `/accounts/new` creates an account using the backend contract directly
 - `/accounts/$accountId` shows the selected account and lists recent activity
+- `/categories` manages categories
 - `/transactions` records expense transactions through a withdraw-oriented flow
+- `/assistant` opens Wallet Assistant
 
 ## Bun Container
 The Bun tooling and dev-server containers are defined in
@@ -60,7 +56,7 @@ same frontend image and volumes, but also starts the backend container on
 For ad hoc commands, use:
 
 ```bash
-make frontend-bun CMD="run <script>"
+make frontend-bun ARGS='run <script>'
 ```
 
 Useful commands:
@@ -69,7 +65,7 @@ Useful commands:
 make frontend-build
 make frontend-type
 make frontend-test
-make run-frontend
+make frontend-run
 ```
 
 ## API Base URL

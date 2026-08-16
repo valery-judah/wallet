@@ -1,17 +1,23 @@
 # Control Layer and Capability System Test Design
 
 Status: implemented MVP test baseline
+
 Date: 2026-08-06
+
 Scope: conversation control, `transactions.capture`, and `wallet.current_state`
 
 ## Purpose
 
 This document defines how Wallet proves that one public turn is resolved, executed, and
+
 published safely across the HTTP adapter, controller, engine, coordination, capability, and
+
 Wallet application boundaries. It is the acceptance-test matrix for the implemented
+
 control-layer MVP.
 
 The suite must prove observable behavior and safety properties. It must not merely assert
+
 private method calls while leaving the public conversation or ledger result unverified.
 
 ## Test topology
@@ -24,25 +30,28 @@ The test pyramid has six deliberate layers:
 | Engine | Resolution, guards, lifecycle, versioning, projection, and opaque state handling | `make test-control` |
 | Coordination/controller | Replay, rollback, locks, atomic publication, validation order, and delegation | `make test-control` |
 | In-process system API | Public schema, status, real composition, cross-workflow behavior, and ledger effects | `make test-control` |
-| Real-model smoke | Ollama routing and unified transaction interpretation with real HTTP and seeded Wallet data | `make check-capture-smoke` |
-| Router-model smoke | Focused real-Ollama idle-ownership corpus | `make check-router-smoke` |
+| Real-model smoke | Ollama routing and unified transaction interpretation with real HTTP and seeded Wallet data | `make smoke-capture` |
+| Router-model smoke | Focused real-Ollama idle-ownership corpus | `make smoke-router` |
 
 `make verify` remains the required repository gate and includes every deterministic test.
+
 The real-model smoke is an explicit operator gate because it requires local Ollama and is
+
 expected to be slower and model-sensitive.
 
 ## Deterministic data profiles
 
 Each system test owns a fresh application container. Tests must not depend on order, another
+
 test's records, wall-clock sample IDs, or a backend left running by a developer.
 
-### D0 — Empty wallet
+### D0 -- Empty wallet
 
 - Default category trees only.
 - No user accounts or transactions.
 - Used for idle conversations, unsupported input, schema failures, and empty wallet state.
 
-### D1 — Explicit wallet-state ledger
+### D1 -- Explicit wallet-state ledger
 
 Seed through public APIs:
 
@@ -61,7 +70,7 @@ Expected oracle:
 - totals are `33750` USD and `7000` ARS;
 - querying state creates no transaction.
 
-### D2 — Controlled capture wallet
+### D2 -- Controlled capture wallet
 
 - Repository sample accounts and categories provide stable authoritative references.
 - A deterministic contribution processor returns explicit candidate patches or failures.
@@ -70,7 +79,7 @@ Expected oracle:
   did not invoke transaction interpretation.
 - No model or network call is permitted in deterministic CI tests.
 
-### D3 — Real-model capture wallet
+### D3 -- Real-model capture wallet
 
 - The documented sample dataset is loaded into a managed single-process backend.
 - Ollama uses the configured model.
@@ -175,6 +184,7 @@ Minimum false-control corpus:
 | CC-06 | Shared handler across conversations | No per-conversation handler state leaks | controller concurrency test |
 
 These tests intentionally prove process-local locking only. Multi-worker coordination is out
+
 of scope and must not be inferred from this matrix.
 
 ## Transaction capture workflow matrix
@@ -222,17 +232,20 @@ Public bodies and smoke output must not contain:
 - exception stack text or transport details.
 
 Deterministic API tests inspect successful and failed serialized responses. Interpretation and
+
 processing tests separately prove that only safe labels, account currencies, and per-call opaque
+
 keys reach model prompts and public projections.
 
 ## Chat UI acceptance matrix
 
 Run these cases in order at `http://localhost:5173/assistant` against the seeded stack. Start
+
 a new chat where noted and correlate each turn with one `trace_id` in the backend event stream.
 
 | ID | UI input or action | Visible oracle | Log oracle |
 | --- | --- | --- | --- |
-| UI-01 | New chat: `show balance` | Wallet balance card; no active task | `start` → `wallet.current_state`; one Ollama call; `state_shown` |
+| UI-01 | New chat: `show balance` | Wallet balance card; no active task | `start` -> `wallet.current_state`; one Ollama call; `state_shown` |
 | UI-02 | New chat: `I need to do something with my balance` | Friendly task clarification | `clarify` with both capability candidates; one Ollama call |
 | UI-03 | New chat: `cancel my gym membership` | Unsupported message; no task | `unsupported`; one Ollama call; no control instruction |
 | UI-04 | New chat: `cancel and show my balance` | Request to split the control and domain work | `compound_control`; one Ollama call; no partial execution |
@@ -241,10 +254,12 @@ a new chat where noted and correlate each turn with one `trace_id` in the backen
 | UI-07 | While UI-05 is active: `actually 750` | Preview changes to ARS 750 | direct `ContinueCurrent`; one interpretation call; no routing call |
 | UI-08 | Help, Restart, and Cancel buttons | Matching lifecycle response; task preserved/reset/cleared | Typed control input; no routing or Ollama event |
 | UI-09 | Complete expense, then Confirm | Recorded response; task completes; withdrawal appears on Transactions page | Confirm is typed task action; no routing/Ollama event; exactly one balanced transaction |
-| UI-10 | After UI-01: `one more time` | Wallet balance card is shown again; no active task | `start` → recent `wallet.current_state`; one Ollama call; `state_shown` |
+| UI-10 | After UI-01: `one more time` | Wallet balance card is shown again; no active task | `start` -> recent `wallet.current_state`; one Ollama call; `state_shown` |
 
 The matrix verifies the user-visible projection and the architectural boundary together. A
+
 correct-looking response is not sufficient when the log path contradicts it, and a correct
+
 route event is not sufficient when the UI loses the active task or exposes stale actions.
 
 ## Commands and acceptance gates
@@ -264,12 +279,14 @@ make verify
 Model-dependent acceptance when Ollama is available:
 
 ```bash
-make check-router-smoke
-make check-capture-smoke
+make smoke-router
+make smoke-capture
 ```
 
 A control-layer change is accepted only when deterministic tests pass, changed public schemas
+
 are regenerated and checked when applicable, the test matrix remains accurate, and any
+
 model-facing behavior change passes the real-model smoke suite.
 
 ## Extension rule

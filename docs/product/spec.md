@@ -1,5 +1,9 @@
 # Wallet MVP Spec
 
+Product intent, the primary job, user needs, desired outcomes, and evaluation anchors are defined
+in [Wallet Product Frame](wallet-frame.md). This specification defines the current MVP scope and
+supported behavior.
+
 ## Product Scope
 
 Wallet tracks the places where a user keeps or spends money from.
@@ -126,6 +130,11 @@ Reserved future concepts:
 - Pending and void transaction workflows
 
 ## Conversational Control and Capabilities
+
+The product role, user needs, authority model, principles, and evaluation anchors for AI are
+defined in [Wallet AI Capabilities Frame](ai-capabilities-frame.md). Shared assistant and
+control-layer terminology is defined in [Wallet AI Concepts](ai-concepts.md). This section defines
+the current MVP behavior.
 
 The MVP exposes one process-local conversation control layer. A caller submits every input to
 `POST /api/v1/turns`. Omitting `conversation_id` creates and processes a conversation atomically;

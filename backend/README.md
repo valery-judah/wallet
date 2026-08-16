@@ -7,38 +7,18 @@ Python backend package for the Wallet product.
 - `uv`
 
 ## Working here
-From `backend/`:
+Run commands from the repository root with Make. `make help` lists them all:
 
 ```bash
-uv sync --group dev
-uv run poe serve
-uv run poe smoke
-uv run poe smoke-managed
-uv run poe export-openapi
-uv run poe verify
+make backend-run          # backend on http://localhost:8000 with reload
+make verify-backend       # format check, lint, types, and tests
+make test ARGS='-k <expr>'
+make api-schema           # export the OpenAPI schema
+make smoke-api-managed    # HTTP smoke scenarios against a temporary backend
+make stack-up             # seeded backend and frontend in Docker
 ```
 
-From the repo root, the equivalent Poe commands are:
-
-```bash
-make run-backend
-make gen-openapi
-make check-smoke
-make check-smoke-managed
-uv --directory backend run poe serve
-uv --directory backend run poe smoke
-uv --directory backend run poe smoke-managed
-uv --directory backend run poe export-openapi
-uv --directory backend run poe verify
-```
-
-`make run-backend` is the preferred root-level convenience command for running the backend locally with reload. Direct Poe commands remain available when you want the backend task layer.
-
-For an optional all-container local stack, return to the repo root and run:
-
-```bash
-make run-stack
-```
+Make calls the Poe tasks in `poe_tasks.toml`. `uv run poe --help` lists them from `backend/`.
 
 ## Layout
 ```text
@@ -56,8 +36,13 @@ WALLET_ENVIRONMENT
 WALLET_DEBUG
 WALLET_API_V1_PREFIX
 WALLET_FRONTEND_HOST
+WALLET_LOG_LEVEL
 WALLET_BACKEND_CORS_ORIGINS
 WALLET_SEED_SAMPLE_DATA
+WALLET_OLLAMA_BASE_URL
+WALLET_OLLAMA_MODEL
+WALLET_OLLAMA_TIMEOUT_SECONDS
+WALLET_OLLAMA_CONTEXT_LENGTH
 ```
 
 `WALLET_FRONTEND_HOST` is always included in the allowed CORS origins
@@ -66,37 +51,27 @@ twin for the same port is also allowed automatically, so the default local UI
 works at both `http://localhost:5173` and `http://127.0.0.1:5173`.
 
 Use `WALLET_BACKEND_CORS_ORIGINS` only for explicit extra origins such as Vite
-preview or a staging frontend domain. The `export-openapi` task writes to
+preview or a staging frontend domain. `make api-schema` writes to
 `frontend/openapi.json` when a `frontend/` directory exists, otherwise it falls
 back to repo-root `openapi.json`.
 
 The optional Docker Compose workflow also reads the repo-root `.env` file and
-publishes the backend on `http://localhost:8000`. `make run-stack` enables
-`WALLET_SEED_SAMPLE_DATA=true` for the backend service, while `make run-backend`
+publishes the backend on `http://localhost:8000`. `make stack-up` enables
+`WALLET_SEED_SAMPLE_DATA=true` for the backend service, while `make backend-run`
 keeps the backend empty by default unless the env var is set explicitly.
 
-You can also build and print the demo dataset directly with:
-
-```bash
-uv --directory backend run poe seed-sample-data
-```
-
-With the current repo layout, the canonical flow is:
-
-```bash
-cd ..
-make gen-client
-```
+Build and print the demo dataset with `make backend-seed`. Regenerate the frontend client after
+an API change with `make api-client`.
 
 ## Manual smoke
 Use the smoke harness when you want a real HTTP sanity check instead of the
 automated test suite:
 
 ```bash
-make check-smoke
-make check-smoke-managed
+make smoke-api
+make smoke-api-managed
 ```
 
 - `smoke` expects a backend already running at `http://127.0.0.1:8000`
 - `smoke-managed` starts a temporary backend at `http://127.0.0.1:8010`
-- `uv run poe verify` remains the automated test suite
+- `make verify-backend` is the automated test suite

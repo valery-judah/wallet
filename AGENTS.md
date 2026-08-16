@@ -1,26 +1,40 @@
+# Agent Contract
+
+Wallet is a money tracking app that shows what money moved, from where, to where, and why. The
+Python backend is in `backend/` and the React frontend is in `frontend/`. A chat assistant records
+expenses, income, and transfers with a local Ollama model.
 
 ## Canonical sources
-- `docs/evergreen/runbook.md` - local commands and operation
-- `docs/product/spec.md` - current product base
-- `docs/product/concepts.md` - product vocabulary and concepts
+
+### Repository and infrastructure
+- `README.md` - project overview and quick start
 - `docs/README.md` - docs index
+- `docs/evergreen/runbook.md` - commands, local development modes, and operating procedures
+- `backend/README.md` - backend layout and configuration
+- `frontend/README.md` - frontend layout, routes, and the Bun container
 
-`docs/evergreen/` is canonical when present. `docs/delivery/` is reference-only. `docs/workstreams/` is history-only.
+### Product and architecture
+- `docs/product/wallet-frame.md` - product intent, jobs, user needs, and evaluation anchors
+- `docs/product/ai-capabilities-frame.md` - AI capability jobs, boundaries, and evaluation anchors
+- `docs/product/spec.md` - current product base
+- `docs/product/concepts.md` - core Wallet domain language
+- `docs/product/assistant-concepts.md` - Assistant supporting-context language
+- `docs/evergreen/message-router-contract.md` - LLM routing boundary and lifecycle rules
+- `docs/evergreen/transaction-interpretation-contract.md` - transaction interpretation and confirmation boundary
+- `docs/evergreen/control-layer-testing.md` - control-layer and capability test matrix
 
-The product base is currently being built in `docs/product/spec.md` and `docs/product/concepts.md`.
+`docs/evergreen/` is canonical and wins when sources disagree. `docs/product/` holds product work in progress. `docs/workstreams/` and `docs/product/archive/` are history only.
 
 ## Commands
-- Use `uv` as the Python command entrypoint for this repo.
-- From the repo root, prefer `make` for the standard workflow surface such as setup, run, generation, verification, and Docker-based flows.
-- Use `uv --directory backend run poe <task>` for direct backend task access from the repo root; from inside `backend/`, use `uv run poe <task>`.
-- Otherwise use `uv run <tool>` or `uv --directory backend run <tool>`, depending on which project owns the command.
-- Do not use `pip`, `python -m pip`, `poetry`, `pipenv`, `npm`, or `npx` for repo workflows.
-- For the full command catalog and operational guidance, use [`docs/evergreen/runbook.md`](docs/evergreen/runbook.md).
-- To inspect the current command surface directly, use `make help` and `uv --directory backend run poe --help`.
+- Use `make <target>` for repository workflows and `make help` for the current catalog. Pass extra arguments with `ARGS='...'`.
+- Make calls Poe for backend tasks and runs Bun in Docker for frontend tasks. If no target exists, use `uv --directory backend run <tool>`.
+- Do not use `pip`, `python -m pip`, `poetry`, `pipenv`, `npm`, `npx`, or a host `bun`.
+- `backend-run` and `frontend-run` stay in the foreground. To run the app and get the shell back, use `make stack-up`, then `make stack-status`, `make stack-logs`, and `make stack-down`.
 
 ## Validation
-- Docs-only change: no mandatory validation; run targeted checks only if docs affect commands or generated artifacts.
-- Code change: `make verify`
+- Code change: `make verify`.
+- Assistant routing or capture change: also run `make smoke-router` or `make smoke-capture`. They need Ollama running locally.
+- Docs-only change: check that the commands and links you changed exist.
 
-## Development Practices
-- Save any temporary, exploratory, or developer-experience (devex) scripts into the `backend/scripts/devex/` directory.
+## Scratch scripts
+- Put temporary, exploratory, and devex scripts in `backend/scripts/devex/`.
